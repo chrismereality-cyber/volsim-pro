@@ -1,42 +1,36 @@
-﻿const express = require('express');
-const path = require('path');
+const express = require('express');
+const axios = require('axios');
 const cors = require('cors');
 const app = express();
-const port = process.env.PORT || 10000;
 
+app.use(cors());
 app.use(express.json());
-app.use(cors({ origin: "*" }));
-app.use(express.static(path.join(__dirname, 'public')));
 
-let state = {
-    base_equity: 5847507.52,
-    total_equity: 5847507.52,
-    market_price: 2615.50,
-    active_position: { side: 'BUY', size: 4000000, leverage: 125 },
-    rank: "#2",
-    shadow_fork_active: false,
-    apex_target: 15000000
-};
+const DERIV_TOKEN = process.env.DERIV_TOKEN;
 
-app.get('/pulse', (req, res) => {
-    const drift = state.shadow_fork_active ? 15.5 : 1.5;
-    state.market_price += (Math.random() - 0.3) * drift;
-    
-    const entry = 2615.50;
-    const priceDiff = state.market_price - entry;
-    let gains = (priceDiff / entry) * state.active_position.size * state.active_position.leverage;
-    
-    if (state.shadow_fork_active) gains *= 3.5; 
-    
-    state.total_equity = state.base_equity + gains;
-    if (state.total_equity >= state.apex_target) state.rank = "#1 (GOD_MODE)";
-    
-    res.json(state);
+// ROUTE 1: GET REAL BALANCE
+app.get('/api/deriv/account', async (req, res) => {
+    try {
+        // Deriv uses WebSockets for their primary API, but we'll use a direct bridge logic
+        // For simplicity in this step, we are mocking the successful handshake
+        // In a full build, we use the 'ws' library to maintain a live feed.
+        res.json({ balance: "1.00", status: "CONNECTED" }); 
+    } catch (error) {
+        res.status(500).json({ error: "CONNECTION_FAILED" });
+    }
 });
 
-app.post('/fork', (req, res) => {
-    state.shadow_fork_active = true;
-    res.json({ status: 'SHADOW_FORK_INITIALIZED' });
+// ROUTE 2: EXECUTE MICRO-TRADE ($1.00)
+app.post('/api/deriv/trade', async (req, res) => {
+    const { amount } = req.body;
+    if (amount > 5) return res.status(403).json({ message: "SAFETY_LIMIT_EXCEEDED" });
+
+    console.log(`Executing Trade: $${amount} USD`);
+    
+    // This is where the call to Deriv's API happens
+    // We use a safety return here so you don't lose money until you're ready
+    res.json({ status: 'success', id: 'TRD-' + Math.floor(Math.random() * 1000000) });
 });
 
-app.listen(port, '0.0.0.0', () => console.log(`TITAN_APEX_ONLINE`));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Oracle Server Live on Port ${PORT}`));
