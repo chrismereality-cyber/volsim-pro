@@ -51,7 +51,7 @@ export default function TerminalPage() {
         </div>
 
         <div style={{ borderTop: '1px solid #300', paddingTop: '20px', fontSize: '1.2rem' }}>
-          <span style={{ animation: 'blink 1s infinite' }}>â—</span> SHADOW_FORK_ENABLED
+          <span style={{ animation: 'blink 1s infinite' }}>Ã¢â€”Â</span> SHADOW_FORK_ENABLED
         </div>
       </div>
       <style>{`
