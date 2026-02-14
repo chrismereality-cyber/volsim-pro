@@ -16,6 +16,11 @@ export default function ApexTerminal() {
 
   const fetchData = async () => {
     try {
+      const res = await fetch('https://volsim-pro.onrender.com/api/status');
+      const data = await res.json();
+      if(data.balance) setBalance(data.balance);
+    } catch (e) { console.log('Backend Offline - Using Local Simulation'); }
+    try {
       const res = await fetch('https://volsim-pro.onrender.com/api/pulse');
       const json = await res.json();
       setData(json);
