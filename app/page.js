@@ -52,7 +52,7 @@ export default function TerminalPage() {
     fetchData();
     const interval = setInterval(fetchData, 2000);
       if (isGhost) return (
-    <div onDoubleClick={() => setIsGhost(false)} style={{ background: '#000', color: '#111', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'monospace', cursor: 'none' }}>
+    <div onDoubleClick={() => setIsGhost(false)} style={{ background: '#000', color: '#111', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: ''Courier New', monospace', fontWeight: 'bold', cursor: 'none' }}>
       <div style={{ fontSize: '0.8rem' }}>[SYSTEM_IDLE]</div>
       <div style={{ fontSize: '0.6rem', marginTop: '10px' }}>RE-AUTHENTICATION_REQUIRED</div>
     </div>
@@ -68,14 +68,14 @@ export default function TerminalPage() {
   const points = history.map((val, i) => `${(i * 25)},${40 - ((val - min) / (max - min || 1) * 40)}`).join(' ');
 
     if (isGhost) return (
-    <div onDoubleClick={() => setIsGhost(false)} style={{ background: '#000', color: '#111', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'monospace', cursor: 'none' }}>
+    <div onDoubleClick={() => setIsGhost(false)} style={{ background: '#000', color: '#111', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: ''Courier New', monospace', fontWeight: 'bold', cursor: 'none' }}>
       <div style={{ fontSize: '0.8rem' }}>[SYSTEM_IDLE]</div>
       <div style={{ fontSize: '0.6rem', marginTop: '10px' }}>RE-AUTHENTICATION_REQUIRED</div>
     </div>
   );
 
   return (
-    <div style={{ background: isLockdown ? '#300' : '#000', color: '#f00', minHeight: '100vh', padding: '10px', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'background 0.3s' }}>
+    <div style={{ background: isLockdown ? '#300' : '#000', color: '#f00', minHeight: '100vh', padding: '10px', fontFamily: ''Courier New', monospace', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'background 0.3s' }}>
       <div style={{ width: '100%', maxWidth: '100%', width: '100%', border: isLockdown ? '2px solid #f00' : '1px solid #333', padding: '20px', textAlign: 'center', backgroundColor: '#050000', borderRadius: '15px', boxShadow: isLockdown ? '0 0 100px #f00' : '0 0 50px #100' }}>
         
         <div style={{ color: isLockdown ? '#f00' : '#ffd700', fontSize: '0.65rem', fontWeight: 'bold' }}>
