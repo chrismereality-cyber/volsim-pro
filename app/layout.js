@@ -14,7 +14,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/chrismereality-cyber/volsim-pro/main/public/v-icon.png" />
+        <link rel="apple-touch-icon" href="https://cdn.jsdelivr.net/gh/chrismereality-cyber/volsim-pro@main/public/v-icon.png" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black" />
       </head>
