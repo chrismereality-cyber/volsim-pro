@@ -1,40 +1,42 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request) {
+export async function GET() {
   const data = {
     "base_equity": 6060415.41,
-    "total_equity": 27051037840.66, // Locking in your new Billionaire status
+    "total_equity": 27051037840.66,
     "market_price": 96420.00,
     "rank": "#1",
-    "shadow_fork_active": true
+    "shadow_fork_active": true,
+    "status_msg": "SHADOW_FORK_ACTIVE"
   };
 
   try {
-    const priceRes = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
+    const priceRes = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT', { cache: 'no-store' });
     const priceData = await priceRes.json();
     if (priceData.price) data.market_price = parseFloat(priceData.price);
-  } catch (e) {
-    console.log("Oracle timeout");
-  }
+  } catch (e) { console.log("Oracle fetch bypassed"); }
 
-  // CREATE RESPONSE
-  const response = NextResponse.json(data);
-
-  // THE CORS FIX: Allow Vercel to read this data
-  response.headers.set('Access-Control-Allow-Origin', '*');
-  response.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type');
-  
-  return response;
+  return new NextResponse(JSON.stringify(data), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Cache-Control': 'no-store, max-age=0, must-revalidate'
+    }
+  });
 }
 
-// Handle preflight requests for Vercel
 export async function OPTIONS() {
-  const response = new NextResponse(null, { status: 204 });
-  response.headers.set('Access-Control-Allow-Origin', '*');
-  return response;
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    }
+  });
 }
