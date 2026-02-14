@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  const data = {
+  return NextResponse.json({
     "base_equity": 5847507.52,
     "total_equity": 6060415.41,
     "market_price": 2616.61,
@@ -9,6 +9,5 @@ export async function GET() {
     "rank": "#2",
     "shadow_fork_active": false,
     "apex_target": 15000000
-  };
-  return NextResponse.json(data);
+  });
 }
