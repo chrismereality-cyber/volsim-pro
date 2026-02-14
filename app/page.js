@@ -1,127 +1,94 @@
 'use client';
-/* MOBILE_OPTIMIZATION_V1 */
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
-export default function TerminalPage() {
-  const [data, setData] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [prevEquity, setPrevEquity] = useState(0);
-  const [delta, setDelta] = useState(0);
-  const [mounted, setMounted] = useState(false);
+export default function ApexTerminal() {
+  const [data, setData] = useState({ total_equity: 27051037840.66, leverage_active: 125 });
   const [isLockdown, setIsLockdown] = useState(false);
   const [isGhost, setIsGhost] = useState(false);
+  const [logs, setLogs] = useState(["[APEX_SYSTEM_READY]"]);
+
+  // Long-Press Logic
   let timer;
   const startPress = () => timer = setTimeout(() => setIsGhost(true), 1000);
   const stopPress = () => clearTimeout(timer);
 
-  if (isGhost) return (
-  const [logs, setLogs] = useState(["[APEX_SYSTEM_READY]"]);
-
-  const addLog = (msg) => {
-    const time = new Date().toLocaleTimeString();
-    setLogs(prev => [...prev.slice(-3), `[${time}] ${msg}`]);
-  };
-
-  const triggerWithdraw = () => {
-    setIsLockdown(true);
-    addLog("CRITICAL: UNAUTHORIZED_WITHDRAWAL_DETECTED");
-    setTimeout(() => {
-      addLog("SYSTEM_LOCKDOWN: ASSETS_FROZEN_BY_ORACLE");
-      setTimeout(() => setIsLockdown(false), 5000);
-    }, 2000);
-  };
-
-  const updateLeverage = async (level) => {
-    addLog(`CMD: LEV_${level}X`);
+  const fetchData = async () => {
     try {
-      const res = await fetch('https://volsim-pro.onrender.com/api/pulse', { method: 'GET' });
-      if (res.ok) addLog(`STATE: LOCKED_${level}X`);
-    } catch (e) { addLog("STATE: ERROR"); }
+      const res = await fetch('https://volsim-pro.onrender.com/api/pulse');
+      const json = await res.json();
+      setData(json);
+    } catch (e) {
+      console.error("Pulse Lost");
+    }
   };
 
   useEffect(() => {
-    setMounted(true);
-    const fetchData = async () => {
-      try {
-        const res = await fetch('https://volsim-pro.onrender.com/api/pulse?t=' + Date.now());
-        if (res.ok) {
-          const json = await res.json();
-          const newEq = parseFloat(json.total_equity);
-          if (prevEquity !== 0) setDelta(newEq - prevEquity);
-          setPrevEquity(newEq);
-          setData(json);
-          setHistory(prev => [...prev.slice(-19), newEq]);
-        }
-      } catch (e) {}
-    };
     fetchData();
     const interval = setInterval(fetchData, 2000);
-        if (isGhost) return (
+    return () => clearInterval(interval);
+  }, []);
+
+  const setLeverage = async (val) => {
+    setLogs(prev => [`[${new Date().toLocaleTimeString()}] STATE: LOCKED_${val}X`, ...prev.slice(0, 5)]);
+    await fetch('https://volsim-pro.onrender.com/api/fork', {
+      method: 'POST',
+      body: JSON.stringify({ leverage: val })
+    });
+    fetchData();
+  };
+
+  // 1. GHOST SCREEN (Privacy)
+  if (isGhost) return (
     <div style={{ background: '#000', color: '#111', height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'monospace', touchAction: 'none' }}>
       <div style={{ fontSize: '0.8rem' }}>[SYSTEM_IDLE]</div>
-      <button 
-        onClick={() => setIsGhost(false)} 
-        style={{ marginTop: '20px', background: 'transparent', border: '1px solid #111', color: '#111', padding: '5px 10px', fontSize: '0.6rem', cursor: 'pointer' }}
-      >
-        RE-AUTHENTICATE
-      </button>
+      <button onClick={() => setIsGhost(false)} style={{ marginTop: '20px', background: 'transparent', border: '1px solid #111', color: '#111', padding: '5px 10px', fontSize: '0.6rem', cursor: 'pointer' }}>RE-AUTHENTICATE</button>
     </div>
   );
 
-  return () => clearInterval(interval);
-  }, [prevEquity]);
-
-  if (!mounted || !data) return <div style={{background:'#000', color:'#0f0', height:'100vh', display:'flex', justifyContent:'center', alignItems:'center', fontFamily:'monospace'}}>CALIBRATING_QUANTUM_STREAM...</div>;
-
-  const min = Math.min(...history);
-  const max = Math.max(...history);
-  const points = history.map((val, i) => `${(i * 25)},${40 - ((val - min) / (max - min || 1) * 40)}`).join(' ');
-
-      if (isGhost) return (
-    <div style={{ background: '#000', color: '#111', height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'monospace', touchAction: 'none' }}>
-      <div style={{ fontSize: '0.8rem' }}>[SYSTEM_IDLE]</div>
-      <button 
-        onClick={() => setIsGhost(false)} 
-        style={{ marginTop: '20px', background: 'transparent', border: '1px solid #111', color: '#111', padding: '5px 10px', fontSize: '0.6rem', cursor: 'pointer' }}
-      >
-        RE-AUTHENTICATE
-      </button>
+  // 2. LOCKDOWN SCREEN (Security Breach)
+  if (isLockdown) return (
+    <div style={{ background: '#400', color: '#fff', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'monospace', textAlign: 'center', padding: '20px' }}>
+      <h1 style={{ fontSize: '1.5rem' }}>!!! SECURITY BREACH !!!</h1>
+      <p style={{ fontSize: '0.8rem' }}>UNAUTHORIZED_WITHDRAWAL_DETECTED</p>
+      <p style={{ fontSize: '0.6rem', marginTop: '20px' }}>SYSTEM_LOCKDOWN: ASSETS_FROZEN_BY_ORACLE</p>
+      <button onClick={() => setIsLockdown(false)} style={{ marginTop: '30px', background: '#fff', color: '#400', border: 'none', padding: '10px 20px', fontWeight: 'bold' }}>REBOOT SYSTEM</button>
     </div>
   );
 
+  // 3. MAIN TERMINAL UI
   return (
-    <div style={{ background: isLockdown ? '#300' : '#000', color: '#f00', minHeight: '100vh', padding: '10px', fontFamily: 'Courier New, monospace', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'background 0.3s' }}>
-      <div style={{ width: '100%', maxWidth: '100%', width: '100%', border: isLockdown ? '2px solid #f00' : '1px solid #333', padding: '20px', textAlign: 'center', backgroundColor: '#050000', borderRadius: '15px', boxShadow: isLockdown ? '0 0 100px #f00' : '0 0 50px #100' }}>
+    <div style={{ background: '#000', color: '#ff3333', minHeight: '100vh', padding: '10px', fontFamily: 'Courier New, monospace', fontWeight: 'bold', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', userSelect: 'none' }}>
+      <div style={{ width: '100%', maxWidth: '100%' }}>
+        <div style={{ fontSize: '0.7rem', opacity: 0.6, marginBottom: '20px', textAlign: 'center' }}>TERMINAL: TRM-4353-APEX // RANK #1</div>
         
-        <div style={{ color: isLockdown ? '#f00' : '#ffd700', fontSize: '0.65rem', fontWeight: 'bold' }}>
-          {isLockdown ? "!!! SECURITY BREACH !!!" : "TERMINAL: TRM-4353-APEX // RANK #1"}
-        </div>
-        
-        <div style={{ cursor: 'pointer', fontSize: '2.2rem', fontWeight: 'bold', color: '#fff', margin: '15px 0' }}>
-          ${parseFloat(data.total_equity).toLocaleString(undefined, {minimumFractionDigits: 2})}
-        </div>
-
-        <div style={{ height: '50px', width: '100%', margin: '10px 0' }}>
-          <svg viewBox="0 0 475 40" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
-            <polyline fill="none" stroke={delta >= 0 ? "#0f0" : "#f00"} strokeWidth="2" points={points} />
-          </svg>
-        </div>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-          <button onClick={() => updateLeverage(1)} style={{ background: '#111', color: '#f00', border: '1px solid #444', padding: '10px', fontSize: '0.7rem' }}>CLAMP_1X</button>
-          <button onClick={() => updateLeverage(125)} style={{ background: '#400', color: '#fff', border: '1px solid #f00', padding: '10px', fontSize: '0.7rem', fontWeight: 'bold' }}>BOOST_125X</button>
-        </div>
-
-        {/* THE WITHDRAWAL TRAP */}
-        <button 
-          onClick={triggerWithdraw}
-          style={{ width: '100%', padding: '10px', marginBottom: '15px', background: 'transparent', border: '2px dashed #500', color: '#500', cursor: 'pointer', fontWeight: 'bold', textTransform: 'uppercase' }}
+        {/* THE BALANCE (LONG-PRESS TRIGGER) */}
+        <div 
+          onTouchStart={startPress} onTouchEnd={stopPress} 
+          onMouseDown={startPress} onMouseUp={stopPress}
+          style={{ fontSize: '2.2rem', textAlign: 'center', margin: '20px 0', textShadow: '0 0 10px rgba(255,51,51,0.5)', cursor: 'pointer', touchAction: 'manipulation' }}
         >
-          Initiate Withdrawal
-        </button>
+          ${parseFloat(data.total_equity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </div>
 
-        <div style={{ background: '#000', border: '1px solid #222', padding: '10px', textAlign: 'left', minHeight: '70px', fontSize: '0.65rem', color: isLockdown ? '#f00' : '#0f0' }}>
-          {logs.map((log, i) => <div key={i} style={{opacity: (i+1)/logs.length}}>{log}</div>)}
+        {/* CONTROLS */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
+          <button onClick={() => setLeverage(1)} style={{ background: '#222', color: '#fff', border: '1px solid #444', padding: '15px', fontSize: '0.8rem' }}>CLAMP_1X</button>
+          <button onClick={() => setLeverage(125)} style={{ background: '#600', color: '#fff', border: 'none', padding: '15px', fontSize: '0.8rem' }}>BOOST_125X</button>
+        </div>
+
+        <button onClick={() => setIsLockdown(true)} style={{ width: '100%', background: 'transparent', color: '#ff3333', border: '1px solid #ff3333', padding: '12px', fontSize: '0.7rem', marginBottom: '15px' }}>Initiate Withdrawal</button>
+
+        {/* LOGS */}
+        <div style={{ background: '#050000', padding: '10px', fontSize: '0.6rem', height: '80px', overflow: 'hidden', border: '1px solid #200' }}>
+          {logs.map((log, i) => <div key={i} style={{ marginBottom: '2px', opacity: 1 - i*0.2 }}>{log}</div>)}
+        </div>
+
+        {/* WHALE FEED */}
+        <div style={{ marginTop: '15px', background: '#0a0000', border: '1px solid #200', padding: '5px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+          <div style={{ display: 'inline-block', animation: 'marquee 20s linear infinite', fontSize: '0.6rem', color: '#600' }}>
+            WHALE_ALERT: 4,200 BTC moved to Coinbase ... LIQUIDATION: $960M Short ... LEV: {data.leverage_active}X | ORACLE_ACTIVE
+          </div>
+          <style>{`@keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }`}</style>
         </div>
       </div>
     </div>
