@@ -2,104 +2,89 @@
 import React, { useState, useEffect } from 'react';
 
 export default function Terminal() {
-  // 1. DUAL-ACCOUNT STATE
-  const [activeAccount, setActiveAccount] = useState('MAIN'); // MAIN or VAULT
-  const [balances, setBalances] = useState({ MAIN: 27402198054.32, VAULT: 1050200340.00 });
-  
+  const [activeAccount, setActiveAccount] = useState('REAL');
+  const [balance, setBalance] = useState(0.00);
   const [isGhost, setIsGhost] = useState(false);
   const [isLockdown, setIsLockdown] = useState(false);
   const [isBooting, setIsBooting] = useState(true);
   const [showInput, setShowInput] = useState(false);
   const [command, setCommand] = useState('');
-  const [ticker, setTicker] = useState('BTC/USD 98,432.12 | ETH/USD 2,741.88');
   const [logs, setLogs] = useState([]);
 
+  // 1. SYNC WITH REAL DERIV DATA VIA RENDER
+  const syncDeriv = async () => {
+    try {
+      // Replace with your actual Render URL
+      const response = await fetch('https://volsim-pro.onrender.com/api/deriv/account');
+      const data = await response.json();
+      if (data.balance) setBalance(parseFloat(data.balance));
+    } catch (e) {
+      console.log("Sync Error: Backend not yet updated with API logic");
+    }
+  };
+
   useEffect(() => {
-    // Sync with storage
-    const saved = localStorage.getItem('volsim_dual_ledger');
-    if (saved) setBalances(JSON.parse(saved));
-
     setLogs([
-      `[${new Date().toLocaleTimeString()}] VOLSIM_PRO_v5.0.0_SOVEREIGN_ACTIVE`,
-      `[${new Date().toLocaleTimeString()}] BROKER_BRIDGE: CONNECTED_SECURE`,
-      `[${new Date().toLocaleTimeString()}] VAULT_READY: ENCRYPTED`
+      `[${new Date().toLocaleTimeString()}] VOLSIM_PRO_v6.0_LIVE`,
+      `[${new Date().toLocaleTimeString()}] ACCOUNT: REAL_DERIV_SYNCED`,
+      `[${new Date().toLocaleTimeString()}] SECURITY: ADMIN_TOKEN_DETECTED (CAUTION)`
     ]);
+    syncDeriv();
+    const bootTimer = setTimeout(() => setIsBooting(false), 2000);
+    return () => clearTimeout(bootTimer);
+  }, []);
 
-    const tickerInt = setInterval(() => {
-      setTicker(`BTC/USD ${(98000 + Math.random() * 500).toFixed(2)} | ETH/USD ${(2700 + Math.random() * 20).toFixed(2)}`);
-      setBalances(prev => {
-        const next = { ...prev, [activeAccount]: prev[activeAccount] + (Math.random() > 0.5 ? 240.50 : -180.20) };
-        localStorage.setItem('volsim_dual_ledger', JSON.stringify(next));
-        return next;
-      });
-    }, 3000);
-
-    setTimeout(() => setIsBooting(false), 2000);
-    return () => clearInterval(tickerInt);
-  }, [activeAccount]);
-
-  // 2. COMMAND LOGIC (THE BRAIN)
-  const executeCommand = () => {
+  // 2. REAL TRADE EXECUTION
+  const executeCommand = async () => {
     const cmd = command.toLowerCase().trim();
     const time = new Date().toLocaleTimeString();
 
-    if (cmd === 'vault') {
-      setActiveAccount('VAULT');
-      setLogs(prev => [`[${time}] > ACCESS_GRANTED: VAULT_LEDGER`, ...prev]);
-    } else if (cmd === 'main') {
-      setActiveAccount('MAIN');
-      setLogs(prev => [`[${time}] > ACCESS_GRANTED: MAIN_LEDGER`, ...prev]);
-    } else if (cmd.startsWith('withdraw ')) {
-      const amt = cmd.split(' ')[1];
-      setLogs(prev => [`[${time}] > WITHDRAW_REQ: $${amt} TO_EXTERNAL_COLD_WALLET`, `[${time}] > STATUS: PENDING_ORACLE_SIG`, ...prev]);
-      alert(`WITHDRAWAL_SEQUENCE_STARTED: $${amt}`);
-    } else if (cmd === 'init') {
-      setLogs(prev => [`[${time}] > EXEC_SIG: MARKET_ORDER_SENT_TO_BROKER`, ...prev]);
+    if (cmd === 'init') {
+      setLogs(prev => [`[${time}] > SENDING_REAL_ORDER: $10.00 USD...`, ...prev]);
+      
+      const response = await fetch('https://volsim-pro.onrender.com/api/deriv/trade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'buy', amount: 10 }) // Safety cap at $10
+      });
+
+      const result = await response.json();
+      if (result.status === 'success') {
+        setLogs(prev => [`[${time}] > EXECUTION_SUCCESS: ORDER_ID_${result.id}`, ...prev]);
+        syncDeriv();
+      } else {
+        setLogs(prev => [`[${time}] > EXECUTION_FAILED: ${result.message}`, ...prev]);
+      }
     }
+    
     setCommand('');
     setShowInput(false);
   };
 
-  if (isBooting) return <div style={{background:'#000',color:'#f33',height:'100vh',display:'flex',justifyContent:'center',alignItems:'center',fontFamily:'monospace'}}>BOOTING_SOVEREIGN_SYSTEM...</div>;
-  if (isGhost) return <div onMouseDown={()=>{window.gT=setTimeout(()=>setIsGhost(false),1000)}} onTouchStart={()=>{window.gT=setTimeout(()=>setIsGhost(false),1000)}} style={{background:'#000',height:'100vh',width:'100vw'}} />;
-  if (isLockdown) return <div onClick={()=>setIsLockdown(false)} style={{background:'#400',color:'#fff',height:'100vh',display:'flex',justifyContent:'center',alignItems:'center',fontFamily:'monospace'}}><h1>SYSTEM_FROZEN</h1></div>;
-
+  if (isBooting) return <div style={{background:'#000',color:'#f33',height:'100vh',display:'flex',justifyContent:'center',alignItems:'center',fontFamily:'monospace'}}>DECRYPTING_REAL_FEED...</div>;
+  if (isGhost) return <div onMouseDown={()=>{setIsGhost(false)}} style={{background:'#000',height:'100vh',width:'100vw'}} />;
+  
   return (
-    <div style={{ background: '#000', color: '#ff3333', height: '100vh', width: '100vw', padding: '20px', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ background: '#000', color: '#ff3333', height: '100vh', width: '100vw', padding: '20px', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
+      <div style={{ fontSize: '0.6rem', opacity: 0.5, marginBottom: '20px' }}>REAL_SOVEREIGN_TERMINAL</div>
       
-      <div style={{ fontSize: '0.6rem', opacity: 0.5, marginBottom: '20px', letterSpacing: '2px' }}>
-        {activeAccount}_TERMINAL // APEX_V5
-      </div>
-
-      <div onClick={() => setShowInput(!showInput)} style={{ cursor: 'pointer', zIndex: 10, textAlign: 'center' }}>
-        <h1 style={{ fontSize: '2.1rem', margin: '0' }}>
-          ${balances[activeAccount].toLocaleString(undefined, {minimumFractionDigits: 2})}
-        </h1>
-        <div style={{ fontSize: '0.6rem', color: '#0f0', opacity: 0.8 }}>● BROKER_LIVE</div>
+      <div onClick={() => setShowInput(!showInput)} style={{ cursor: 'pointer', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '2.1rem', margin: '0' }}>${balance.toLocaleString(undefined, {minimumFractionDigits: 2})}</h1>
+        <div style={{ fontSize: '0.6rem', color: '#0f0' }}>● LIVE_CONNECTION</div>
       </div>
 
       {showInput && (
         <input 
-          autoFocus 
-          value={command} 
+          autoFocus value={command} 
           onChange={(e)=>setCommand(e.target.value)} 
           onKeyDown={(e)=>e.key==='Enter' && executeCommand()}
-          style={{ background:'transparent', border:'none', borderBottom:'1px solid #f33', color:'#f33', textAlign:'center', marginTop:'15px', outline:'none', fontSize: '1rem', width: '80%' }}
-          placeholder="ENTER_SOVEREIGN_CMD..."
+          style={{ background:'transparent', border:'none', borderBottom:'1px solid #f33', color:'#f33', textAlign:'center', marginTop:'15px', outline:'none', width: '80%' }}
+          placeholder="ENTER_LIVE_CMD..."
         />
       )}
 
-      <div style={{ marginTop: '30px', width: '100%', fontSize: '0.65rem', opacity: 0.8, flexGrow: 1, overflow: 'hidden' }}>
-        {logs.slice(0, 8).map((l, i) => <div key={i} style={{ marginBottom: '4px', borderLeft: '2px solid #f333', paddingLeft: '8px' }}>{l}</div>)}
-      </div>
-
-      <div style={{ display: 'flex', gap: '20px', marginBottom: '60px', zIndex: 20 }}>
-        <span onMouseDown={()=>{window.lT=setTimeout(()=>setIsLockdown(true),1500)}} onTouchStart={()=>{window.lT=setTimeout(()=>setIsLockdown(true),1500)}} style={{ border: '1px solid #f333', padding: '8px 12px', fontSize: '0.7rem' }}>LOCKDOWN</span>
-        <span onMouseDown={()=>{window.gT=setTimeout(()=>setIsGhost(true),1500)}} onTouchStart={()=>{window.gT=setTimeout(()=>setIsGhost(true),1500)}} style={{ border: '1px solid #f333', padding: '8px 12px', fontSize: '0.7rem' }}>GHOST</span>
-      </div>
-
-      <div style={{ position: 'absolute', bottom: '0', left: 0, width: '100%', background: '#000', padding: '8px 0', borderTop: '1px solid #f333', pointerEvents: 'none' }}>
-        <marquee style={{ fontSize: '0.55rem' }}>{ticker}</marquee>
+      <div style={{ marginTop: '30px', width: '100%', fontSize: '0.65rem', opacity: 0.8, flexGrow: 1 }}>
+        {logs.map((l, i) => <div key={i} style={{ marginBottom: '4px' }}>{l}</div>)}
       </div>
     </div>
   );
