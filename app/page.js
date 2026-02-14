@@ -9,15 +9,24 @@ export default function Terminal() {
   const [isBooting, setIsBooting] = useState(true);
   const [showInput, setShowInput] = useState(false);
   const [command, setCommand] = useState('');
+  const [ticker, setTicker] = useState('BTC/USD 98,432.12 ▲ 1.2% | ETH/USD 2,741.88 ▼ 0.4% | SOL/USD 142.11 ▲ 4.5%');
   const [logs, setLogs] = useState([
     `[${new Date().toLocaleTimeString()}] VOLSIM_PRO_v4.0.0_INITIALIZED`,
     `[${new Date().toLocaleTimeString()}] CONNECTION: SECURE_AES_256`,
     `[${new Date().toLocaleTimeString()}] ORACLE_SYNC: COMPLETE`
   ]);
 
-  useEffect(() => {
+    useEffect(() => {
+    const interval = setInterval(() => {
+      const prices = [
+        `BTC/USD ${(98000 + Math.random() * 500).toFixed(2)} ▲`,
+        `ETH/USD ${(2700 + Math.random() * 20).toFixed(2)} ▼`,
+        `XRP/USD ${(2.40 + Math.random() * 0.1).toFixed(3)} ▲`
+      ];
+      setTicker(prices.join(' | '));
+    }, 3000);
     const timer = setTimeout(() => setIsBooting(false), 2200);
-    return () => clearTimeout(timer);
+    return () => { clearInterval(interval); clearTimeout(timer); };
   }, []);
 
   const executeTrade = () => {
@@ -78,6 +87,12 @@ export default function Terminal() {
         <div style={{ marginTop: '40px', display: 'flex', gap: '20px', fontSize: '0.7rem' }}>
           <span onTouchStart={() => { window.lockTimer = setTimeout(() => setIsLockdown(true), 3000); }} onTouchEnd={() => clearTimeout(window.lockTimer)}>LOCKDOWN [HOLD]</span>
           <span onTouchStart={() => { window.ghostTimer = setTimeout(() => setIsGhost(true), 3000); }} onTouchEnd={() => clearTimeout(window.ghostTimer)}>GHOST [HOLD]</span>
+        </div>
+        <div style={{ position: 'absolute', bottom: '10px', width: '100%', overflow: 'hidden', whiteSpace: 'nowrap', borderTop: '1px solid #ff333333', paddingTop: '5px' }}>
+          <div style={{ display: 'inline-block', fontSize: '0.6rem', animation: 'marquee 15s linear infinite', opacity: 0.7 }}>
+            {ticker} &nbsp;&nbsp;&nbsp; {ticker}
+          </div>
+          <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`}</style>
         </div>
       </div>
     </div>
