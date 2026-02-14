@@ -8,7 +8,7 @@ export default function TerminalPage() {
 
   const fetchData = async () => {
     try {
-      const res = await fetch(`${apiUrl}/api/pulse?t=${Date.now()}`, { mode: 'cors' });
+      const res = await fetch(`${apiUrl}/api/api/pulse?t=${Date.now()}`, { mode: 'cors' });
       if (res.ok) {
         const json = await res.json();
         setData(json);
