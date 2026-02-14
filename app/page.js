@@ -70,7 +70,7 @@ export default function Terminal() {
       
       <div onClick={() => setShowInput(!showInput)} style={{ cursor: 'pointer', textAlign: 'center' }}>
         <h1 style={{ fontSize: '2.1rem', margin: '0' }}>${balance.toLocaleString(undefined, {minimumFractionDigits: 2})}</h1>
-        <div style={{ fontSize: '0.6rem', color: '#0f0' }}>â— LIVE_CONNECTION</div>
+        <div style={{ fontSize: '0.6rem', color: '#0f0' }}>Ã¢â€”Â LIVE_CONNECTION</div>
       </div>
 
       {showInput && (
