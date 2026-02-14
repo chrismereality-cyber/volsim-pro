@@ -78,7 +78,7 @@ export default function Terminal() {
           onChange={(e)=>setCommand(e.target.value)} 
           onKeyDown={(e)=>e.key==='Enter' && executeTrade()}
           style={{ background:'transparent', border:'none', borderBottom:'1px solid #f33', color:'#f33', textAlign:'center', marginTop:'10px', outline:'none', fontSize: '1.2rem' }}
-          placeholder="COMMAND..."
+          placeholder="ENTER_COMMAND..." style={{ background:'transparent', border:'none', borderBottom:'2px solid #f33', color:'#f33', textAlign:'center', marginTop:'15px', outline:'none', fontSize: '1.2rem', fontFamily: 'monospace', width: '250px' }}
         />
       )}
 
@@ -86,20 +86,24 @@ export default function Terminal() {
         {logs.slice(0, 10).map((l, i) => <div key={i} style={{ marginBottom: '5px' }}>{l}</div>)}
       </div>
 
-            <div style={{ display: 'flex', gap: '30px', marginBottom: '60px', zIndex: 20 }}>
+                  <div style={{ display: 'flex', gap: '30px', marginBottom: '60px', zIndex: 20 }}>
         <span 
           onContextMenu={(e) => e.preventDefault()}
           onTouchStart={(e) => { e.preventDefault(); window.lT = setTimeout(()=>setIsLockdown(true), 1500); }} 
-          onTouchEnd={() => clearTimeout(window.lT)} 
-          style={{ border: '1px solid #f333', padding: '10px 15px', borderRadius: '4px', userSelect: 'none' }}
+          onTouchEnd={() => clearTimeout(window.lT)}
+          onMouseDown={() => { window.lT = setTimeout(()=>setIsLockdown(true), 1500); }}
+          onMouseUp={() => clearTimeout(window.lT)}
+          style={{ border: '1px solid #f333', padding: '10px 15px', borderRadius: '4px', userSelect: 'none', cursor: 'pointer' }}
         >
           LOCKDOWN
         </span>
         <span 
           onContextMenu={(e) => e.preventDefault()}
           onTouchStart={(e) => { e.preventDefault(); window.gT = setTimeout(()=>setIsGhost(true), 1500); }} 
-          onTouchEnd={() => clearTimeout(window.gT)} 
-          style={{ border: '1px solid #f333', padding: '10px 15px', borderRadius: '4px', userSelect: 'none' }}
+          onTouchEnd={() => clearTimeout(window.gT)}
+          onMouseDown={() => { window.gT = setTimeout(()=>setIsGhost(true), 1500); }}
+          onMouseUp={() => clearTimeout(window.gT)}
+          style={{ border: '1px solid #f333', padding: '10px 15px', borderRadius: '4px', userSelect: 'none', cursor: 'pointer' }}
         >
           GHOST
         </span>
