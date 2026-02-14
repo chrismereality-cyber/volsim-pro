@@ -11,8 +11,10 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <link rel="manifest" href="/manifest.json" />
     <html lang="en">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+      </head>
       <body style={{ margin: 0, padding: 0, background: '#000', overflow: 'hidden', overscrollBehavior: 'none' }}>
         {children}
       </body>
