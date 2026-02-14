@@ -10,6 +10,11 @@ export default function TerminalPage() {
   const [mounted, setMounted] = useState(false);
   const [isLockdown, setIsLockdown] = useState(false);
   const [isGhost, setIsGhost] = useState(false);
+  let timer;
+  const startPress = () => timer = setTimeout(() => setIsGhost(true), 1000);
+  const stopPress = () => clearTimeout(timer);
+
+  if (isGhost) return (
   const [logs, setLogs] = useState(["[APEX_SYSTEM_READY]"]);
 
   const addLog = (msg) => {
