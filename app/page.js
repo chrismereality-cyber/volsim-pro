@@ -1,137 +1,83 @@
 'use client';
-// NATIVE_WRAP_V1
-import { useState, useEffect } from 'react';
+// TITAN_V69: CORE_STABILIZED // EXECUTION_LAYER_FIX
+import React, { useState, useEffect } from 'react';
 
-export default function ApexTerminal() {
-  const [data, setData] = useState({ total_equity: 27051037840.66, leverage_active: 125 });
-  const [isLockdown, setIsLockdown] = useState(false);
+export default function Terminal() {
+  const [balance, setBalance] = useState('27,402,198,054.32');
   const [isGhost, setIsGhost] = useState(false);
+  const [isLockdown, setIsLockdown] = useState(false);
+  const [isBooting, setIsBooting] = useState(true);
   const [showInput, setShowInput] = useState(false);
   const [command, setCommand] = useState('');
-  const [isBooting, setIsBooting] = useState(true);
-  const [logs, setLogs] = useState(["[APEX_SYSTEM_READY]"]);
+  const [logs, setLogs] = useState([
+    `[${new Date().toLocaleTimeString()}] VOLSIM_PRO_v4.0.0_INITIALIZED`,
+    `[${new Date().toLocaleTimeString()}] CONNECTION: SECURE_AES_256`,
+    `[${new Date().toLocaleTimeString()}] ORACLE_SYNC: COMPLETE`
+  ]);
 
-  // Long-Press Logic
-  let timer;
-  const startPress = () => timer = setTimeout(() => setIsGhost(true), 1000);
-  const stopPress = () => clearTimeout(timer);
+  useEffect(() => {
+    const timer = setTimeout(() => setIsBooting(false), 2200);
+    return () => clearTimeout(timer);
+  }, []);
 
-    const executeTrade = () => {
-    if (command.toLowerCase() === 'init') {
-      alert('EXECUTION_SEQUENCE_STARTED: Moving 400k units...');
-      setLogs(prev => [`[${new Date().toLocaleTimeString()}] > EXEC_SIG: SELL_ORDER_SENT`, ...prev]);
+  const executeTrade = () => {
+    const cmd = command.toLowerCase().trim();
+    if (cmd === 'init' || cmd === 'trade') {
+      setLogs(prev => [`[${new Date().toLocaleTimeString()}] > EXEC_SIG: TRADE_SEQUENCE_INITIATED`, ...prev]);
+      alert('SIGNAL_SENT: Moving units via Render Oracle...');
+    } else if (cmd === 'clear') {
+      setLogs([]);
     }
     setCommand('');
     setShowInput(false);
   };
-  const fetchData = async () => {
-    try {
-      const res = await fetch('https://volsim-pro.onrender.com/api/status');
-      const data = await res.json();
-      if(data.balance) setBalance(data.balance);
-    } catch (e) { console.log('Backend Offline - Using Local Simulation'); }
-    try {
-      const res = await fetch('https://volsim-pro.onrender.com/api/pulse');
-      const json = await res.json();
-      setData(json);
-    } catch (e) {
-      console.error("Pulse Lost");
-    }
-  };
 
-    useEffect(() => {
-    const timer = setTimeout(() => setIsBooting(false), 2200);
-    fetchData();
-    const interval = setInterval(fetchData, 2000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const setLeverage = async (val) => {
-    setLogs(prev => [`[${new Date().toLocaleTimeString()}] STATE: LOCKED_${val}X`, ...prev.slice(0, 5)]);
-    await fetch('https://volsim-pro.onrender.com/api/fork', {
-      method: 'POST',
-      body: JSON.stringify({ leverage: val })
-    });
-    fetchData();
-  };
-
-  // 1. GHOST SCREEN (Privacy)
-    if (isBooting) return (
-    <div style={{ background: '#000', color: '#ff3333', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'Courier New, monospace' }}>
+  if (isBooting) return (
+    <div style={{ background: '#000', color: '#ff3333', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'monospace' }}>
       <div style={{ fontSize: '1rem', letterSpacing: '2px', animation: 'pulse 1s infinite' }}>INITIALIZING_VOLSIM_PRO...</div>
-      <div style={{ fontSize: '0.6rem', marginTop: '10px', opacity: 0.5 }}>VAULT_SYNC: OK | ORACLE_LINK: ESTABLISHED</div>
       <style>{`@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }`}</style>
     </div>
   );
 
-  if (isGhost) return (
-    <div style={{ background: '#000', color: '#111', height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'monospace', touchAction: 'none' }}>
-      <div style={{ fontSize: '0.8rem' }}>[SYSTEM_IDLE]</div>
-      <button onClick={() => setIsGhost(false)} style={{ marginTop: '20px', background: 'transparent', border: '1px solid #111', color: '#111', padding: '5px 10px', fontSize: '0.6rem', cursor: 'pointer' }}>RE-AUTHENTICATE</button>
-    </div>
-  );
+  if (isGhost) return <div onContextMenu={(e) => e.preventDefault()} onTouchStart={(e) => { window.ghostTimer = setTimeout(() => setIsGhost(false), 2000); }} onTouchEnd={() => clearTimeout(window.ghostTimer)} style={{ background: '#000', height: '100vh', width: '100vw' }} />;
 
-  // 2. LOCKDOWN SCREEN (Security Breach)
   if (isLockdown) return (
-    <div style={{ background: '#400', color: '#fff', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'monospace', textAlign: 'center', padding: '20px' }}>
-      <h1 style={{ fontSize: '1.5rem' }}>!!! SECURITY BREACH !!!      <div onClick={() => setShowInput(!showInput)} style={{ cursor: 'pointer' }}>
-        <h1 style={{ fontSize: '2.5rem', color: '#ff3333', margin: '0', letterSpacing: '-1px' }}>
-          ${balance}
-        </h1>
-      </div>
-      
-      {showInput && (
-        <div style={{ marginTop: '20px', width: '80%' }}>
-          <input 
-            autoFocus
-            value={command}
-            onChange={(e) => setCommand(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && executeTrade()}
-            placeholder="ENTER_CMD..."
-            style={{ background: 'transparent', border: 'none', borderBottom: '1px solid #ff3333', color: '#ff3333', width: '100%', outline: 'none', fontFamily: 'monospace' }}
-          />
-        </div>
-      )}
-      <p style={{ fontSize: '0.8rem' }}>UNAUTHORIZED_WITHDRAWAL_DETECTED</p>
-      <p style={{ fontSize: '0.6rem', marginTop: '20px' }}>SYSTEM_LOCKDOWN: ASSETS_FROZEN_BY_ORACLE</p>
-      <button onClick={() => setIsLockdown(false)} style={{ marginTop: '30px', background: '#fff', color: '#400', border: 'none', padding: '10px 20px', fontWeight: 'bold' }}>REBOOT SYSTEM</button>
+    <div style={{ background: '#400', color: '#fff', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'monospace', padding: '20px', textAlign: 'center' }}>
+      <h1 style={{ fontSize: '3rem' }}>!!! ALERT !!!</h1>
+      <p>SYSTEM_LOCKDOWN: ASSETS_FROZEN</p>
+      <button onClick={() => setIsLockdown(false)} style={{ marginTop: '30px', background: '#fff', color: '#400', border: 'none', padding: '10px 20px', fontWeight: 'bold' }}>REBOOT</button>
     </div>
   );
 
-  // 3. MAIN TERMINAL UI
   return (
-    <div style={{ background: '#000', color: '#ff3333', minHeight: '100vh', padding: '10px', fontFamily: 'Courier New, monospace', fontWeight: 'bold', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', userSelect: 'none', overflow: 'hidden', position: 'fixed', width: '100vw', height: '100vh' }}>
-      <div style={{ width: '100%', maxWidth: '100%' }}>
-        <div style={{ fontSize: '0.7rem', opacity: 0.6, marginBottom: '20px', textAlign: 'center' }}>TERMINAL: TRM-4353-APEX // RANK #1</div>
+    <div style={{ background: '#000', color: '#ff3333', minHeight: '100vh', padding: '10px', fontFamily: 'monospace', fontWeight: 'bold', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', userSelect: 'none', overflow: 'hidden', position: 'fixed', width: '100vw', height: '100vh' }}>
+      <div style={{ width: '100%', textAlign: 'center' }}>
+        <div style={{ fontSize: '0.7rem', opacity: 0.6, marginBottom: '20px' }}>TERMINAL: TRM-4353-APEX // RANK #1</div>
         
-        {/* THE BALANCE (LONG-PRESS TRIGGER) */}
-        <div 
-          onTouchStart={startPress} onTouchEnd={stopPress} 
-          onMouseDown={startPress} onMouseUp={stopPress}
-          style={{ fontSize: '2.2rem', textAlign: 'center', margin: '20px 0', textShadow: '0 0 10px rgba(255,51,51,0.5)', cursor: 'pointer', touchAction: 'manipulation' }}
-        >
-          ${parseFloat(data.total_equity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        <div onClick={() => setShowInput(!showInput)} style={{ cursor: 'pointer' }}>
+          <h1 style={{ fontSize: '2.5rem', margin: '0', letterSpacing: '-1px' }}>${balance}</h1>
         </div>
 
-        {/* CONTROLS */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
-          <button onClick={() => setLeverage(1)} style={{ background: '#222', color: '#fff', border: '1px solid #444', padding: '15px', fontSize: '0.8rem' }}>CLAMP_1X</button>
-          <button onClick={() => setLeverage(125)} style={{ background: '#600', color: '#fff', border: 'none', padding: '15px', fontSize: '0.8rem' }}>BOOST_125X</button>
-        </div>
-
-        <button onClick={() => setIsLockdown(true)} style={{ width: '100%', background: 'transparent', color: '#ff3333', border: '1px solid #ff3333', padding: '12px', fontSize: '0.7rem', marginBottom: '15px' }}>Initiate Withdrawal</button>
-
-        {/* LOGS */}
-        <div style={{ background: '#050000', padding: '10px', fontSize: '0.6rem', height: '80px', overflow: 'hidden', border: '1px solid #200' }}>
-          {logs.map((log, i) => <div key={i} style={{ marginBottom: '2px', opacity: 1 - i*0.2 }}>{log}</div>)}
-        </div>
-
-        {/* WHALE FEED */}
-        <div style={{ marginTop: '15px', background: '#0a0000', border: '1px solid #200', padding: '5px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-          <div style={{ display: 'inline-block', animation: 'marquee 20s linear infinite', fontSize: '0.6rem', color: '#600' }}>
-            WHALE_ALERT: 4,200 BTC moved to Coinbase ... LIQUIDATION: $960M Short ... LEV: {data.leverage_active}X | ORACLE_ACTIVE
+        {showInput && (
+          <div style={{ marginTop: '20px', width: '100%', display: 'flex', justifyContent: 'center' }}>
+            <input 
+              autoFocus
+              value={command}
+              onChange={(e) => setCommand(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && executeTrade()}
+              placeholder="ENTER_CMD..."
+              style={{ background: 'transparent', border: 'none', borderBottom: '1px solid #ff3333', color: '#ff3333', width: '200px', textAlign: 'center', outline: 'none', fontSize: '1rem' }}
+            />
           </div>
-          <style>{`@keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }`}</style>
+        )}
+
+        <div style={{ marginTop: '40px', textAlign: 'left', width: '100%', fontSize: '0.8rem', height: '150px', overflow: 'hidden', opacity: 0.8 }}>
+          {logs.map((log, i) => <div key={i} style={{ marginBottom: '4px' }}>{log}</div>)}
+        </div>
+
+        <div style={{ marginTop: '40px', display: 'flex', gap: '20px', fontSize: '0.7rem' }}>
+          <span onTouchStart={() => { window.lockTimer = setTimeout(() => setIsLockdown(true), 3000); }} onTouchEnd={() => clearTimeout(window.lockTimer)}>LOCKDOWN [HOLD]</span>
+          <span onTouchStart={() => { window.ghostTimer = setTimeout(() => setIsGhost(true), 3000); }} onTouchEnd={() => clearTimeout(window.ghostTimer)}>GHOST [HOLD]</span>
         </div>
       </div>
     </div>
