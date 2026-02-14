@@ -3,54 +3,60 @@ import React, { useState, useEffect } from 'react';
 
 export default function TerminalPage() {
   const [data, setData] = useState(null);
+  const [mounted, setMounted] = useState(false);
   const [error, setError] = useState(false);
 
-  const fetchData = async () => {
-    try {
-      const apiUrl = typeof window !== 'undefined' && window.location.hostname.includes('render.com') 
-        ? '/api/pulse' 
-        : 'https://volsim-pro.onrender.com/api/pulse';
-      
-      const res = await fetch(`${apiUrl}?t=${Date.now()}`, { cache: 'no-store' });
-      if (res.ok) {
-        const json = await res.json();
-        setData(json);
-        setError(false);
-      }
-    } catch (e) {
-      console.error("Pulse Error:", e);
-      setError(true);
-    }
-  };
-
   useEffect(() => {
+    setMounted(true);
+    const fetchData = async () => {
+      try {
+        const apiUrl = window.location.hostname.includes('render.com') 
+          ? '/api/pulse' 
+          : 'https://volsim-pro.onrender.com/api/pulse';
+        
+        const res = await fetch(`${apiUrl}?t=${Date.now()}`);
+        if (res.ok) {
+          const json = await res.json();
+          setData(json);
+        }
+      } catch (e) {
+        setError(true);
+      }
+    };
+
     fetchData();
-    const interval = setInterval(fetchData, 1000); // 1-second refresh
+    const interval = setInterval(fetchData, 2000);
     return () => clearInterval(interval);
   }, []);
 
-  if (!data) return (
+  if (!mounted || !data) return (
     <div style={{background:'#000', color:'#0f0', height:'100vh', display:'flex', justifyContent:'center', alignItems:'center', fontFamily:'monospace'}}>
-      SYNCING_LIVE_ORACLE...
+      [ CONNECTING_TO_APEX_ORACLE... ]
     </div>
   );
 
   return (
     <div style={{ background: '#000', color: '#f00', minHeight: '100vh', padding: '20px', fontFamily: 'monospace' }}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto', border: '2px solid #300', padding: '40px', textAlign: 'center', boxShadow: '0 0 20px #500' }}>
-        <div style={{ color: '#ffd700', marginBottom: '10px' }}>{data.rank} // APEX_HUNT</div>
-        <div style={{ fontSize: '0.8rem', color: '#600' }}>BTC_ORACLE: ${data.market_price?.toLocaleString()}</div>
+      <div style={{ maxWidth: '800px', margin: '50px auto', border: '2px solid #500', padding: '40px', textAlign: 'center', backgroundColor: '#050000' }}>
+        <div style={{ color: '#ffd700', textTransform: 'uppercase', letterSpacing: '2px' }}>
+          {data.rank} // SECURE_LINE_ACTIVE
+        </div>
         
-        <div style={{ fontSize: '4rem', fontWeight: 'bold', margin: '30px 0', letterSpacing: '-2px' }}>
+        <div style={{ fontSize: '3.5rem', fontWeight: 'bold', margin: '30px 0', textShadow: '0 0 10px #f00' }}>
           ${parseFloat(data.total_equity).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
         </div>
         
-        <div style={{ borderTop: '1px solid #300', paddingTop: '20px' }}>
-          <span style={{ animation: 'blink 1s infinite' }}>●</span> SHADOW_FORK_ACTIVE
+        <div style={{ fontSize: '0.9rem', color: '#888', marginBottom: '20px' }}>
+          MARKET_PULSE: ${data.market_price?.toLocaleString()} | LEVERAGE: 125X
+        </div>
+
+        <div style={{ borderTop: '1px solid #300', paddingTop: '20px', fontSize: '1.2rem' }}>
+          <span style={{ animation: 'blink 1s infinite' }}>●</span> SHADOW_FORK_ENABLED
         </div>
       </div>
       <style>{`
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+        body { margin: 0; background: black; }
       `}</style>
     </div>
   );
