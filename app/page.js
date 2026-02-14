@@ -40,12 +40,12 @@ export default function Terminal() {
     const time = new Date().toLocaleTimeString();
 
     if (cmd === 'init') {
-      setLogs(prev => [`[${time}] > SENDING_REAL_ORDER: $10.00 USD...`, ...prev]);
+      setLogs(prev => [`[${time}] > SENDING_REAL_ORDER: $1.00 USD...`, ...prev]);
       
       const response = await fetch('https://volsim-pro.onrender.com/api/deriv/trade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'buy', amount: 10 }) // Safety cap at $10
+        body: JSON.stringify({ action: 'buy', amount: 1.00 }) // Safety cap at $10
       });
 
       const result = await response.json();
@@ -70,7 +70,7 @@ export default function Terminal() {
       
       <div onClick={() => setShowInput(!showInput)} style={{ cursor: 'pointer', textAlign: 'center' }}>
         <h1 style={{ fontSize: '2.1rem', margin: '0' }}>${balance.toLocaleString(undefined, {minimumFractionDigits: 2})}</h1>
-        <div style={{ fontSize: '0.6rem', color: '#0f0' }}>● LIVE_CONNECTION</div>
+        <div style={{ fontSize: '0.6rem', color: '#0f0' }}>â— LIVE_CONNECTION</div>
       </div>
 
       {showInput && (
