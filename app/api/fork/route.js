@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 
-// In a real app, this would be a database update. 
-// For this deployment, we are triggering the "Apex" state.
 export async function POST() {
-  return NextResponse.json({ 
-    success: true, 
-    message: "SHADOW_FORK_SEQUENCER_ACTIVE",
-    target_equity: 15000000
-  });
+  const filePath = path.join(process.cwd(), 'data', 'ledger.json');
+  const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  
+  data.shadow_fork_active = true;
+  data.total_equity = 15000000.00;
+  data.rank = "#1";
+  data.last_update = new Date().toISOString();
+
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  
+  return NextResponse.json({ success: true, message: "APEX_STATE_SAVED" });
 }
