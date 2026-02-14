@@ -1,1 +1,1 @@
-{"name":"volsim-apex-v3","version":"3.0.0","private":true,"scripts":{"dev":"next dev","build":"next build","start":"next start"},"dependencies":{"next":"latest","react":"latest","react-dom":"latest"}}
+{"name":"volsim-apex-final","version":"4.0.0","private":true,"scripts":{"dev":"next dev","build":"next build","start":"next start"},"dependencies":{"next":"latest","react":"latest","react-dom":"latest"}}
