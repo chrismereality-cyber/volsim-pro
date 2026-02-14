@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL
+);
+
+INSERT INTO users (email, password)
+VALUES ('chris2@volsim.com','$2b$10$KixN9eE0h7y2X5p4B1z8Iu0X7s9b7QhDf1tNwEdg8fD8sR4z7kGg6')
+ON CONFLICT (email) DO NOTHING;

@@ -1,0 +1,151 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volsim Pro Portfolio Card</title>
+    <style>
+        :root {
+            --primary: #00f2ff;
+            --bg: #0a0b10;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --text: #ffffff;
+        }
+
+        body {
+            background-color: var(--bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 30px;
+            width: 350px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 242, 255, 0.1);
+            color: var(--primary);
+            padding: 6px 12px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .pulse {
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            box-shadow: 0 0 0 rgba(0, 242, 255, 0.4);
+            animation: pulse-animation 2s infinite;
+        }
+
+        @keyframes pulse-animation {
+            0% { box-shadow: 0 0 0 0px rgba(0, 242, 255, 0.7); }
+            100% { box-shadow: 0 0 0 10px rgba(0, 242, 255, 0); }
+        }
+
+        .price {
+            font-size: 42px;
+            font-weight: 800;
+            color: var(--text);
+            margin: 10px 0;
+        }
+
+        .label {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 20px;
+        }
+
+        .stat-item span {
+            display: block;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .stat-item b {
+            font-size: 14px;
+            color: #ddd;
+        }
+
+        .link-btn {
+            display: block;
+            text-align: center;
+            background: var(--primary);
+            color: #000;
+            text-decoration: none;
+            padding: 12px;
+            border-radius: 12px;
+            margin-top: 25px;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+
+        .link-btn:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="header">
+            <span style="color: var(--primary); font-weight: bold;">VOLSIM PRO</span>
+            <div class="status-badge">
+                <div class="pulse"></div> Live Engine
+            </div>
+        </div>
+        
+        <div class="label">Bitcoin Current Value</div>
+        <div class="price">$87,810.00</div>
+        
+        <div class="stats-grid">
+            <div class="stat-item">
+                <span>Infrastructure</span>
+                <b>Render + Vercel</b>
+            </div>
+            <div class="stat-item">
+                <span>Deployment</span>
+                <b>Jan 27, 2026 Sync</b>
+            </div>
+        </div>
+
+        <a href="https://volsim-ui.vercel.app" class="link-btn">Launch Trading UI</a>
+    </div>
+
+</body>
+</html>
