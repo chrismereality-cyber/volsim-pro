@@ -1,4 +1,5 @@
 'use client';
+/* MOBILE_OPTIMIZATION_V1 */
 import React, { useState, useEffect } from 'react';
 
 export default function TerminalPage() {
@@ -59,8 +60,8 @@ export default function TerminalPage() {
   const points = history.map((val, i) => `${(i * 25)},${40 - ((val - min) / (max - min || 1) * 40)}`).join(' ');
 
   return (
-    <div style={{ background: isLockdown ? '#300' : '#000', color: '#f00', minHeight: '100vh', padding: '15px', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'background 0.3s' }}>
-      <div style={{ width: '100%', maxWidth: '450px', border: isLockdown ? '2px solid #f00' : '1px solid #333', padding: '20px', textAlign: 'center', backgroundColor: '#050000', borderRadius: '15px', boxShadow: isLockdown ? '0 0 100px #f00' : '0 0 50px #100' }}>
+    <div style={{ background: isLockdown ? '#300' : '#000', color: '#f00', minHeight: '100vh', padding: '10px', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'background 0.3s' }}>
+      <div style={{ width: '100%', maxWidth: '100%', width: '100%', border: isLockdown ? '2px solid #f00' : '1px solid #333', padding: '20px', textAlign: 'center', backgroundColor: '#050000', borderRadius: '15px', boxShadow: isLockdown ? '0 0 100px #f00' : '0 0 50px #100' }}>
         
         <div style={{ color: isLockdown ? '#f00' : '#ffd700', fontSize: '0.65rem', fontWeight: 'bold' }}>
           {isLockdown ? "!!! SECURITY BREACH !!!" : "TERMINAL: TRM-4353-APEX // RANK #1"}
@@ -84,7 +85,7 @@ export default function TerminalPage() {
         {/* THE WITHDRAWAL TRAP */}
         <button 
           onClick={triggerWithdraw}
-          style={{ width: '100%', padding: '15px', marginBottom: '15px', background: 'transparent', border: '2px dashed #500', color: '#500', cursor: 'pointer', fontWeight: 'bold', textTransform: 'uppercase' }}
+          style={{ width: '100%', padding: '10px', marginBottom: '15px', background: 'transparent', border: '2px dashed #500', color: '#500', cursor: 'pointer', fontWeight: 'bold', textTransform: 'uppercase' }}
         >
           Initiate Withdrawal
         </button>
