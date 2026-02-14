@@ -9,6 +9,7 @@ export default function TerminalPage() {
   const [delta, setDelta] = useState(0);
   const [mounted, setMounted] = useState(false);
   const [isLockdown, setIsLockdown] = useState(false);
+  const [isGhost, setIsGhost] = useState(false);
   const [logs, setLogs] = useState(["[APEX_SYSTEM_READY]"]);
 
   const addLog = (msg) => {
@@ -50,7 +51,14 @@ export default function TerminalPage() {
     };
     fetchData();
     const interval = setInterval(fetchData, 2000);
-    return () => clearInterval(interval);
+      if (isGhost) return (
+    <div onDoubleClick={() => setIsGhost(false)} style={{ background: '#000', color: '#111', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'monospace', cursor: 'none' }}>
+      <div style={{ fontSize: '0.8rem' }}>[SYSTEM_IDLE]</div>
+      <div style={{ fontSize: '0.6rem', marginTop: '10px' }}>RE-AUTHENTICATION_REQUIRED</div>
+    </div>
+  );
+
+  return () => clearInterval(interval);
   }, [prevEquity]);
 
   if (!mounted || !data) return <div style={{background:'#000', color:'#0f0', height:'100vh', display:'flex', justifyContent:'center', alignItems:'center', fontFamily:'monospace'}}>CALIBRATING_QUANTUM_STREAM...</div>;
@@ -58,6 +66,13 @@ export default function TerminalPage() {
   const min = Math.min(...history);
   const max = Math.max(...history);
   const points = history.map((val, i) => `${(i * 25)},${40 - ((val - min) / (max - min || 1) * 40)}`).join(' ');
+
+    if (isGhost) return (
+    <div onDoubleClick={() => setIsGhost(false)} style={{ background: '#000', color: '#111', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'monospace', cursor: 'none' }}>
+      <div style={{ fontSize: '0.8rem' }}>[SYSTEM_IDLE]</div>
+      <div style={{ fontSize: '0.6rem', marginTop: '10px' }}>RE-AUTHENTICATION_REQUIRED</div>
+    </div>
+  );
 
   return (
     <div style={{ background: isLockdown ? '#300' : '#000', color: '#f00', minHeight: '100vh', padding: '10px', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'background 0.3s' }}>
@@ -67,7 +82,7 @@ export default function TerminalPage() {
           {isLockdown ? "!!! SECURITY BREACH !!!" : "TERMINAL: TRM-4353-APEX // RANK #1"}
         </div>
         
-        <div style={{ fontSize: '2.2rem', fontWeight: 'bold', color: '#fff', margin: '15px 0' }}>
+        <div style={{ cursor: 'pointer', fontSize: '2.2rem', fontWeight: 'bold', color: '#fff', margin: '15px 0' }}>
           ${parseFloat(data.total_equity).toLocaleString(undefined, {minimumFractionDigits: 2})}
         </div>
 
