@@ -63,7 +63,7 @@ export default function TerminalPage() {
       <div style={{ width: '100%', maxWidth: '450px', border: isLockdown ? '2px solid #f00' : '1px solid #333', padding: '20px', textAlign: 'center', backgroundColor: '#050000', borderRadius: '15px', boxShadow: isLockdown ? '0 0 100px #f00' : '0 0 50px #100' }}>
         
         <div style={{ color: isLockdown ? '#f00' : '#ffd700', fontSize: '0.65rem', fontWeight: 'bold' }}>
-          {isLockdown ? "!!! SECURITY BREACH !!!" : "RANK #1 // APEX_CORE"}
+          {isLockdown ? "!!! SECURITY BREACH !!!" : "TERMINAL: TRM-4353-APEX // RANK #1"}
         </div>
         
         <div style={{ fontSize: '2.2rem', fontWeight: 'bold', color: '#fff', margin: '15px 0' }}>
