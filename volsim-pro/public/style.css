@@ -1,0 +1,5 @@
+body { background: #0b0f14; color: #00ffcc; font-family: monospace; padding: 20px; }
+.status-box { border: 1px solid #00ffcc; padding: 20px; border-radius: 5px; background: #161b22; }
+h1 { font-size: 2em; margin-bottom: 10px; }
+h2 { font-size: 1.5em; margin-bottom: 10px; }
+pre { background: #0d1117; padding: 15px; border-radius: 5px; overflow-x: auto; }

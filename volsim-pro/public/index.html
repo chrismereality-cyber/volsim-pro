@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VOLSIM PRO | LIVE</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>VOLSIM PRO DASHBOARD</h1>
+<div class="status-box">
+<h2>ENGINE STATUS: <span id="status" style="color:red;">INITIALIZING...</span></h2>
+<pre id="raw">Connecting to engine...</pre>
+</div>
+<script>
+async function update() {
+try {
+  const response = await fetch('/api/data?t=' + Date.now());
+  if (!response.ok) throw new Error('HTTP ' + response.status);
+  const json = await response.json();
+  document.getElementById('status').textContent = 'ONLINE';
+  document.getElementById('status').style.color = '#00ffcc';
+  document.getElementById('raw').textContent = JSON.stringify(json, null, 4);
+} catch (err) {
+  document.getElementById('status').textContent = 'OFFLINE (' + err.message + ')';
+  document.getElementById('status').style.color = 'red';
+}
+}
+setInterval(update, 2000);
+update();
+</script>
+</body>
+</html>
