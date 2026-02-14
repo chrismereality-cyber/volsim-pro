@@ -1,26 +1,25 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export default function TerminalPage() {
   const [data, setData] = useState(null);
   const [mounted, setMounted] = useState(false);
-  const [logs, setLogs] = useState(["SYSTEM_READY", "AWAITING_COMMAND..."]);
+  const [logs, setLogs] = useState(["[SECURE_CHANNEL_INIT]"]);
 
   const addLog = (msg) => {
     const time = new Date().toLocaleTimeString();
-    setLogs(prev => [...prev.slice(-6), `[${time}] ${msg}`]);
+    setLogs(prev => [...prev.slice(-5), `[${time}] ${msg}`]);
   };
 
   const updateLeverage = async (level) => {
-    addLog(`INITIATING_LEVERAGE_SHIFT: ${level}X...`);
-    // This will hit our existing fork API but we will expand it
+    addLog(`CMD: SET_LEV_${level}X`);
     try {
       const res = await fetch('https://volsim-pro.onrender.com/api/fork', {
         method: 'POST',
         body: JSON.stringify({ leverage: level })
       });
-      if (res.ok) addLog(`LEVERAGE_LOCKED: ${level}X`);
-    } catch (e) { addLog("COMMS_ERROR_STAYING_AT_CURRENT_LEVEL"); }
+      if (res.ok) addLog(`STATE: LOCKED_${level}X`);
+    } catch (e) { addLog("STATE: COMMS_TIMEOUT"); }
   };
 
   useEffect(() => {
@@ -35,29 +34,32 @@ export default function TerminalPage() {
       } catch (e) {}
     };
     fetchData();
-    const interval = setInterval(fetchData, 3000);
+    const interval = setInterval(fetchData, 2500);
     return () => clearInterval(interval);
   }, []);
 
-  if (!mounted || !data) return <div style={{background:'#000', color:'#0f0', height:'100vh', display:'flex', justifyContent:'center', alignItems:'center', fontFamily:'monospace'}}>SYNCING...</div>;
+  if (!mounted || !data) return <div style={{background:'#000', color:'#0f0', height:'100vh', display:'flex', justifyContent:'center', alignItems:'center', fontFamily:'monospace'}}>RE-ESTABLISHING_LINK...</div>;
 
   return (
-    <div style={{ background: '#000', color: '#f00', minHeight: '100vh', padding: '20px', fontFamily: 'monospace' }}>
-      <div style={{ maxWidth: '850px', margin: '20px auto', border: '2px solid #500', padding: '40px', textAlign: 'center', backgroundColor: '#050000' }}>
-        <div style={{ color: '#ffd700' }}>{data.rank} // APEX_CORE</div>
+    <div style={{ background: '#000', color: '#f00', minHeight: '100vh', padding: '10px', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{ width: '100%', maxWidth: '600px', border: '1px solid #400', padding: '20px', textAlign: 'center', backgroundColor: '#050000', borderRadius: '8px', marginTop: '20px' }}>
+        <div style={{ color: '#ffd700', fontSize: '0.8rem', letterSpacing: '2px' }}>{data.rank} // APEX_CORE</div>
         
-        <div style={{ fontSize: '3rem', fontWeight: 'bold', margin: '20px 0', color: '#fff' }}>
-          ${parseFloat(data.total_equity).toLocaleString(undefined, {minimumFractionDigits: 2})}
+        <div style={{ fontSize: 'clamp(1.5rem, 8vw, 2.8rem)', fontWeight: 'bold', margin: '20px 0', color: '#fff', wordBreak: 'break-all' }}>
+          ${parseFloat(data.total_equity).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
         </div>
         
-        {/* CONTROL DECK */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '30px' }}>
-          <button onClick={() => updateLeverage(1)} style={{ background: '#200', color: '#f00', border: '1px solid #f00', padding: '10px 20px', cursor: 'pointer' }}>CLAMP_LEVERAGE (1X)</button>
-          <button onClick={() => updateLeverage(125)} style={{ background: '#f00', color: '#000', border: '1px solid #f00', padding: '10px 20px', cursor: 'pointer', fontWeight: 'bold' }}>MAX_BOOST (125X)</button>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
+          <button onClick={() => updateLeverage(1)} style={{ background: '#200', color: '#f00', border: '1px solid #f00', padding: '15px 5px', fontSize: '0.7rem', cursor: 'pointer' }}>CLAMP_1X</button>
+          <button onClick={() => updateLeverage(125)} style={{ background: '#f00', color: '#000', border: '1px solid #f00', padding: '15px 5px', fontSize: '0.7rem', cursor: 'pointer', fontWeight: 'bold' }}>BOOST_125X</button>
         </div>
 
-        <div style={{ background: '#000', border: '1px solid #300', padding: '15px', textAlign: 'left', height: '120px', fontSize: '0.75rem', color: '#0f0' }}>
-          {logs.map((log, i) => <div key={i}>{log}</div>)}
+        <div style={{ background: '#000', border: '1px solid #222', padding: '10px', textAlign: 'left', minHeight: '100px', fontSize: '0.7rem', color: '#0f0' }}>
+          {logs.map((log, i) => <div key={i} style={{opacity: (i+1)/logs.length}}>{log}</div>)}
+        </div>
+
+        <div style={{ marginTop: '15px', color: '#444', fontSize: '0.6rem' }}>
+          PULSE: ${data.market_price?.toLocaleString()} | LEVERAGE: {data.leverage_active}X
         </div>
       </div>
     </div>
