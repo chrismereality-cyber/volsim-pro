@@ -43,7 +43,7 @@ export default function ApexTerminal() {
   // 1. GHOST SCREEN (Privacy)
     if (isBooting) return (
     <div style={{ background: '#000', color: '#ff3333', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'Courier New, monospace' }}>
-      <div style={{ fontSize: '1rem', letterSpacing: '2px', animation: 'pulse 1s infinite' }}>INITIALIZING_APEX_CORE...</div>
+      <div style={{ fontSize: '1rem', letterSpacing: '2px', animation: 'pulse 1s infinite' }}>INITIALIZING_VOLSIM_PRO...</div>
       <div style={{ fontSize: '0.6rem', marginTop: '10px', opacity: 0.5 }}>VAULT_SYNC: OK | ORACLE_LINK: ESTABLISHED</div>
       <style>{`@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }`}</style>
     </div>

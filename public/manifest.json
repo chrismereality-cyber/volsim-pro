@@ -1,7 +1,7 @@
 {
-  "name": "APEX_TERMINAL",
-  "short_name": "APEX",
-  "description": "Quantum Ledger",
+  "name": "VOLSIM-PRO_TERMINAL",
+  "short_name": "VOLSIM-PRO",
+  "description": "APEX_CORE Quantum Ledger",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
@@ -9,8 +9,9 @@
   "icons": [
     {
       "src": "https://raw.githubusercontent.com/chrismereality-cyber/volsim-pro/main/public/icon.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
