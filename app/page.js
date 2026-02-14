@@ -2,89 +2,64 @@
 import React, { useState, useEffect } from 'react';
 
 export default function Terminal() {
-  const [activeAccount, setActiveAccount] = useState('REAL');
-  const [balance, setBalance] = useState(0.00);
+  const [balance, setBalance] = useState('FETCHING...');
   const [isGhost, setIsGhost] = useState(false);
-  const [isLockdown, setIsLockdown] = useState(false);
   const [isBooting, setIsBooting] = useState(true);
   const [showInput, setShowInput] = useState(false);
   const [command, setCommand] = useState('');
   const [logs, setLogs] = useState([]);
 
-  // 1. SYNC WITH REAL DERIV DATA VIA RENDER
   const syncDeriv = async () => {
     try {
-      // Replace with your actual Render URL
-      const response = await fetch('https://volsim-pro.onrender.com/api/deriv/account');
-      const data = await response.json();
-      if (data.balance) setBalance(parseFloat(data.balance));
+      const res = await fetch('https://volsim-pro.onrender.com/api/deriv/account');
+      const data = await res.json();
+      if (data.balance) {
+        setBalance(parseFloat(data.balance).toLocaleString(undefined, {minimumFractionDigits: 2}));
+      }
     } catch (e) {
-      console.log("Sync Error: Backend not yet updated with API logic");
+      setLogs(prev => [`[${new Date().toLocaleTimeString()}] ERROR: CONN_REFUSED`, ...prev]);
     }
   };
 
   useEffect(() => {
-    setLogs([
-      `[${new Date().toLocaleTimeString()}] VOLSIM_PRO_v6.0_LIVE`,
-      `[${new Date().toLocaleTimeString()}] ACCOUNT: REAL_DERIV_SYNCED`,
-      `[${new Date().toLocaleTimeString()}] SECURITY: ADMIN_TOKEN_DETECTED (CAUTION)`
-    ]);
+    setLogs([`[${new Date().toLocaleTimeString()}] VOLSIM_V6_MASTER_SYNC_ACTIVE`]);
     syncDeriv();
-    const bootTimer = setTimeout(() => setIsBooting(false), 2000);
-    return () => clearTimeout(bootTimer);
+    const ticker = setInterval(syncDeriv, 5000);
+    const boot = setTimeout(() => setIsBooting(false), 2000);
+    return () => { clearInterval(ticker); clearTimeout(boot); };
   }, []);
 
-  // 2. REAL TRADE EXECUTION
   const executeCommand = async () => {
-    const cmd = command.toLowerCase().trim();
-    const time = new Date().toLocaleTimeString();
-
-    if (cmd === 'init') {
-      setLogs(prev => [`[${time}] > SENDING_REAL_ORDER: $1.00 USD...`, ...prev]);
-      
-      const response = await fetch('https://volsim-pro.onrender.com/api/deriv/trade', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'buy', amount: 1.00 }) // Safety cap at $10
+    if (command.toLowerCase().trim() === 'init') {
+      setLogs(prev => [`[${new Date().toLocaleTimeString()}] > SIG_SENT: $1.00 USD`, ...prev]);
+      await fetch('https://volsim-pro.onrender.com/api/deriv/trade', { 
+        method: 'POST', 
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ amount: 1.00 }) 
       });
-
-      const result = await response.json();
-      if (result.status === 'success') {
-        setLogs(prev => [`[${time}] > EXECUTION_SUCCESS: ORDER_ID_${result.id}`, ...prev]);
-        syncDeriv();
-      } else {
-        setLogs(prev => [`[${time}] > EXECUTION_FAILED: ${result.message}`, ...prev]);
-      }
+      setTimeout(syncDeriv, 2000);
     }
-    
     setCommand('');
     setShowInput(false);
   };
 
-  if (isBooting) return <div style={{background:'#000',color:'#f33',height:'100vh',display:'flex',justifyContent:'center',alignItems:'center',fontFamily:'monospace'}}>DECRYPTING_REAL_FEED...</div>;
-  if (isGhost) return <div onMouseDown={()=>{setIsGhost(false)}} style={{background:'#000',height:'100vh',width:'100vw'}} />;
-  
+  if (isBooting) return <div style={{background:'#000',color:'#f33',height:'100vh',display:'flex',justifyContent:'center',alignItems:'center',fontFamily:'monospace'}}>ESTABLISHING_ORACLE_LINK...</div>;
+  if (isGhost) return <div onMouseDown={()=>setIsGhost(false)} style={{background:'#000',height:'100vh',width:'100vw'}} />;
+
   return (
-    <div style={{ background: '#000', color: '#ff3333', height: '100vh', width: '100vw', padding: '20px', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-      <div style={{ fontSize: '0.6rem', opacity: 0.5, marginBottom: '20px' }}>REAL_SOVEREIGN_TERMINAL</div>
-      
+    <div style={{ background: '#000', color: '#ff3333', height: '100vh', width: '100vw', padding: '20px', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{ fontSize: '0.6rem', opacity: 0.5, marginBottom: '20px' }}>SOVEREIGN_V6_REAL</div>
       <div onClick={() => setShowInput(!showInput)} style={{ cursor: 'pointer', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '2.1rem', margin: '0' }}>${balance.toLocaleString(undefined, {minimumFractionDigits: 2})}</h1>
-        <div style={{ fontSize: '0.6rem', color: '#0f0' }}>Ã¢â€”Â LIVE_CONNECTION</div>
+        <h1 style={{ fontSize: '2.4rem', margin: '0' }}>${balance}</h1>
+        <div style={{ fontSize: '0.6rem', color: '#0f0' }}>● ORACLE_ONLINE</div>
       </div>
-
       {showInput && (
-        <input 
-          autoFocus value={command} 
-          onChange={(e)=>setCommand(e.target.value)} 
-          onKeyDown={(e)=>e.key==='Enter' && executeCommand()}
-          style={{ background:'transparent', border:'none', borderBottom:'1px solid #f33', color:'#f33', textAlign:'center', marginTop:'15px', outline:'none', width: '80%' }}
-          placeholder="ENTER_LIVE_CMD..."
-        />
+        <input autoFocus value={command} onChange={(e)=>setCommand(e.target.value)} onKeyDown={(e)=>e.key==='Enter' && executeCommand()}
+          style={{ background:'transparent', border:'none', borderBottom:'1px solid #f33', color:'#f33', textAlign:'center', marginTop:'15px', outline:'none', width: '80%', fontSize: '1.2rem' }}
+          placeholder="EXECUTE..." />
       )}
-
-      <div style={{ marginTop: '30px', width: '100%', fontSize: '0.65rem', opacity: 0.8, flexGrow: 1 }}>
-        {logs.map((l, i) => <div key={i} style={{ marginBottom: '4px' }}>{l}</div>)}
+      <div style={{ marginTop: '30px', width: '100%', fontSize: '0.65rem', opacity: 0.8, flexGrow: 1, overflow: 'hidden' }}>
+        {logs.slice(0, 10).map((l, i) => <div key={i} style={{ marginBottom: '4px' }}>{l}</div>)}
       </div>
     </div>
   );
