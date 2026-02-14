@@ -6,10 +6,10 @@
   "theme_color": "#000000",
   "icons": [
     {
-      "src": "/v-icon.png",
+      "src": "https://raw.githubusercontent.com/chrismereality-cyber/volsim-pro/main/public/v-icon.png",
       "sizes": "1024x1024",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
