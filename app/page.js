@@ -57,7 +57,7 @@ export default function Terminal() {
   };
 
   if (isBooting) return <div style={{background:'#000',color:'#f33',height:'100vh',display:'flex',justifyContent:'center',alignItems:'center',fontFamily:'monospace'}}>INITIALIZING_VOLSIM_PRO...</div>;
-  if (isGhost) return <div onTouchStart={() => { window.gT = setTimeout(()=>setIsGhost(false), 2000); }} onTouchEnd={() => clearTimeout(window.gT)} style={{background:'#000',height:'100vh',width:'100vw'}} />;
+  if (isGhost) return <div onTouchStart={() => { window.gT = setTimeout(()=>setIsGhost(false), 1000); }} onTouchEnd={() => clearTimeout(window.gT)} style={{background:'#000',height:'100vh',width:'100vw'}} />;
   if (isLockdown) return <div onClick={()=>setIsLockdown(false)} style={{background:'#400',color:'#fff',height:'100vh',display:'flex',justifyContent:'center',alignItems:'center',fontFamily:'monospace'}}><h1>LOCKDOWN_ACTIVE</h1></div>;
 
   return (
@@ -86,9 +86,23 @@ export default function Terminal() {
         {logs.slice(0, 10).map((l, i) => <div key={i} style={{ marginBottom: '5px' }}>{l}</div>)}
       </div>
 
-      <div style={{ display: 'flex', gap: '30px', marginBottom: '60px', zIndex: 20 }}>
-        <span onTouchStart={() => { window.lT = setTimeout(()=>setIsLockdown(true), 2500); }} onTouchEnd={() => clearTimeout(window.lT)} style={{ border: '1px solid #f333', padding: '5px 10px' }}>LOCKDOWN</span>
-        <span onTouchStart={() => { window.gT = setTimeout(()=>setIsGhost(true), 2500); }} onTouchEnd={() => clearTimeout(window.gT)} style={{ border: '1px solid #f333', padding: '5px 10px' }}>GHOST</span>
+            <div style={{ display: 'flex', gap: '30px', marginBottom: '60px', zIndex: 20 }}>
+        <span 
+          onContextMenu={(e) => e.preventDefault()}
+          onTouchStart={(e) => { e.preventDefault(); window.lT = setTimeout(()=>setIsLockdown(true), 1500); }} 
+          onTouchEnd={() => clearTimeout(window.lT)} 
+          style={{ border: '1px solid #f333', padding: '10px 15px', borderRadius: '4px', userSelect: 'none' }}
+        >
+          LOCKDOWN
+        </span>
+        <span 
+          onContextMenu={(e) => e.preventDefault()}
+          onTouchStart={(e) => { e.preventDefault(); window.gT = setTimeout(()=>setIsGhost(true), 1500); }} 
+          onTouchEnd={() => clearTimeout(window.gT)} 
+          style={{ border: '1px solid #f333', padding: '10px 15px', borderRadius: '4px', userSelect: 'none' }}
+        >
+          GHOST
+        </span>
       </div>
 
       <div style={{ position: 'absolute', bottom: '0', left: 0, width: '100%', background: '#000', padding: '10px 0', borderTop: '1px solid #f333', pointerEvents: 'none' }}>
