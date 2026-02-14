@@ -51,10 +51,15 @@ export default function TerminalPage() {
     };
     fetchData();
     const interval = setInterval(fetchData, 2000);
-      if (isGhost) return (
-    <div onDoubleClick={() => setIsGhost(false)} style={{ background: '#000', color: '#111', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'Courier New, monospace', fontWeight: 'bold', cursor: 'none' }}>
+        if (isGhost) return (
+    <div style={{ background: '#000', color: '#111', height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'monospace', touchAction: 'none' }}>
       <div style={{ fontSize: '0.8rem' }}>[SYSTEM_IDLE]</div>
-      <div style={{ fontSize: '0.6rem', marginTop: '10px' }}>RE-AUTHENTICATION_REQUIRED</div>
+      <button 
+        onClick={() => setIsGhost(false)} 
+        style={{ marginTop: '20px', background: 'transparent', border: '1px solid #111', color: '#111', padding: '5px 10px', fontSize: '0.6rem', cursor: 'pointer' }}
+      >
+        RE-AUTHENTICATE
+      </button>
     </div>
   );
 
@@ -67,10 +72,15 @@ export default function TerminalPage() {
   const max = Math.max(...history);
   const points = history.map((val, i) => `${(i * 25)},${40 - ((val - min) / (max - min || 1) * 40)}`).join(' ');
 
-    if (isGhost) return (
-    <div onDoubleClick={() => setIsGhost(false)} style={{ background: '#000', color: '#111', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'Courier New, monospace', fontWeight: 'bold', cursor: 'none' }}>
+      if (isGhost) return (
+    <div style={{ background: '#000', color: '#111', height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'monospace', touchAction: 'none' }}>
       <div style={{ fontSize: '0.8rem' }}>[SYSTEM_IDLE]</div>
-      <div style={{ fontSize: '0.6rem', marginTop: '10px' }}>RE-AUTHENTICATION_REQUIRED</div>
+      <button 
+        onClick={() => setIsGhost(false)} 
+        style={{ marginTop: '20px', background: 'transparent', border: '1px solid #111', color: '#111', padding: '5px 10px', fontSize: '0.6rem', cursor: 'pointer' }}
+      >
+        RE-AUTHENTICATE
+      </button>
     </div>
   );
 
