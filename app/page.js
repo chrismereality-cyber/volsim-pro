@@ -1,4 +1,5 @@
 'use client';
+// NATIVE_WRAP_V1
 import { useState, useEffect } from 'react';
 
 export default function ApexTerminal() {
@@ -57,7 +58,7 @@ export default function ApexTerminal() {
 
   // 3. MAIN TERMINAL UI
   return (
-    <div style={{ background: '#000', color: '#ff3333', minHeight: '100vh', padding: '10px', fontFamily: 'Courier New, monospace', fontWeight: 'bold', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', userSelect: 'none' }}>
+    <div style={{ background: '#000', color: '#ff3333', minHeight: '100vh', padding: '10px', fontFamily: 'Courier New, monospace', fontWeight: 'bold', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', userSelect: 'none', overflow: 'hidden', position: 'fixed', width: '100vw', height: '100vh' }}>
       <div style={{ width: '100%', maxWidth: '100%' }}>
         <div style={{ fontSize: '0.7rem', opacity: 0.6, marginBottom: '20px', textAlign: 'center' }}>TERMINAL: TRM-4353-APEX // RANK #1</div>
         
