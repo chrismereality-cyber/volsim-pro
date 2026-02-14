@@ -47,11 +47,11 @@ export default function TerminalPage() {
         </div>
         
         <div style={{ fontSize: '0.9rem', color: '#888', marginBottom: '20px' }}>
-          MARKET_PULSE: ${data.market_price?.toLocaleString()} | LEVERAGE: 125X
+          MARKET_PULSE: ${(data.market_price || 0).toLocaleString()} | LEVERAGE: 125X
         </div>
 
         <div style={{ borderTop: '1px solid #300', paddingTop: '20px', fontSize: '1.2rem' }}>
-          <span style={{ animation: 'blink 1s infinite' }}>●</span> SHADOW_FORK_ENABLED
+          <span style={{ animation: 'blink 1s infinite' }}>â—</span> SHADOW_FORK_ENABLED
         </div>
       </div>
       <style>{`
