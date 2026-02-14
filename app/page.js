@@ -16,14 +16,13 @@ export default function TerminalPage() {
   }, []);
 
   const triggerFork = () => fetch(`${apiUrl}/fork`, { method: 'POST' });
-
-  if (!data) return <div style={{background:'#000', color:'#0f0', height:'100vh', display:'flex', alignItems:'center', justifyContent:'center'}}>SYNCING_WITH_APEX_LEDGER...</div>;
+  if (!data) return <div style={{background:'#000', color:'#0f0', height:'100vh', display:'flex', alignItems:'center', justifyContent:'center'}}>SYNCING_APEX...</div>;
 
   return (
     <div style={{ background: '#000', color: data.shadow_fork_active ? '#f00' : '#0f0', minHeight: '100vh', padding: '20px', fontFamily: 'monospace' }}>
       <div style={{ maxWidth: '1000px', margin: '0 auto', border: '2px solid #333', padding: '40px', textAlign: 'center' }}>
         <h2 style={{ color: '#ffd700' }}>{data.rank} // APEX_HUNT</h2>
-        <div style={{ fontSize: '5rem', fontWeight: 'bold', margin: '40px 0' }}>
+        <div style={{ fontSize: '4rem', fontWeight: 'bold', margin: '40px 0' }}>
           ${data.total_equity.toLocaleString(undefined, {minimumFractionDigits: 2})}
         </div>
         {!data.shadow_fork_active ? (
@@ -31,7 +30,7 @@ export default function TerminalPage() {
             INITIALIZE_SHADOW_FORK
           </button>
         ) : (
-          <div style={{ color: '#f00', fontSize: '2rem', animation: 'blink 0.5s infinite' }}>>>> SHADOW_FORK_ACTIVE <<<</div>
+          <div style={{ color: '#f00', fontSize: '2rem' }}>SHADOW_FORK_ACTIVE</div>
         )}
       </div>
     </div>
