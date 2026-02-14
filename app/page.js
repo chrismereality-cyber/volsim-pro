@@ -6,6 +6,7 @@ export default function ApexTerminal() {
   const [data, setData] = useState({ total_equity: 27051037840.66, leverage_active: 125 });
   const [isLockdown, setIsLockdown] = useState(false);
   const [isGhost, setIsGhost] = useState(false);
+  const [isBooting, setIsBooting] = useState(true);
   const [logs, setLogs] = useState(["[APEX_SYSTEM_READY]"]);
 
   // Long-Press Logic
@@ -23,7 +24,8 @@ export default function ApexTerminal() {
     }
   };
 
-  useEffect(() => {
+    useEffect(() => {
+    const timer = setTimeout(() => setIsBooting(false), 2200);
     fetchData();
     const interval = setInterval(fetchData, 2000);
     return () => clearInterval(interval);
@@ -39,6 +41,14 @@ export default function ApexTerminal() {
   };
 
   // 1. GHOST SCREEN (Privacy)
+    if (isBooting) return (
+    <div style={{ background: '#000', color: '#ff3333', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'Courier New, monospace' }}>
+      <div style={{ fontSize: '1rem', letterSpacing: '2px', animation: 'pulse 1s infinite' }}>INITIALIZING_APEX_CORE...</div>
+      <div style={{ fontSize: '0.6rem', marginTop: '10px', opacity: 0.5 }}>VAULT_SYNC: OK | ORACLE_LINK: ESTABLISHED</div>
+      <style>{`@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }`}</style>
+    </div>
+  );
+
   if (isGhost) return (
     <div style={{ background: '#000', color: '#111', height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'monospace', touchAction: 'none' }}>
       <div style={{ fontSize: '0.8rem' }}>[SYSTEM_IDLE]</div>
