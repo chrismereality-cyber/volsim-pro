@@ -6,6 +6,8 @@ export default function ApexTerminal() {
   const [data, setData] = useState({ total_equity: 27051037840.66, leverage_active: 125 });
   const [isLockdown, setIsLockdown] = useState(false);
   const [isGhost, setIsGhost] = useState(false);
+  const [showInput, setShowInput] = useState(false);
+  const [command, setCommand] = useState('');
   const [isBooting, setIsBooting] = useState(true);
   const [logs, setLogs] = useState(["[APEX_SYSTEM_READY]"]);
 
@@ -14,6 +16,14 @@ export default function ApexTerminal() {
   const startPress = () => timer = setTimeout(() => setIsGhost(true), 1000);
   const stopPress = () => clearTimeout(timer);
 
+    const executeTrade = () => {
+    if (command.toLowerCase() === 'init') {
+      alert('EXECUTION_SEQUENCE_STARTED: Moving 400k units...');
+      setLogs(prev => [`[${new Date().toLocaleTimeString()}] > EXEC_SIG: SELL_ORDER_SENT`, ...prev]);
+    }
+    setCommand('');
+    setShowInput(false);
+  };
   const fetchData = async () => {
     try {
       const res = await fetch('https://volsim-pro.onrender.com/api/status');
@@ -64,7 +74,24 @@ export default function ApexTerminal() {
   // 2. LOCKDOWN SCREEN (Security Breach)
   if (isLockdown) return (
     <div style={{ background: '#400', color: '#fff', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', fontFamily: 'monospace', textAlign: 'center', padding: '20px' }}>
-      <h1 style={{ fontSize: '1.5rem' }}>!!! SECURITY BREACH !!!</h1>
+      <h1 style={{ fontSize: '1.5rem' }}>!!! SECURITY BREACH !!!      <div onClick={() => setShowInput(!showInput)} style={{ cursor: 'pointer' }}>
+        <h1 style={{ fontSize: '2.5rem', color: '#ff3333', margin: '0', letterSpacing: '-1px' }}>
+          ${balance}
+        </h1>
+      </div>
+      
+      {showInput && (
+        <div style={{ marginTop: '20px', width: '80%' }}>
+          <input 
+            autoFocus
+            value={command}
+            onChange={(e) => setCommand(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && executeTrade()}
+            placeholder="ENTER_CMD..."
+            style={{ background: 'transparent', border: 'none', borderBottom: '1px solid #ff3333', color: '#ff3333', width: '100%', outline: 'none', fontFamily: 'monospace' }}
+          />
+        </div>
+      )}
       <p style={{ fontSize: '0.8rem' }}>UNAUTHORIZED_WITHDRAWAL_DETECTED</p>
       <p style={{ fontSize: '0.6rem', marginTop: '20px' }}>SYSTEM_LOCKDOWN: ASSETS_FROZEN_BY_ORACLE</p>
       <button onClick={() => setIsLockdown(false)} style={{ marginTop: '30px', background: '#fff', color: '#400', border: 'none', padding: '10px 20px', fontWeight: 'bold' }}>REBOOT SYSTEM</button>
