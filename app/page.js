@@ -4,19 +4,26 @@ import React, { useState, useEffect } from 'react';
 export default function TerminalPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
-  const apiUrl = 'https://volsim-pro.onrender.com';
+
+  // If we are on Render, use relative path. If on Vercel, use the absolute Render URL.
+  const getApiUrl = () => {
+    if (typeof window !== 'undefined' && window.location.hostname.includes('render.com')) {
+      return '/api/pulse';
+    }
+    return 'https://volsim-pro.onrender.com/api/pulse';
+  };
 
   const fetchData = async () => {
     try {
-      const res = await fetch(`${apiUrl}/api/api/pulse?t=${Date.now()}`, { mode: 'cors' });
+      const res = await fetch(getApiUrl(), { 
+        mode: 'cors',
+        headers: { 'Accept': 'application/json' }
+      });
       if (res.ok) {
-        const json = await res.json();
-        setData(json);
+        setData(await res.json());
         setError(false);
-      }
-    } catch (e) {
-      setError(true);
-    }
+      } else { setError(true); }
+    } catch (e) { setError(true); }
   };
 
   useEffect(() => {
@@ -25,13 +32,13 @@ export default function TerminalPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const triggerFork = () => fetch(`${apiUrl}/fork`, { method: 'POST', mode: 'cors' });
+  const triggerFork = () => fetch('https://volsim-pro.onrender.com/api/fork', { method: 'POST', mode: 'cors' });
 
   if (!data) return (
     <div style={{background:'#000', color:'#0f0', height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', fontFamily:'monospace'}}>
       <div>SYNCING_WITH_APEX_LEDGER...</div>
-      {error && <div style={{color:'#f00', marginTop:'20px'}}>CONNECTION_ERROR: CHECK_RENDER_CORS</div>}
-      <button onClick={() => window.location.reload()} style={{marginTop:'20px', background:'#333', color:'#fff', border:'none', padding:'10px'}}>RETRY_CONNECTION</button>
+      {error && <div style={{color:'#f00', marginTop:'20px'}}>BRIDGE_ERROR: CORS_OR_OFFLINE</div>}
+      <button onClick={() => window.location.reload()} style={{marginTop:'20px', background:'#333', color:'#fff', border:'none', padding:'10px', cursor:'pointer'}}>RETRY_APEX_LINK</button>
     </div>
   );
 
