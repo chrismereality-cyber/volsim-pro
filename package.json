@@ -1,16 +1,16 @@
 {
-  "name": "volsim-pro-oracle",
-  "version": "1.0.0",
-  "description": "Sovereign Ledger Oracle",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "build": "npm install"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "ws": "^8.13.0",
-    "cors": "^2.8.5",
-    "axios": "^1.4.0"
-  }
+    "name":  "volsim-pro-oracle",
+    "version":  "1.0.0",
+    "description":  "Sovereign Ledger Oracle",
+    "main":  "server.js",
+    "scripts":  {
+                    "start":  "node volsim_pro_dashboard_full.js",
+                    "build":  "npm install"
+                },
+    "dependencies":  {
+                         "express":  "^4.18.2",
+                         "ws":  "^8.13.0",
+                         "cors":  "^2.8.5",
+                         "axios":  "^1.4.0"
+                     }
 }
