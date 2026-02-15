@@ -12,13 +12,13 @@ const SYMBOL = "R_50";
 
 let currentBalance = "0.00";
 let tickHistory = [];
-let lastSignal = "WAITING";
+let isDemo = true;
 
 // --- ASCII ENGINE ---
 const generatePriceChart = () => {
     if (tickHistory.length < 2) return "Establishing Feed...";
     let chart = "";
-    const displayTicks = tickHistory.slice(-30);
+    const displayTicks = tickHistory.slice(-25); // Shorter for cleaner logs
     displayTicks.forEach((tick, i) => {
         if (i === 0) return;
         const color = tick > displayTicks[i-1] ? "\x1b[32m" : "\x1b[31m";
@@ -36,6 +36,8 @@ const connectDeriv = () => {
     ws.on('message', (data) => {
         const msg = JSON.parse(data);
         if (msg.msg_type === 'authorize') {
+            // Check if it's actually a demo account
+            isDemo = msg.authorize.is_virtual === 1;
             ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
             ws.send(JSON.stringify({ ticks: SYMBOL, subscribe: 1 }));
         }
@@ -45,9 +47,9 @@ const connectDeriv = () => {
             tickHistory.push(price);
             if (tickHistory.length > 50) tickHistory.shift();
             
-            // Console Logging for Render Dashboard
+            const mode = isDemo ? "\x1b[33m[DEMO]\x1b[0m" : "\x1b[31m[REAL]\x1b[0m";
             const trend = generatePriceChart();
-            process.stdout.write(`\r[${SYMBOL}] Price: ${price} | Trend: ${trend} | Bal: $${currentBalance}   `);
+            process.stdout.write(`\r${mode} ${SYMBOL}: ${price} | ${trend} | Bal: $${currentBalance}   `);
         }
     });
     ws.on('close', () => setTimeout(connectDeriv, 5000));
@@ -55,9 +57,8 @@ const connectDeriv = () => {
 
 connectDeriv();
 
-// --- API FOR PHONE SYNC ---
-app.get('/', (req, res) => res.send("AUTOPILOT_CORE_ACTIVE"));
-app.get('/api/deriv/account', (req, res) => res.json({ balance: currentBalance }));
+app.get('/', (req, res) => res.send("ORACLE_DEMO_RUNNING"));
+app.get('/api/deriv/account', (req, res) => res.json({ balance: currentBalance, mode: isDemo ? "DEMO" : "REAL" }));
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => console.log(`Oracle Active on Port ${PORT}`));
