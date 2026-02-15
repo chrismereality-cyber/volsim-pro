@@ -51,7 +51,7 @@ export default function Terminal() {
       <div style={{ fontSize: '0.6rem', opacity: 0.5, marginBottom: '20px' }}>SOVEREIGN_V6_REAL</div>
       <div onClick={() => setShowInput(!showInput)} style={{ cursor: 'pointer', textAlign: 'center' }}>
         <h1 style={{ fontSize: '2.4rem', margin: '0' }}>${balance}</h1>
-        <div style={{ fontSize: '0.6rem', color: '#0f0' }}>● ORACLE_ONLINE</div>
+        <div style={{ fontSize: '0.6rem', color: '#0f0' }}>â— ORACLE_ONLINE</div>
       </div>
       {showInput && (
         <input autoFocus value={command} onChange={(e)=>setCommand(e.target.value)} onKeyDown={(e)=>e.key==='Enter' && executeCommand()}
