@@ -1,0 +1,723 @@
+[2026-02-15T14:27:46.449Z] [N/A] {"contract_id":306627952888,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9961.6}
+[2026-02-15T14:27:46.453Z] [N/A] {"contract_id":306627952928,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9960.6}
+[2026-02-15T14:27:48.447Z] [N/A] {"contract_id":306627955428,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9959.6}
+[2026-02-15T14:27:48.452Z] [N/A] {"contract_id":306627955448,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9958.6}
+[2026-02-15T14:27:50.418Z] [N/A] {"contract_id":306627957988,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9957.6}
+[2026-02-15T14:27:52.447Z] [N/A] {"contract_id":306627960528,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9958.55}
+[2026-02-15T14:27:52.461Z] [N/A] {"contract_id":306627960548,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9957.55}
+[2026-02-15T14:27:54.507Z] [N/A] {"contract_id":306627963468,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9956.55}
+[2026-02-15T14:27:54.521Z] [N/A] {"contract_id":306627963488,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9955.55}
+[2026-02-15T14:27:56.485Z] [N/A] {"contract_id":306627966088,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9954.55}
+[2026-02-15T14:27:56.498Z] [N/A] {"contract_id":306627966128,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9953.55}
+[2026-02-15T14:27:58.428Z] [N/A] {"contract_id":306627968248,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9954.5}
+[2026-02-15T14:27:58.447Z] [N/A] {"contract_id":306627968268,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9953.5}
+[2026-02-15T14:28:00.450Z] [N/A] {"contract_id":306627971088,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9952.5}
+[2026-02-15T14:28:00.458Z] [N/A] {"contract_id":306627971108,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9951.5}
+[2026-02-15T14:28:02.444Z] [N/A] {"contract_id":306627974208,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9952.45}
+[2026-02-15T14:28:04.430Z] [N/A] {"contract_id":306627976788,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9953.4}
+[2026-02-15T14:28:08.431Z] [N/A] {"contract_id":306627981968,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9954.35}
+[2026-02-15T14:28:10.464Z] [N/A] {"contract_id":306627984608,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9953.35}
+[2026-02-15T14:28:12.428Z] [N/A] {"contract_id":306627986948,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9952.35}
+[2026-02-15T14:32:14.401Z] [N/A] {"contract_id":306628275508,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9955.25}
+[2026-02-15T14:35:34.452Z] [N/A] {"contract_id":306628513428,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9954.25}
+[2026-02-15T14:35:36.454Z] [N/A] {"contract_id":306628515768,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9953.25}
+[2026-02-15T14:35:38.439Z] [N/A] {"contract_id":306628518128,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9952.25}
+[2026-02-15T14:35:40.444Z] [N/A] {"contract_id":306628520508,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9953.2}
+[2026-02-15T14:35:42.435Z] [N/A] {"contract_id":306628522928,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9954.15}
+[2026-02-15T14:35:42.450Z] [N/A] {"contract_id":306628522968,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9953.15}
+[2026-02-15T14:35:44.454Z] [N/A] {"contract_id":306628525468,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9952.15}
+[2026-02-15T14:35:44.467Z] [N/A] {"contract_id":306628525488,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9951.15}
+[2026-02-15T14:35:46.447Z] [N/A] {"contract_id":306628527568,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9952.1}
+[2026-02-15T14:35:46.461Z] [N/A] {"contract_id":306628527588,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9951.1}
+[2026-02-15T14:35:48.426Z] [N/A] {"contract_id":306628529888,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9952.05}
+[2026-02-15T14:35:48.440Z] [N/A] {"contract_id":306628529908,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9951.05}
+[2026-02-15T14:35:50.454Z] [N/A] {"contract_id":306628532268,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9952}
+[2026-02-15T14:35:50.464Z] [N/A] {"contract_id":306628532288,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9951}
+[2026-02-15T14:35:52.430Z] [N/A] {"contract_id":306628534528,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9955.85}
+[2026-02-15T14:35:52.445Z] [N/A] {"contract_id":306628534568,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9954.85}
+[2026-02-15T14:35:54.433Z] [N/A] {"contract_id":306628536708,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9955.8}
+[2026-02-15T14:36:02.572Z] [N/A] {"contract_id":306628547188,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9958.7}
+[2026-02-15T14:36:04.432Z] [N/A] {"contract_id":306628549548,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9957.7}
+[2026-02-15T14:36:08.446Z] [N/A] {"contract_id":306628554368,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9960.6}
+[2026-02-15T14:39:22.400Z] [N/A] {"contract_id":306628794208,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9959.6}
+[2026-02-15T14:39:22.432Z] [N/A] {"contract_id":306628794308,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9958.6}
+[2026-02-15T14:39:24.418Z] [N/A] {"contract_id":306628796808,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9957.6}
+[2026-02-15T14:39:24.425Z] [N/A] {"contract_id":306628796828,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9956.6}
+[2026-02-15T14:39:26.393Z] [N/A] {"contract_id":306628799328,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9955.6}
+[2026-02-15T14:39:26.407Z] [N/A] {"contract_id":306628799348,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9954.6}
+[2026-02-15T14:39:28.391Z] [N/A] {"contract_id":306628801668,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9955.55}
+[2026-02-15T14:39:28.396Z] [N/A] {"contract_id":306628801708,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9954.55}
+[2026-02-15T14:39:30.438Z] [N/A] {"contract_id":306628804408,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9955.5}
+[2026-02-15T14:39:30.450Z] [N/A] {"contract_id":306628804448,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9954.5}
+[2026-02-15T14:39:32.383Z] [N/A] {"contract_id":306628806748,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9955.45}
+[2026-02-15T14:39:32.391Z] [N/A] {"contract_id":306628806788,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9954.45}
+[2026-02-15T14:39:34.392Z] [N/A] {"contract_id":306628809508,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9955.4}
+[2026-02-15T14:39:34.405Z] [N/A] {"contract_id":306628809548,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9954.4}
+[2026-02-15T14:39:36.401Z] [N/A] {"contract_id":306628811728,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9957.3}
+[2026-02-15T14:39:36.409Z] [N/A] {"contract_id":306628811748,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9956.3}
+[2026-02-15T14:39:38.407Z] [N/A] {"contract_id":306628814388,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9957.25}
+[2026-02-15T14:39:38.436Z] [N/A] {"contract_id":306628814428,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9956.25}
+[2026-02-15T14:39:40.418Z] [N/A] {"contract_id":306628816568,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9957.2}
+[2026-02-15T14:39:40.424Z] [N/A] {"contract_id":306628816588,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9956.2}
+[2026-02-15T14:43:20.433Z] [N/A] {"contract_id":306629078748,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9963}
+[2026-02-15T14:43:20.443Z] [N/A] {"contract_id":306629078788,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9962}
+[2026-02-15T14:43:22.470Z] [N/A] {"contract_id":306629081188,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9961}
+[2026-02-15T14:43:22.480Z] [N/A] {"contract_id":306629081208,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9960}
+[2026-02-15T14:43:24.413Z] [N/A] {"contract_id":306629083448,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9959}
+[2026-02-15T14:43:24.431Z] [N/A] {"contract_id":306629083468,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9958}
+[2026-02-15T14:43:26.412Z] [N/A] {"contract_id":306629085628,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9960.9}
+[2026-02-15T14:43:26.420Z] [N/A] {"contract_id":306629085648,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9959.9}
+[2026-02-15T14:43:28.441Z] [N/A] {"contract_id":306629088068,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9962.8}
+[2026-02-15T14:43:28.451Z] [N/A] {"contract_id":306629088088,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9961.8}
+[2026-02-15T14:43:30.410Z] [N/A] {"contract_id":306629090128,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9962.75}
+[2026-02-15T14:43:30.438Z] [N/A] {"contract_id":306629090168,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9961.75}
+[2026-02-15T14:43:32.438Z] [N/A] {"contract_id":306629092328,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9960.75}
+[2026-02-15T14:43:32.457Z] [N/A] {"contract_id":306629092368,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9959.75}
+[2026-02-15T14:43:34.438Z] [N/A] {"contract_id":306629094488,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9960.7}
+[2026-02-15T14:43:34.446Z] [N/A] {"contract_id":306629094508,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9959.7}
+[2026-02-15T14:43:36.426Z] [N/A] {"contract_id":306629096788,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9960.65}
+[2026-02-15T14:43:36.433Z] [N/A] {"contract_id":306629096828,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9959.65}
+[2026-02-15T14:43:38.430Z] [N/A] {"contract_id":306629099588,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9960.6}
+[2026-02-15T14:43:38.445Z] [N/A] {"contract_id":306629099648,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9959.6}
+[2026-02-15T14:59:54.495Z] [N/A] {"contract_id":306630281548,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9962.5}
+[2026-02-15T14:59:54.500Z] [N/A] {"contract_id":306630281568,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9961.5}
+[2026-02-15T14:59:56.390Z] [N/A] {"contract_id":306630283708,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9960.5}
+[2026-02-15T14:59:56.408Z] [N/A] {"contract_id":306630283728,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9959.5}
+[2026-02-15T14:59:58.478Z] [N/A] {"contract_id":306630286048,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9958.5}
+[2026-02-15T14:59:58.478Z] [N/A] {"contract_id":306630286088,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9957.5}
+[2026-02-15T15:00:00.616Z] [N/A] {"contract_id":306630288948,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9956.5}
+[2026-02-15T15:00:00.628Z] [N/A] {"contract_id":306630288968,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9955.5}
+[2026-02-15T15:00:02.525Z] [N/A] {"contract_id":306630292408,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9956.45}
+[2026-02-15T15:00:02.648Z] [N/A] {"contract_id":306630292548,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9955.45}
+[2026-02-15T15:00:04.447Z] [N/A] {"contract_id":306630297048,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9958.35}
+[2026-02-15T15:00:04.450Z] [N/A] {"contract_id":306630297068,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9957.35}
+[2026-02-15T15:00:06.805Z] [N/A] {"contract_id":306630303068,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9960.25}
+[2026-02-15T15:00:06.826Z] [N/A] {"contract_id":306630303088,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9959.25}
+[2026-02-15T15:00:08.435Z] [N/A] {"contract_id":306630305808,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9960.2}
+[2026-02-15T15:00:08.436Z] [N/A] {"contract_id":306630305828,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9959.2}
+[2026-02-15T15:00:10.451Z] [N/A] {"contract_id":306630309188,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9960.15}
+[2026-02-15T15:00:10.468Z] [N/A] {"contract_id":306630309208,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9959.15}
+[2026-02-15T15:00:12.473Z] [N/A] {"contract_id":306630311768,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9960.1}
+[2026-02-15T15:00:12.474Z] [N/A] {"contract_id":306630311788,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9959.1}
+[2026-02-15T15:06:54.514Z] [N/A] {"contract_id":306630813328,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9963.95}
+[2026-02-15T15:06:54.540Z] [N/A] {"contract_id":306630813368,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9962.95}
+[2026-02-15T15:06:56.532Z] [N/A] {"contract_id":306630815688,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9961.95}
+[2026-02-15T15:06:56.541Z] [N/A] {"contract_id":306630815668,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9960.95}
+[2026-02-15T15:06:58.503Z] [N/A] {"contract_id":306630818408,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9959.95}
+[2026-02-15T15:06:58.512Z] [N/A] {"contract_id":306630818428,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9958.95}
+[2026-02-15T15:07:00.632Z] [N/A] {"contract_id":306630822028,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9961.85}
+[2026-02-15T15:07:00.661Z] [N/A] {"contract_id":306630822108,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9960.85}
+[2026-02-15T15:07:02.515Z] [N/A] {"contract_id":306630824548,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9959.85}
+[2026-02-15T15:07:02.533Z] [N/A] {"contract_id":306630824608,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9958.85}
+[2026-02-15T15:07:04.485Z] [N/A] {"contract_id":306630827168,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9961.75}
+[2026-02-15T15:07:04.495Z] [N/A] {"contract_id":306630827148,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9960.75}
+[2026-02-15T15:07:06.595Z] [N/A] {"contract_id":306630830648,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9963.65}
+[2026-02-15T15:07:06.608Z] [N/A] {"contract_id":306630830668,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9962.65}
+[2026-02-15T15:07:08.514Z] [N/A] {"contract_id":306630832708,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9963.6}
+[2026-02-15T15:07:08.535Z] [N/A] {"contract_id":306630832748,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9962.6}
+[2026-02-15T15:07:10.525Z] [N/A] {"contract_id":306630835828,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9961.6}
+[2026-02-15T15:07:10.545Z] [N/A] {"contract_id":306630835888,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9960.6}
+[2026-02-15T15:07:12.473Z] [N/A] {"contract_id":306630837988,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9961.55}
+[2026-02-15T15:07:12.482Z] [N/A] {"contract_id":306630837968,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9960.55}
+[2026-02-15T15:10:12.417Z] [N/A] {"contract_id":306631066688,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9969.3}
+[2026-02-15T15:10:12.427Z] [N/A] {"contract_id":306631066728,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9968.3}
+[2026-02-15T15:10:14.434Z] [N/A] {"contract_id":306631069488,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9967.3}
+[2026-02-15T15:10:14.441Z] [N/A] {"contract_id":306631069508,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9966.3}
+[2026-02-15T15:10:16.414Z] [N/A] {"contract_id":306631072068,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9965.3}
+[2026-02-15T15:10:16.427Z] [N/A] {"contract_id":306631072108,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9964.3}
+[2026-02-15T15:10:18.473Z] [N/A] {"contract_id":306631074328,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9965.25}
+[2026-02-15T15:10:18.479Z] [N/A] {"contract_id":306631074348,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9964.25}
+[2026-02-15T15:10:20.414Z] [N/A] {"contract_id":306631077048,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9965.2}
+[2026-02-15T15:10:20.426Z] [N/A] {"contract_id":306631077068,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9964.2}
+[2026-02-15T15:10:22.664Z] [N/A] {"contract_id":306631080388,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9965.15}
+[2026-02-15T15:10:22.672Z] [N/A] {"contract_id":306631080408,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9964.15}
+[2026-02-15T15:10:24.431Z] [N/A] {"contract_id":306631082448,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9967.05}
+[2026-02-15T15:10:24.436Z] [N/A] {"contract_id":306631082468,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9966.05}
+[2026-02-15T15:10:26.430Z] [N/A] {"contract_id":306631084828,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9968.95}
+[2026-02-15T15:10:26.438Z] [N/A] {"contract_id":306631084848,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9967.95}
+[2026-02-15T15:10:28.416Z] [N/A] {"contract_id":306631087548,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9968.9}
+[2026-02-15T15:10:28.435Z] [N/A] {"contract_id":306631087588,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9967.9}
+[2026-02-15T15:10:30.441Z] [N/A] {"contract_id":306631090088,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9968.85}
+[2026-02-15T15:10:30.451Z] [N/A] {"contract_id":306631090108,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9967.85}
+[2026-02-15T15:13:46.518Z] [N/A] {"contract_id":306631329788,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9970.75}
+[2026-02-15T15:13:46.524Z] [N/A] {"contract_id":306631329868,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9969.75}
+[2026-02-15T15:13:48.481Z] [N/A] {"contract_id":306631332008,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9968.75}
+[2026-02-15T15:13:48.491Z] [N/A] {"contract_id":306631332088,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9967.75}
+[2026-02-15T15:13:50.492Z] [N/A] {"contract_id":306631334388,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9966.75}
+[2026-02-15T15:13:50.499Z] [N/A] {"contract_id":306631334428,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9965.75}
+[2026-02-15T15:13:52.493Z] [N/A] {"contract_id":306631336728,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9964.75}
+[2026-02-15T15:13:52.501Z] [N/A] {"contract_id":306631336808,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9963.75}
+[2026-02-15T15:13:54.488Z] [N/A] {"contract_id":306631338988,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9964.7}
+[2026-02-15T15:13:54.501Z] [N/A] {"contract_id":306631339008,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9963.7}
+[2026-02-15T15:13:56.516Z] [N/A] {"contract_id":306631341528,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9964.65}
+[2026-02-15T15:13:56.526Z] [N/A] {"contract_id":306631341548,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9963.65}
+[2026-02-15T15:13:58.484Z] [N/A] {"contract_id":306631343848,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9964.6}
+[2026-02-15T15:13:58.500Z] [N/A] {"contract_id":306631343908,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9963.6}
+[2026-02-15T15:14:00.526Z] [N/A] {"contract_id":306631346548,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9966.5}
+[2026-02-15T15:14:00.540Z] [N/A] {"contract_id":306631346568,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9965.5}
+[2026-02-15T15:14:02.568Z] [N/A] {"contract_id":306631349628,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9966.45}
+[2026-02-15T15:14:02.575Z] [N/A] {"contract_id":306631349648,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9965.45}
+[2026-02-15T15:14:04.496Z] [N/A] {"contract_id":306631352048,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9964.45}
+[2026-02-15T15:14:04.503Z] [N/A] {"contract_id":306631352068,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9964.45}
+[2026-02-15T15:18:56.523Z] [N/A] {"contract_id":306631712428,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9968.3}
+[2026-02-15T15:18:56.545Z] [N/A] {"contract_id":306631712448,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9967.3}
+[2026-02-15T15:18:58.482Z] [N/A] {"contract_id":306631714588,"type":"Win payout if Volatility 50 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9966.3}
+[2026-02-15T15:18:58.492Z] [N/A] {"contract_id":306631714628,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9965.3}
+[2026-02-15T15:19:00.678Z] [N/A] {"contract_id":306631717388,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9964.3}
+[2026-02-15T15:19:00.690Z] [N/A] {"contract_id":306631717448,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9963.3}
+[2026-02-15T15:19:02.584Z] [N/A] {"contract_id":306631720148,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9966.2}
+[2026-02-15T15:19:02.592Z] [N/A] {"contract_id":306631720208,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9965.2}
+[2026-02-15T15:19:04.516Z] [N/A] {"contract_id":306631722268,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9966.15}
+[2026-02-15T15:19:04.529Z] [N/A] {"contract_id":306631722228,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9965.15}
+[2026-02-15T15:19:06.527Z] [N/A] {"contract_id":306631724728,"type":"Win payout if Volatility 25 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9966.1}
+[2026-02-15T15:19:06.537Z] [N/A] {"contract_id":306631724768,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9965.1}
+[2026-02-15T15:19:08.483Z] [N/A] {"contract_id":306631726908,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9964.1}
+[2026-02-15T15:19:08.503Z] [N/A] {"contract_id":306631727048,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9963.1}
+[2026-02-15T15:19:10.506Z] [N/A] {"contract_id":306631729568,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9964.05}
+[2026-02-15T15:19:10.530Z] [N/A] {"contract_id":306631729548,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9963.05}
+[2026-02-15T15:19:12.515Z] [N/A] {"contract_id":306631731588,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9964}
+[2026-02-15T15:19:12.532Z] [N/A] {"contract_id":306631731668,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9963}
+[2026-02-15T15:19:14.480Z] [N/A] {"contract_id":306631733968,"type":"Win payout if Volatility 25 Index after 1 tick is strictly higher than entry spot.","price":1,"payout":1.95,"balance_after":9965.9}
+[2026-02-15T15:19:14.492Z] [N/A] {"contract_id":306631733988,"type":"Win payout if Volatility 50 Index after 1 tick is strictly lower than entry spot.","price":1,"payout":1.95,"balance_after":9964.9}
+[2026-02-15T15:39:12.430Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:12.433Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:14.420Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:14.442Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:16.421Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:16.425Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:18.429Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:18.430Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:20.457Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:20.481Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:22.426Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:22.437Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:24.447Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:24.456Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:26.425Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:26.442Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:28.441Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:28.447Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:30.597Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-15T15:39:30.622Z] [N/A] {"contract_id":"N/A","type":"N/A","price":1,"payout":0,"balance_after":"N/A"}
+[2026-02-16T08:08:22.530Z] UNKNOWN 4.77
+[2026-02-16T08:08:26.587Z] UNKNOWN 4.77
+[2026-02-16T08:08:26.607Z] UNKNOWN 4.77
+[2026-02-16T08:08:30.593Z] UNKNOWN 4.77
+[2026-02-16T08:08:33.727Z] UNKNOWN 4.77
+[2026-02-16T08:08:34.590Z] UNKNOWN 4.77
+[2026-02-16T08:08:34.590Z] UNKNOWN 4.77
+[2026-02-16T08:08:36.530Z] UNKNOWN 4.77
+[2026-02-16T08:08:36.545Z] UNKNOWN 4.77
+[2026-02-16T08:08:38.555Z] UNKNOWN 4.77
+[2026-02-16T08:08:40.583Z] UNKNOWN 4.77
+[2026-02-16T08:08:42.655Z] UNKNOWN 4.77
+[2026-02-16T08:08:44.523Z] UNKNOWN 4.77
+[2026-02-16T08:08:44.557Z] UNKNOWN 4.77
+[2026-02-16T08:08:46.574Z] UNKNOWN 4.77
+[2026-02-16T08:08:46.575Z] UNKNOWN 4.77
+[2026-02-16T08:08:48.571Z] UNKNOWN 4.77
+[2026-02-16T08:08:48.571Z] UNKNOWN 4.77
+[2026-02-16T08:08:50.615Z] UNKNOWN 4.77
+[2026-02-16T08:08:52.553Z] UNKNOWN 4.77
+[2026-02-16T08:08:54.603Z] UNKNOWN 4.77
+[2026-02-16T08:08:56.541Z] UNKNOWN 4.77
+[2026-02-16T08:08:58.550Z] UNKNOWN 4.77
+[2026-02-16T08:09:00.572Z] UNKNOWN 4.77
+[2026-02-16T08:09:00.602Z] UNKNOWN 4.77
+[2026-02-16T08:09:02.570Z] UNKNOWN 4.77
+[2026-02-16T08:09:02.593Z] UNKNOWN 4.77
+[2026-02-16T08:09:04.587Z] UNKNOWN 4.77
+[2026-02-16T08:09:04.600Z] UNKNOWN 4.77
+[2026-02-16T08:09:06.536Z] UNKNOWN 4.77
+[2026-02-16T08:09:06.547Z] UNKNOWN 4.77
+[2026-02-16T08:09:08.609Z] UNKNOWN 4.77
+[2026-02-16T08:09:12.555Z] UNKNOWN 4.77
+[2026-02-16T08:09:14.570Z] UNKNOWN 4.77
+[2026-02-16T08:09:14.583Z] UNKNOWN 4.77
+[2026-02-16T08:09:16.557Z] UNKNOWN 4.77
+[2026-02-16T08:09:16.562Z] UNKNOWN 4.77
+[2026-02-16T08:09:18.535Z] UNKNOWN 4.77
+[2026-02-16T08:09:20.545Z] UNKNOWN 4.77
+[2026-02-16T08:09:20.547Z] UNKNOWN 4.77
+[2026-02-16T08:09:22.559Z] UNKNOWN 4.77
+[2026-02-16T08:09:24.558Z] UNKNOWN 4.77
+[2026-02-16T08:09:26.583Z] UNKNOWN 4.77
+[2026-02-16T08:09:30.556Z] UNKNOWN 4.77
+[2026-02-16T08:09:32.586Z] UNKNOWN 4.77
+[2026-02-16T08:09:32.596Z] UNKNOWN 4.77
+[2026-02-16T08:09:34.577Z] UNKNOWN 4.77
+[2026-02-16T08:09:36.554Z] UNKNOWN 4.77
+[2026-02-16T08:09:38.541Z] UNKNOWN 4.77
+[2026-02-16T08:09:40.589Z] UNKNOWN 4.77
+[2026-02-16T08:09:42.571Z] UNKNOWN 4.77
+[2026-02-16T08:09:44.522Z] UNKNOWN 4.77
+[2026-02-16T08:09:46.562Z] UNKNOWN 4.77
+[2026-02-16T08:09:52.614Z] UNKNOWN 4.77
+[2026-02-16T08:09:54.562Z] UNKNOWN 4.77
+[2026-02-16T08:09:54.578Z] UNKNOWN 4.77
+[2026-02-16T08:09:56.589Z] UNKNOWN 4.77
+[2026-02-16T08:09:58.571Z] UNKNOWN 4.77
+[2026-02-16T08:09:58.577Z] UNKNOWN 4.77
+[2026-02-16T08:10:00.560Z] UNKNOWN 4.77
+[2026-02-16T08:10:02.602Z] UNKNOWN 4.77
+[2026-02-16T08:10:02.607Z] UNKNOWN 4.77
+[2026-02-16T08:10:10.585Z] UNKNOWN 4.77
+[2026-02-16T08:10:12.607Z] UNKNOWN 4.77
+[2026-02-16T08:10:18.552Z] UNKNOWN 4.77
+[2026-02-16T08:10:20.549Z] UNKNOWN 4.77
+[2026-02-16T08:10:22.532Z] UNKNOWN 4.77
+[2026-02-16T08:10:22.559Z] UNKNOWN 4.77
+[2026-02-16T08:10:26.553Z] UNKNOWN 4.77
+[2026-02-16T08:10:26.569Z] UNKNOWN 4.77
+[2026-02-16T08:10:28.556Z] UNKNOWN 4.77
+[2026-02-16T08:10:28.572Z] UNKNOWN 4.77
+[2026-02-16T08:10:30.587Z] UNKNOWN 4.77
+[2026-02-16T08:10:36.558Z] UNKNOWN 4.77
+[2026-02-16T08:10:39.058Z] UNKNOWN 4.77
+[2026-02-16T08:10:39.074Z] UNKNOWN 4.77
+[2026-02-16T08:10:41.368Z] UNKNOWN 4.77
+[2026-02-16T08:10:41.368Z] UNKNOWN 4.77
+[2026-02-16T08:10:46.541Z] UNKNOWN 4.77
+[2026-02-16T08:10:48.548Z] UNKNOWN 4.77
+[2026-02-16T08:10:50.537Z] UNKNOWN 4.77
+[2026-02-16T08:10:50.557Z] UNKNOWN 4.77
+[2026-02-16T08:10:52.570Z] UNKNOWN 4.77
+[2026-02-16T08:10:56.545Z] UNKNOWN 4.77
+[2026-02-16T08:10:58.569Z] UNKNOWN 4.77
+[2026-02-16T08:11:00.539Z] UNKNOWN 4.77
+[2026-02-16T08:11:02.563Z] UNKNOWN 4.77
+[2026-02-16T08:11:04.548Z] UNKNOWN 4.77
+[2026-02-16T08:11:06.525Z] UNKNOWN 4.77
+[2026-02-16T08:11:10.549Z] UNKNOWN 4.77
+[2026-02-16T08:11:12.527Z] UNKNOWN 4.77
+[2026-02-16T08:11:14.524Z] UNKNOWN 4.77
+[2026-02-16T08:11:14.529Z] UNKNOWN 4.77
+[2026-02-16T08:11:16.577Z] UNKNOWN 4.77
+[2026-02-16T08:11:16.598Z] UNKNOWN 4.77
+[2026-02-16T08:11:18.550Z] UNKNOWN 4.77
+[2026-02-16T08:11:18.560Z] UNKNOWN 4.77
+[2026-02-16T08:11:20.647Z] UNKNOWN 4.77
+[2026-02-16T08:11:20.659Z] UNKNOWN 4.77
+[2026-02-16T08:11:22.517Z] UNKNOWN 4.77
+[2026-02-16T08:11:22.537Z] UNKNOWN 4.77
+[2026-02-16T08:11:24.550Z] UNKNOWN 4.77
+[2026-02-16T08:11:26.549Z] UNKNOWN 4.77
+[2026-02-16T08:11:28.621Z] UNKNOWN 4.77
+[2026-02-16T08:11:28.631Z] UNKNOWN 4.77
+[2026-02-16T08:11:30.567Z] UNKNOWN 4.77
+[2026-02-16T08:11:32.579Z] UNKNOWN 4.77
+[2026-02-16T08:11:32.584Z] UNKNOWN 4.77
+[2026-02-16T08:11:34.536Z] UNKNOWN 4.77
+[2026-02-16T08:11:36.549Z] UNKNOWN 4.77
+[2026-02-16T08:11:38.521Z] UNKNOWN 4.77
+[2026-02-16T08:11:40.565Z] UNKNOWN 4.77
+[2026-02-16T08:11:40.576Z] UNKNOWN 4.77
+[2026-02-16T08:11:42.575Z] UNKNOWN 4.77
+[2026-02-16T08:11:44.533Z] UNKNOWN 4.77
+[2026-02-16T08:11:46.519Z] UNKNOWN 4.77
+[2026-02-16T08:11:46.527Z] UNKNOWN 4.77
+[2026-02-16T08:11:48.538Z] UNKNOWN 4.77
+[2026-02-16T08:11:50.519Z] UNKNOWN 4.77
+[2026-02-16T08:11:52.522Z] UNKNOWN 4.77
+[2026-02-16T08:11:52.529Z] UNKNOWN 4.77
+[2026-02-16T08:11:54.580Z] UNKNOWN 4.77
+[2026-02-16T08:11:56.561Z] UNKNOWN 4.77
+[2026-02-16T08:11:56.586Z] UNKNOWN 4.77
+[2026-02-16T08:11:58.537Z] UNKNOWN 4.77
+[2026-02-16T08:11:58.545Z] UNKNOWN 4.77
+[2026-02-16T08:12:00.512Z] UNKNOWN 4.77
+[2026-02-16T08:12:04.516Z] UNKNOWN 4.77
+[2026-02-16T08:12:06.524Z] UNKNOWN 4.77
+[2026-02-16T08:12:08.578Z] UNKNOWN 4.77
+[2026-02-16T08:12:12.536Z] UNKNOWN 4.77
+[2026-02-16T08:12:12.544Z] UNKNOWN 4.77
+[2026-02-16T08:12:16.523Z] UNKNOWN 4.77
+[2026-02-16T08:12:16.527Z] UNKNOWN 4.77
+[2026-02-16T08:12:18.510Z] UNKNOWN 4.77
+[2026-02-16T08:12:20.537Z] UNKNOWN 4.77
+[2026-02-16T08:12:22.537Z] UNKNOWN 4.77
+[2026-02-16T08:12:26.519Z] UNKNOWN 4.77
+[2026-02-16T08:12:26.527Z] UNKNOWN 4.77
+[2026-02-16T08:12:28.556Z] UNKNOWN 4.77
+[2026-02-16T08:12:28.583Z] UNKNOWN 4.77
+[2026-02-16T08:12:30.560Z] UNKNOWN 4.77
+[2026-02-16T08:12:30.573Z] UNKNOWN 4.77
+[2026-02-16T08:12:32.510Z] UNKNOWN 4.77
+[2026-02-16T08:12:32.519Z] UNKNOWN 4.77
+[2026-02-16T08:12:34.527Z] UNKNOWN 4.77
+[2026-02-16T08:12:36.594Z] UNKNOWN 4.77
+[2026-02-16T08:12:38.536Z] UNKNOWN 4.77
+[2026-02-16T08:12:38.559Z] UNKNOWN 4.77
+[2026-02-16T08:12:40.569Z] UNKNOWN 4.77
+[2026-02-16T08:12:40.584Z] UNKNOWN 4.77
+[2026-02-16T08:12:42.534Z] UNKNOWN 4.77
+[2026-02-16T08:12:42.547Z] UNKNOWN 4.77
+[2026-02-16T08:12:46.525Z] UNKNOWN 4.77
+[2026-02-16T08:12:48.572Z] UNKNOWN 4.77
+[2026-02-16T08:12:50.557Z] UNKNOWN 4.77
+[2026-02-16T08:12:50.558Z] UNKNOWN 4.77
+[2026-02-16T08:12:52.548Z] UNKNOWN 4.77
+[2026-02-16T08:12:54.556Z] UNKNOWN 4.77
+[2026-02-16T08:12:54.565Z] UNKNOWN 4.77
+[2026-02-16T08:12:56.536Z] UNKNOWN 4.77
+[2026-02-16T08:12:56.551Z] UNKNOWN 4.77
+[2026-02-16T08:12:58.549Z] UNKNOWN 4.77
+[2026-02-16T08:12:58.559Z] UNKNOWN 4.77
+[2026-02-16T08:13:00.552Z] UNKNOWN 4.77
+[2026-02-16T08:13:00.559Z] UNKNOWN 4.77
+[2026-02-16T08:13:02.567Z] UNKNOWN 4.77
+[2026-02-16T08:13:02.599Z] UNKNOWN 4.77
+[2026-02-16T08:13:04.569Z] UNKNOWN 4.77
+[2026-02-16T08:13:04.577Z] UNKNOWN 4.77
+[2026-02-16T08:13:06.522Z] UNKNOWN 4.77
+[2026-02-16T08:13:06.530Z] UNKNOWN 4.77
+[2026-02-16T08:13:08.578Z] UNKNOWN 4.77
+[2026-02-16T08:13:08.583Z] UNKNOWN 4.77
+[2026-02-16T08:13:12.539Z] UNKNOWN 4.77
+[2026-02-16T08:13:12.556Z] UNKNOWN 4.77
+[2026-02-16T08:13:14.538Z] UNKNOWN 4.77
+[2026-02-16T08:13:14.553Z] UNKNOWN 4.77
+[2026-02-16T08:13:16.562Z] UNKNOWN 4.77
+[2026-02-16T08:13:18.569Z] UNKNOWN 4.77
+[2026-02-16T08:13:20.542Z] UNKNOWN 4.77
+[2026-02-16T08:13:22.543Z] UNKNOWN 4.77
+[2026-02-16T08:13:22.571Z] UNKNOWN 4.77
+[2026-02-16T08:13:24.550Z] UNKNOWN 4.77
+[2026-02-16T08:13:28.523Z] UNKNOWN 4.77
+[2026-02-16T08:13:30.576Z] UNKNOWN 4.77
+[2026-02-16T08:13:32.528Z] UNKNOWN 4.77
+[2026-02-16T08:13:34.584Z] UNKNOWN 4.77
+[2026-02-16T08:13:38.590Z] UNKNOWN 4.77
+[2026-02-16T08:13:38.599Z] UNKNOWN 4.77
+[2026-02-16T08:13:40.947Z] UNKNOWN 4.77
+[2026-02-16T08:13:40.957Z] UNKNOWN 4.77
+[2026-02-16T08:13:42.523Z] UNKNOWN 4.77
+[2026-02-16T08:13:44.572Z] UNKNOWN 4.77
+[2026-02-16T08:13:46.530Z] UNKNOWN 4.77
+[2026-02-16T08:13:48.539Z] UNKNOWN 4.77
+[2026-02-16T08:13:50.572Z] UNKNOWN 4.77
+[2026-02-16T08:13:56.532Z] UNKNOWN 4.77
+[2026-02-16T08:13:58.540Z] UNKNOWN 4.77
+[2026-02-16T08:14:00.604Z] UNKNOWN 4.77
+[2026-02-16T08:14:04.532Z] UNKNOWN 4.77
+[2026-02-16T08:14:06.586Z] UNKNOWN 4.77
+[2026-02-16T08:14:08.593Z] UNKNOWN 4.77
+[2026-02-16T08:14:08.610Z] UNKNOWN 4.77
+[2026-02-16T08:14:10.565Z] UNKNOWN 4.77
+[2026-02-16T08:14:10.577Z] UNKNOWN 4.77
+[2026-02-16T08:14:12.534Z] UNKNOWN 4.77
+[2026-02-16T08:14:14.544Z] UNKNOWN 4.77
+[2026-02-16T08:14:16.568Z] UNKNOWN 4.77
+[2026-02-16T08:14:18.547Z] UNKNOWN 4.77
+[2026-02-16T08:14:20.540Z] UNKNOWN 4.77
+[2026-02-16T08:14:20.540Z] UNKNOWN 4.77
+[2026-02-16T08:14:22.558Z] UNKNOWN 4.77
+[2026-02-16T08:14:28.592Z] UNKNOWN 4.77
+[2026-02-16T08:14:28.600Z] UNKNOWN 4.77
+[2026-02-16T08:14:32.583Z] UNKNOWN 4.77
+[2026-02-16T08:14:34.573Z] UNKNOWN 4.77
+[2026-02-16T08:14:36.571Z] UNKNOWN 4.77
+[2026-02-16T08:14:38.585Z] UNKNOWN 4.77
+[2026-02-16T08:14:38.590Z] UNKNOWN 4.77
+[2026-02-16T08:14:40.584Z] UNKNOWN 4.77
+[2026-02-16T08:14:40.611Z] UNKNOWN 4.77
+[2026-02-16T08:14:42.561Z] UNKNOWN 4.77
+[2026-02-16T08:14:42.570Z] UNKNOWN 4.77
+[2026-02-16T08:14:44.550Z] UNKNOWN 4.77
+[2026-02-16T08:14:46.554Z] UNKNOWN 4.77
+[2026-02-16T08:14:46.563Z] UNKNOWN 4.77
+[2026-02-16T08:14:48.557Z] UNKNOWN 4.77
+[2026-02-16T08:14:48.559Z] UNKNOWN 4.77
+[2026-02-16T08:14:50.568Z] UNKNOWN 4.77
+[2026-02-16T08:14:50.583Z] UNKNOWN 4.77
+[2026-02-16T08:14:52.587Z] UNKNOWN 4.77
+[2026-02-16T08:14:56.548Z] UNKNOWN 4.77
+[2026-02-16T08:14:58.565Z] UNKNOWN 4.77
+[2026-02-16T08:14:58.576Z] UNKNOWN 4.77
+[2026-02-16T08:15:00.599Z] UNKNOWN 4.77
+[2026-02-16T08:15:02.586Z] UNKNOWN 4.77
+[2026-02-16T08:15:04.557Z] UNKNOWN 4.77
+[2026-02-16T08:15:04.570Z] UNKNOWN 4.77
+[2026-02-16T08:15:06.556Z] UNKNOWN 4.77
+[2026-02-16T08:15:08.547Z] UNKNOWN 4.77
+[2026-02-16T08:15:10.539Z] UNKNOWN 4.77
+[2026-02-16T08:15:10.568Z] UNKNOWN 4.77
+[2026-02-16T08:15:12.565Z] UNKNOWN 4.77
+[2026-02-16T08:15:14.533Z] UNKNOWN 4.77
+[2026-02-16T08:15:16.548Z] UNKNOWN 4.77
+[2026-02-16T08:15:18.550Z] UNKNOWN 4.77
+[2026-02-16T08:15:20.584Z] UNKNOWN 4.77
+[2026-02-16T08:15:24.525Z] UNKNOWN 4.77
+[2026-02-16T08:15:28.568Z] UNKNOWN 4.77
+[2026-02-16T08:15:30.601Z] UNKNOWN 4.77
+[2026-02-16T08:15:33.634Z] UNKNOWN 4.77
+[2026-02-16T08:15:34.565Z] UNKNOWN 4.77
+[2026-02-16T08:15:34.581Z] UNKNOWN 4.77
+[2026-02-16T08:15:36.530Z] UNKNOWN 4.77
+[2026-02-16T08:15:36.555Z] UNKNOWN 4.77
+[2026-02-16T08:15:38.569Z] UNKNOWN 4.77
+[2026-02-16T08:15:41.214Z] UNKNOWN 4.77
+[2026-02-16T08:15:43.308Z] UNKNOWN 4.77
+[2026-02-16T08:15:44.542Z] UNKNOWN 4.77
+[2026-02-16T08:15:46.503Z] UNKNOWN 4.77
+[2026-02-16T08:15:46.518Z] UNKNOWN 4.77
+[2026-02-16T08:15:48.546Z] UNKNOWN 4.77
+[2026-02-16T08:15:50.523Z] UNKNOWN 4.77
+[2026-02-16T08:15:50.531Z] UNKNOWN 4.77
+[2026-02-16T08:15:52.530Z] UNKNOWN 4.77
+[2026-02-16T08:15:52.546Z] UNKNOWN 4.77
+[2026-02-16T08:15:54.512Z] UNKNOWN 4.77
+[2026-02-16T08:15:57.635Z] UNKNOWN 4.77
+[2026-02-16T08:15:58.601Z] UNKNOWN 4.77
+[2026-02-16T08:16:00.555Z] UNKNOWN 4.77
+[2026-02-16T08:16:02.537Z] UNKNOWN 4.77
+[2026-02-16T08:16:04.542Z] UNKNOWN 4.77
+[2026-02-16T08:16:04.560Z] UNKNOWN 4.77
+[2026-02-16T08:16:06.536Z] UNKNOWN 4.77
+[2026-02-16T08:16:06.560Z] UNKNOWN 4.77
+[2026-02-16T08:16:08.583Z] UNKNOWN 4.77
+[2026-02-16T08:16:10.560Z] UNKNOWN 4.77
+[2026-02-16T08:16:12.581Z] UNKNOWN 4.77
+[2026-02-16T08:16:16.585Z] UNKNOWN 4.77
+[2026-02-16T08:16:18.570Z] UNKNOWN 4.77
+[2026-02-16T08:16:18.579Z] UNKNOWN 4.77
+[2026-02-16T08:16:20.534Z] UNKNOWN 4.77
+[2026-02-16T08:16:22.545Z] UNKNOWN 4.77
+[2026-02-16T08:16:22.556Z] UNKNOWN 4.77
+[2026-02-16T08:16:24.571Z] UNKNOWN 4.77
+[2026-02-16T08:16:26.524Z] UNKNOWN 4.77
+[2026-02-16T08:16:28.600Z] UNKNOWN 4.77
+[2026-02-16T08:16:30.597Z] UNKNOWN 4.77
+[2026-02-16T08:16:32.545Z] UNKNOWN 4.77
+[2026-02-16T08:16:38.578Z] UNKNOWN 4.77
+[2026-02-16T08:16:40.568Z] UNKNOWN 4.77
+[2026-02-16T08:16:40.587Z] UNKNOWN 4.77
+[2026-02-16T08:16:42.539Z] UNKNOWN 4.77
+[2026-02-16T08:16:42.573Z] UNKNOWN 4.77
+[2026-02-16T08:16:44.513Z] UNKNOWN 4.77
+[2026-02-16T08:16:46.529Z] UNKNOWN 4.77
+[2026-02-16T08:16:48.542Z] UNKNOWN 4.77
+[2026-02-16T08:16:48.555Z] UNKNOWN 4.77
+[2026-02-16T08:16:50.539Z] UNKNOWN 4.77
+[2026-02-16T08:16:52.520Z] UNKNOWN 4.77
+[2026-02-16T08:16:52.529Z] UNKNOWN 4.77
+[2026-02-16T08:16:54.563Z] UNKNOWN 4.77
+[2026-02-16T08:16:56.546Z] UNKNOWN 4.77
+[2026-02-16T08:16:58.593Z] UNKNOWN 4.77
+[2026-02-16T08:16:58.603Z] UNKNOWN 4.77
+[2026-02-16T08:17:00.582Z] UNKNOWN 4.77
+[2026-02-16T08:17:00.592Z] UNKNOWN 4.77
+[2026-02-16T08:17:02.518Z] UNKNOWN 4.77
+[2026-02-16T08:17:08.553Z] UNKNOWN 4.77
+[2026-02-16T08:17:08.562Z] UNKNOWN 4.77
+[2026-02-16T08:17:10.569Z] UNKNOWN 4.77
+[2026-02-16T08:17:12.552Z] UNKNOWN 4.77
+[2026-02-16T08:17:14.559Z] UNKNOWN 4.77
+[2026-02-16T08:17:16.519Z] UNKNOWN 4.77
+[2026-02-16T08:17:16.536Z] UNKNOWN 4.77
+[2026-02-16T08:17:18.582Z] UNKNOWN 4.77
+[2026-02-16T08:17:18.586Z] UNKNOWN 4.77
+[2026-02-16T08:17:20.553Z] UNKNOWN 4.77
+[2026-02-16T08:17:20.582Z] UNKNOWN 4.77
+[2026-02-16T08:17:22.545Z] UNKNOWN 4.77
+[2026-02-16T08:17:24.554Z] UNKNOWN 4.77
+[2026-02-16T08:17:26.536Z] UNKNOWN 4.77
+[2026-02-16T08:17:28.519Z] UNKNOWN 4.77
+[2026-02-16T08:17:30.526Z] UNKNOWN 4.77
+[2026-02-16T08:17:32.534Z] UNKNOWN 4.77
+[2026-02-16T08:17:32.545Z] UNKNOWN 4.77
+[2026-02-16T08:17:34.555Z] UNKNOWN 4.77
+[2026-02-16T08:17:34.560Z] UNKNOWN 4.77
+[2026-02-16T08:17:36.564Z] UNKNOWN 4.77
+[2026-02-16T08:17:38.539Z] UNKNOWN 4.77
+[2026-02-16T08:17:40.555Z] UNKNOWN 4.77
+[2026-02-16T08:17:42.555Z] UNKNOWN 4.77
+[2026-02-16T08:17:44.520Z] UNKNOWN 4.77
+[2026-02-16T08:17:44.528Z] UNKNOWN 4.77
+[2026-02-16T08:17:46.595Z] UNKNOWN 4.77
+[2026-02-16T08:17:50.569Z] UNKNOWN 4.77
+[2026-02-16T08:17:50.569Z] UNKNOWN 4.77
+[2026-02-16T08:17:52.593Z] UNKNOWN 4.77
+[2026-02-16T08:17:54.573Z] UNKNOWN 4.77
+[2026-02-16T08:17:56.536Z] UNKNOWN 4.77
+[2026-02-16T08:17:56.547Z] UNKNOWN 4.77
+[2026-02-16T08:17:58.536Z] UNKNOWN 4.77
+[2026-02-16T08:18:04.513Z] UNKNOWN 4.77
+[2026-02-16T08:18:06.539Z] UNKNOWN 4.77
+[2026-02-16T08:18:08.511Z] UNKNOWN 4.77
+[2026-02-16T08:18:10.538Z] UNKNOWN 4.77
+[2026-02-16T08:18:12.538Z] UNKNOWN 4.77
+[2026-02-16T08:18:12.559Z] UNKNOWN 4.77
+[2026-02-16T08:18:14.515Z] UNKNOWN 4.77
+[2026-02-16T08:18:16.573Z] UNKNOWN 4.77
+[2026-02-16T08:18:18.553Z] UNKNOWN 4.77
+[2026-02-16T08:18:20.530Z] UNKNOWN 4.77
+[2026-02-16T08:18:22.550Z] UNKNOWN 4.77
+[2026-02-16T08:18:22.562Z] UNKNOWN 4.77
+[2026-02-16T08:18:24.552Z] UNKNOWN 4.77
+[2026-02-16T08:18:30.545Z] UNKNOWN 4.77
+[2026-02-16T08:18:32.563Z] UNKNOWN 4.77
+[2026-02-16T08:18:32.582Z] UNKNOWN 4.77
+[2026-02-16T08:18:34.571Z] UNKNOWN 4.77
+[2026-02-16T08:18:34.592Z] UNKNOWN 4.77
+[2026-02-16T08:18:36.587Z] UNKNOWN 4.77
+[2026-02-16T08:18:36.597Z] UNKNOWN 4.77
+[2026-02-16T08:18:38.572Z] UNKNOWN 4.77
+[2026-02-16T08:18:38.588Z] UNKNOWN 4.77
+[2026-02-16T08:18:40.557Z] UNKNOWN 4.77
+[2026-02-16T08:18:40.575Z] UNKNOWN 4.77
+[2026-02-16T08:18:42.515Z] UNKNOWN 4.77
+[2026-02-16T08:18:42.524Z] UNKNOWN 4.77
+[2026-02-16T08:18:44.556Z] UNKNOWN 4.77
+[2026-02-16T08:18:46.505Z] UNKNOWN 4.77
+[2026-02-16T08:18:48.545Z] UNKNOWN 4.77
+[2026-02-16T08:18:52.518Z] UNKNOWN 4.77
+[2026-02-16T08:18:54.520Z] UNKNOWN 4.77
+[2026-02-16T08:18:56.551Z] UNKNOWN 4.77
+[2026-02-16T08:18:56.562Z] UNKNOWN 4.77
+[2026-02-16T08:18:58.569Z] UNKNOWN 4.77
+[2026-02-16T08:19:00.550Z] UNKNOWN 4.77
+[2026-02-16T08:19:02.543Z] UNKNOWN 4.77
+[2026-02-16T08:19:02.551Z] UNKNOWN 4.77
+[2026-02-16T08:19:04.584Z] UNKNOWN 4.77
+[2026-02-16T08:19:04.598Z] UNKNOWN 4.77
+[2026-02-16T08:19:06.611Z] UNKNOWN 4.77
+[2026-02-16T08:19:14.563Z] UNKNOWN 4.77
+[2026-02-16T08:19:14.564Z] UNKNOWN 4.77
+[2026-02-16T08:19:16.564Z] UNKNOWN 4.77
+[2026-02-16T08:19:16.574Z] UNKNOWN 4.77
+[2026-02-16T08:19:18.574Z] UNKNOWN 4.77
+[2026-02-16T08:19:20.544Z] UNKNOWN 4.77
+[2026-02-16T08:19:22.560Z] UNKNOWN 4.77
+[2026-02-16T08:19:24.589Z] UNKNOWN 4.77
+[2026-02-16T08:19:26.530Z] UNKNOWN 4.77
+[2026-02-16T08:19:34.548Z] UNKNOWN 4.77
+[2026-02-16T08:19:34.555Z] UNKNOWN 4.77
+[2026-02-16T08:19:36.533Z] UNKNOWN 4.77
+[2026-02-16T08:19:36.561Z] UNKNOWN 4.77
+[2026-02-16T08:19:38.547Z] UNKNOWN 4.77
+[2026-02-16T08:19:38.556Z] UNKNOWN 4.77
+[2026-02-16T08:19:40.588Z] UNKNOWN 4.77
+[2026-02-16T08:19:44.542Z] UNKNOWN 4.77
+[2026-02-16T08:19:46.612Z] UNKNOWN 4.77
+[2026-02-16T08:19:48.608Z] UNKNOWN 4.77
+[2026-02-16T08:19:48.623Z] UNKNOWN 4.77
+[2026-02-16T08:19:50.569Z] UNKNOWN 4.77
+[2026-02-16T08:19:50.590Z] UNKNOWN 4.77
+[2026-02-16T08:19:52.541Z] UNKNOWN 4.77
+[2026-02-16T08:19:52.589Z] UNKNOWN 4.77
+[2026-02-16T08:19:54.555Z] UNKNOWN 4.77
+[2026-02-16T08:19:56.526Z] UNKNOWN 4.77
+[2026-02-16T08:19:58.553Z] UNKNOWN 4.77
+[2026-02-16T08:20:02.580Z] UNKNOWN 4.77
+[2026-02-16T08:20:04.532Z] UNKNOWN 4.77
+[2026-02-16T08:20:04.549Z] UNKNOWN 4.77
+[2026-02-16T08:20:06.593Z] UNKNOWN 4.77
+[2026-02-16T08:20:08.546Z] UNKNOWN 4.77
+[2026-02-16T08:20:10.536Z] UNKNOWN 4.77
+[2026-02-16T08:20:12.581Z] UNKNOWN 4.77
+[2026-02-16T08:20:14.594Z] UNKNOWN 4.77
+[2026-02-16T08:20:14.597Z] UNKNOWN 4.77
+[2026-02-16T08:20:16.546Z] UNKNOWN 4.77
+[2026-02-16T08:20:16.552Z] UNKNOWN 4.77
+[2026-02-16T08:20:18.536Z] UNKNOWN 4.77
+[2026-02-16T08:20:20.594Z] UNKNOWN 4.77
+[2026-02-16T08:20:22.545Z] UNKNOWN 4.77
+[2026-02-16T08:20:24.532Z] UNKNOWN 4.77
+[2026-02-16T08:20:26.526Z] UNKNOWN 4.77
+[2026-02-16T08:20:28.551Z] UNKNOWN 4.77
+[2026-02-16T08:20:30.562Z] UNKNOWN 4.77
+[2026-02-16T08:20:32.549Z] UNKNOWN 4.77
+[2026-02-16T08:20:34.549Z] UNKNOWN 4.77
+[2026-02-16T08:20:34.558Z] UNKNOWN 4.77
+[2026-02-16T08:20:36.532Z] UNKNOWN 4.77
+[2026-02-16T08:20:36.536Z] UNKNOWN 4.77
+[2026-02-16T08:20:40.598Z] UNKNOWN 4.77
+[2026-02-16T08:20:40.616Z] UNKNOWN 4.77
+[2026-02-16T08:20:42.580Z] UNKNOWN 4.77
+[2026-02-16T08:20:42.581Z] UNKNOWN 4.77
+[2026-02-16T08:20:44.539Z] UNKNOWN 4.77
+[2026-02-16T08:20:46.537Z] UNKNOWN 4.77
+[2026-02-16T08:20:50.582Z] UNKNOWN 4.77
+[2026-02-16T08:20:50.587Z] UNKNOWN 4.77
+[2026-02-16T08:20:52.576Z] UNKNOWN 4.77
+[2026-02-16T08:20:54.538Z] UNKNOWN 4.77
+[2026-02-16T08:20:56.575Z] UNKNOWN 4.77
+[2026-02-16T08:20:58.556Z] UNKNOWN 4.77
+[2026-02-16T08:21:00.622Z] UNKNOWN 4.77
+[2026-02-16T08:21:02.563Z] UNKNOWN 4.77
+[2026-02-16T08:21:04.570Z] UNKNOWN 4.77
+[2026-02-16T08:21:06.568Z] UNKNOWN 4.77
+[2026-02-16T08:21:08.568Z] UNKNOWN 4.77
+[2026-02-16T08:21:10.574Z] UNKNOWN 4.77
+[2026-02-16T08:21:12.618Z] UNKNOWN 4.77
+[2026-02-16T08:21:16.584Z] UNKNOWN 4.77
+[2026-02-16T08:21:16.602Z] UNKNOWN 4.77
+[2026-02-16T08:21:18.526Z] UNKNOWN 4.77
+[2026-02-16T08:21:18.568Z] UNKNOWN 4.77
+[2026-02-16T08:21:20.617Z] UNKNOWN 4.77
+[2026-02-16T08:21:22.585Z] UNKNOWN 4.77
+[2026-02-16T08:21:22.600Z] UNKNOWN 4.77
+[2026-02-16T08:21:24.537Z] UNKNOWN 4.77
+[2026-02-16T08:21:24.552Z] UNKNOWN 4.77
+[2026-02-16T08:21:26.577Z] UNKNOWN 4.77
+[2026-02-16T08:21:26.588Z] UNKNOWN 4.77
+[2026-02-16T08:21:28.546Z] UNKNOWN 4.77
+[2026-02-16T08:21:28.569Z] UNKNOWN 4.77
+[2026-02-16T08:21:30.564Z] UNKNOWN 4.77
+[2026-02-16T08:21:30.577Z] UNKNOWN 4.77
+[2026-02-16T08:21:32.560Z] UNKNOWN 4.77
+[2026-02-16T08:21:34.584Z] UNKNOWN 4.77
+[2026-02-16T08:21:34.589Z] UNKNOWN 4.77
+[2026-02-16T08:21:36.583Z] UNKNOWN 4.77
+[2026-02-16T08:21:36.585Z] UNKNOWN 4.77
+[2026-02-16T08:21:38.523Z] UNKNOWN 4.77
+[2026-02-16T08:21:42.590Z] UNKNOWN 4.77
+[2026-02-16T08:21:44.573Z] UNKNOWN 4.77
+[2026-02-16T08:21:46.532Z] UNKNOWN 4.77
+[2026-02-16T08:21:48.619Z] UNKNOWN 4.77
+[2026-02-16T08:21:48.643Z] UNKNOWN 4.77
+[2026-02-16T08:21:52.800Z] UNKNOWN 4.77
+[2026-02-16T08:21:54.548Z] UNKNOWN 4.77
+[2026-02-16T08:21:54.572Z] UNKNOWN 4.77
+[2026-02-16T08:21:56.564Z] UNKNOWN 4.77
+[2026-02-16T08:21:56.574Z] UNKNOWN 4.77
+[2026-02-16T08:21:58.522Z] UNKNOWN 4.77
+[2026-02-16T08:22:02.570Z] UNKNOWN 4.77
+[2026-02-16T08:22:04.587Z] UNKNOWN 4.77
+[2026-02-16T08:22:06.553Z] UNKNOWN 4.77
+[2026-02-16T08:22:08.513Z] UNKNOWN 4.77
+[2026-02-16T08:22:10.503Z] UNKNOWN 4.77
+[2026-02-16T08:22:10.513Z] UNKNOWN 4.77
+[2026-02-16T08:22:12.577Z] UNKNOWN 4.77
+[2026-02-16T08:22:12.590Z] UNKNOWN 4.77
+[2026-02-16T08:22:14.545Z] UNKNOWN 4.77
+[2026-02-16T08:22:16.569Z] UNKNOWN 4.77
+[2026-02-16T08:22:18.559Z] UNKNOWN 4.77
+[2026-02-16T08:22:20.532Z] UNKNOWN 4.77
+[2026-02-16T08:22:28.584Z] UNKNOWN 4.77
+[2026-02-16T08:22:34.524Z] UNKNOWN 4.77
+[2026-02-16T08:22:36.550Z] UNKNOWN 4.77
+[2026-02-16T08:22:36.563Z] UNKNOWN 4.77
+[2026-02-16T08:22:38.512Z] UNKNOWN 4.77
+[2026-02-16T08:22:38.520Z] UNKNOWN 4.77
+[2026-02-16T08:22:40.555Z] UNKNOWN 4.77
+[2026-02-16T08:22:42.532Z] UNKNOWN 4.77
+[2026-02-16T08:22:42.537Z] UNKNOWN 4.77
+[2026-02-16T08:22:44.565Z] UNKNOWN 4.77
+[2026-02-16T08:22:46.536Z] UNKNOWN 4.77
+[2026-02-16T08:22:46.541Z] UNKNOWN 4.77
+[2026-02-16T08:22:48.592Z] UNKNOWN 4.77
+[2026-02-16T08:22:50.566Z] UNKNOWN 4.77
+[2026-02-16T08:22:52.533Z] UNKNOWN 4.77
+[2026-02-16T08:22:53.600Z] UNKNOWN 4.77
+[2026-02-16T08:22:54.538Z] UNKNOWN 4.77
+[2026-02-16T08:22:56.673Z] UNKNOWN 4.77
+[2026-02-16T08:22:56.678Z] UNKNOWN 4.77
+[2026-02-16T08:22:58.525Z] UNKNOWN 4.77
+[2026-02-16T08:22:58.530Z] UNKNOWN 4.77
+[2026-02-16T08:23:00.559Z] UNKNOWN 4.77
+[2026-02-16T08:23:00.565Z] UNKNOWN 4.77
+[2026-02-16T08:23:02.576Z] UNKNOWN 4.77
+[2026-02-16T08:23:02.603Z] UNKNOWN 4.77
+[2026-02-16T08:23:04.586Z] UNKNOWN 4.77
