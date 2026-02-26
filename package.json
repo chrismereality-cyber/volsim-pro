@@ -1,15 +1,20 @@
 {
-  "name": "mt5-bridge-server",
+  "name": "volsim-pro",
   "version": "1.0.0",
-  "description": "Bridge between MT5 and React Frontend",
-  "main": "index.js",
+  "description": "Integrated MT5 Bridge and Frontend",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "server": "node server.js"
   },
   "dependencies": {
-    "axios": "^1.13.5",
-    "cors": "^2.8.6",
-    "dotenv": "^17.3.1",
-    "express": "^4.22.1"
+    "next": "14.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1"
   }
 }

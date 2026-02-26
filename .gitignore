@@ -1,1 +1,6 @@
-﻿node_modules/
+node_modules/
+.next/
+.env
+.env.local
+ngrok.exe
+*.log
