@@ -1,4 +1,4 @@
-﻿import socket, threading, requests, time
+import socket, threading, requests, time
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
@@ -11,10 +11,10 @@ def socket_server():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(('0.0.0.0', 9090))
     s.listen(5)
-    print("📡 Bridge Active: Waiting for MT5 (Target: $3,000.77)...")
+    print("?? Bridge Active: Waiting for MT5 (Target: $3,000.77)...")
     while True:
         conn, addr = s.accept()
-        print("✅ MT5 Connected")
+        print("? MT5 Connected")
         while True:
             try:
                 data = conn.recv(1024).decode().strip()
@@ -23,7 +23,7 @@ def socket_server():
                 if len(parts) >= 2:
                     payload = {"account": {"balance": parts[0], "equity": parts[1], "price": parts[2] if len(parts)>2 else "0"}}
                     requests.post(RENDER_URL, json=payload, timeout=5)
-                    print(f"💰 SYNCED: ${parts[0]}")
+                    print(f"?? SYNCED: ${parts[0]}")
             except: break
 
 threading.Thread(target=socket_server, daemon=True).start()
