@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOLSIM PRO | Backend Status</title>
+    <style>
+        body { background: #0a0a0a; color: #00ff00; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .status-card { border: 1px solid #00ff00; padding: 2rem; box-shadow: 0 0 20px rgba(0,255,0,0.2); }
+        .pulse { animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div class="status-card">
+        <h1>VOLSIM_V4_CORE_LOADED</h1>
+        <p>SYSTEM STATUS: <span class="pulse">ONLINE</span></p>
+        <p>WS_ENGINE: ACTIVE</p>
+        <p>PORT: 10000</p>
+    </div>
+</body>
+</html>

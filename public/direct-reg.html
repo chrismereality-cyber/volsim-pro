@@ -1,0 +1,26 @@
+﻿<!DOCTYPE html>
+<html>
+<head><title>VolSim Backdoor Register</title></head>
+<body>
+    <h2>Create Admin Account</h2>
+    <input id="email" placeholder="Email" /><br>
+    <input id="user" placeholder="Username" /><br>
+    <input id="pass" type="password" placeholder="Password" /><br>
+    <button onclick="register()">Register Now</button>
+    <script>
+        async function register() {
+            const res = await fetch('https://volsim-pro-backend.onrender.com/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: document.getElementById('email').value,
+                    username: document.getElementById('user').value,
+                    password: document.getElementById('pass').value
+                })
+            });
+            const data = await res.json();
+            alert(JSON.stringify(data));
+        }
+    </script>
+</body>
+</html>

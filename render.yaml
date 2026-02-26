@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: volsim-pro
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: node web-dashboard.js
+    envVars:
+      - key: PORT
+        value: "10000"
+    healthCheckPath: /health

@@ -1,0 +1,63 @@
+{
+  "status": "ok",
+  "hedgeStatus": [
+    {
+      "id": "hedge_trade001",
+      "symbol": "XAUUSD",
+      "side": "BUY",
+      "lotSize": 1,
+      "openPrice": 1930,
+      "closed": true,
+      "profit": 5
+    },
+    {
+      "id": "hedge_trade002",
+      "symbol": "EURUSD",
+      "side": "SELL",
+      "lotSize": 1,
+      "openPrice": 1.095,
+      "closed": true,
+      "profit": 0.005
+    },
+    {
+      "id": "hedge_trade003",
+      "symbol": "GBPUSD",
+      "side": "SELL",
+      "lotSize": 1,
+      "openPrice": 1.52,
+      "closed": false,
+      "profit": 0
+    },
+    {
+      "id": "hedge_trade004",
+      "symbol": "USDJPY",
+      "side": "BUY",
+      "lotSize": 1,
+      "openPrice": 148.8,
+      "closed": false,
+      "profit": 0
+    }
+  ],
+  "secondaryLog": [
+    {
+      "hedgeId": "hedge_trade001",
+      "symbol": "XAUUSD",
+      "side": "BUY",
+      "lotSize": 1,
+      "openPrice": 1930,
+      "closePrice": 1935,
+      "profit": 5,
+      "timestamp": "2026-01-23T12:14:56.432Z"
+    },
+    {
+      "hedgeId": "hedge_trade002",
+      "symbol": "EURUSD",
+      "side": "SELL",
+      "lotSize": 1,
+      "openPrice": 1.095,
+      "closePrice": 1.1,
+      "profit": 0.005,
+      "timestamp": "2026-01-23T12:14:56.433Z"
+    }
+  ]
+}

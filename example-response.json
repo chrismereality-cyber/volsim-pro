@@ -1,0 +1,35 @@
+{
+  "status": "ok",
+  "hedgeStatus": [
+    {
+      "id": "hedge_trade001",
+      "symbol": "XAUUSD",
+      "side": "SELL",
+      "lotSize": 1,
+      "openPrice": 1930,
+      "closed": true,
+      "profit": 5
+    },
+    {
+      "id": "hedge_trade002",
+      "symbol": "EURUSD",
+      "side": "BUY",
+      "lotSize": 1,
+      "openPrice": 1.095,
+      "closed": false,
+      "profit": 0
+    }
+  ],
+  "secondaryLog": [
+    {
+      "hedgeId": "hedge_trade001",
+      "symbol": "XAUUSD",
+      "side": "SELL",
+      "lotSize": 1,
+      "openPrice": 1930,
+      "closePrice": 1935,
+      "profit": 5,
+      "timestamp": "2026-01-23T11:26:45.292Z"
+    }
+  ]
+}

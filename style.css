@@ -1,0 +1,59 @@
+﻿:root {
+    --bg-color: #0b0e11;
+    --term-bg: #1e2329;
+    --text-color: #eaecef;
+    --border-color: #2b3139;
+}
+
+.light-theme {
+    --bg-color: #f0f2f5;
+    --term-bg: #ffffff;
+    --text-color: #1e2329;
+    --border-color: #d9d9d9;
+}
+
+body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Courier New', monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; transition: 0.3s; }
+#terminal { background-color: var(--term-bg); padding: 15px; border-radius: 8px; width: 380px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 1px solid var(--border-color); }
+.status-bar { font-size: 10px; color: #848e9c; }
+#price-display { font-size: 28px; font-weight: bold; margin: 5px 0; }
+.controls { display: flex; gap: 8px; }
+button { flex: 1; padding: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white; }
+.buy-btn { background-color: #02c076; }
+.sell-btn { background-color: #f6465d; }
+#close-btn { background-color: #f0b90b; color: #000; margin-top: 10px; width: 100%; }
+#log { margin-top: 10px; font-size: 11px; height: 60px; overflow-y: auto; background: var(--bg-color); color: var(--text-color); padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); }
+#news-ticker { background: #000; white-space: nowrap; overflow: hidden; margin-top: 10px; border-radius: 4px; padding: 5px 0; }
+#news-text { display: inline-block; padding-left: 100%; animation: scroll-news 20s linear infinite; color: #f0b90b; font-size: 11px; }
+@keyframes scroll-news { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+body { transition: background-color 0.2s ease; }
+#chart-container { 
+    height: 200px !important; 
+    min-height: 200px;
+    width: 100%;
+    background: #131722; 
+    position: relative;
+}
+#tradingview_chart {
+    height: 100% !important;
+    width: 100%;
+}
+#chart-wrapper {
+    height: 250px !important;
+    min-height: 250px !important;
+    background: #131722;
+    border: 1px solid #2b3139;
+}
+#tradingview_widget {
+    height: 100% !important;
+    width: 100% !important;
+}
+#chart-wrapper {
+    height: 250px !important;
+    min-height: 250px !important;
+    background: #131722;
+    border: 1px solid #2b3139;
+}
+#tradingview_widget {
+    height: 100% !important;
+    width: 100% !important;
+}
