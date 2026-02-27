@@ -2,43 +2,26 @@
 const cors = require('cors');
 const app = express();
 
-app.use(cors());
+// Updated CORS: Allow EVERYTHING for debugging
+app.use(cors({ origin: '*' })); 
 app.use(express.json());
 
-// Mock Database of Experts
 const experts = [
-    { id: 1, name: "Risk Manager AI", specialty: "Hedging" },
-    { id: 2, name: "Volatility Bot", specialty: "Breakouts" },
-    { id: 3, name: "Scalp Master", specialty: "High Frequency" }
+    { id: 1, name: "Risk Manager AI", specialty: "risk", bio: "Focused on hedging and drawdown protection." },
+    { id: 2, name: "Volatility Bot", specialty: "volatility", bio: "Expert in high-volatility breakout trades." },
+    { id: 3, name: "Scalp Master", specialty: "fast", bio: "High-frequency specialist for quick scalps." }
 ];
 
-let currentTradeData = { balance: "0.00", equity: "0.00", price: "0.00" };
-
-// NEW: Health Check
 app.get('/health', (req, res) => res.json({ status: "ok" }));
+app.get('/api/experts', (req, res) => res.json(experts));
 
-// NEW: Experts Endpoint (This stops the 404)
-app.get('/api/experts', (req, res) => {
-    console.log("Sending experts to frontend...");
-    res.json(experts);
-});
-
-app.get('/api/trade/account', (req, res) => {
-    res.json(currentTradeData);
-});
-
-app.post('/api/trade/status', (req, res) => {
-    const { account } = req.body;
-    if (account) {
-        currentTradeData = {
-            balance: account.balance,
-            equity: account.equity,
-            price: account.price
-        };
-        res.status(200).json({ status: "success" });
-    } else {
-        res.status(400).json({ error: "Invalid data" });
-    }
+app.post('/api/journal', (req, res) => {
+    const { text } = req.body;
+    if (!text) return res.status(400).json({ error: "No text provided" });
+    const lowerText = text.toLowerCase();
+    let suggested = experts.filter(e => lowerText.includes(e.specialty));
+    if (suggested.length === 0) suggested = [experts[0]]; 
+    res.json({ suggestedExperts: suggested });
 });
 
 app.get('/', (req, res) => res.send("Titan Bridge Root Online"));
