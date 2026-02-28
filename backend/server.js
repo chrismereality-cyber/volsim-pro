@@ -6,7 +6,12 @@ app.use(express.json());
 
 let tradeData = { account: { equity: "19.69", profit: "0.00", vault: 0 }, trades: [] };
 
-app.get('/', (req, res) => res.send('TITAN v5.8.2: FINAL SYNC ACTIVE'));
+// Primary Route
+app.get('/', (req, res) => res.status(200).send('TITAN v5.8.2: FINAL SYNC ACTIVE'));
+
+// Health Check Route (Helps Render mark it as LIVE faster)
+app.get('/health', (req, res) => res.status(200).send('OK'));
+
 app.get('/api/trade/status', (req, res) => res.json(tradeData));
 app.post('/api/trade/status', (req, res) => { tradeData = req.body; res.sendStatus(200); });
 
