@@ -1,6 +1,7 @@
 node_modules/
 .next/
+out/
+build/
 .env
-.env.local
-ngrok.exe
-*.log
+*.pyc
+__pycache__/
