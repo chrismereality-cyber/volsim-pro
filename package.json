@@ -6,7 +6,7 @@
     "scripts":  {
                     "dev":  "next dev",
                     "build":  "next build",
-                    "start":  "node backend/app.js",
+                    "start":  "node master.js",
                     "server":  "node server.js"
                 },
     "dependencies":  {
