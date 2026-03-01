@@ -16,7 +16,7 @@ if (fs.existsSync('./vault.json')) {
 let terminalState = {
     account: { equity: "19.69", profit: "0.00", vault: vaultData.balance },
     trades: [],
-    version: "v5.9.3"
+    version: "v5.9.4"
 };
 
 app.get('/', (req, res) => res.status(200).send(`TITAN ${terminalState.version}: VAULT ACTIVE`));
