@@ -1,19 +1,27 @@
-﻿const express = require('express');
+const express = require('express');
 const cors = require('cors');
 const app = express();
+const PORT = process.env.PORT || 10000;
+
 app.use(cors());
 app.use(express.json());
 
-let tradeData = { account: { equity: "19.69", profit: "0.00", vault: 0 }, trades: [] };
+let terminalState = {
+    account: { equity: "19.69", profit: "0.00", vault: 0 },
+    trades: [],
+    version: "v5.9.0"
+};
 
-// Primary Route
-app.get('/', (req, res) => res.status(200).send('TITAN v5.8.2: FINAL SYNC ACTIVE'));
+app.get('/', (req, res) => res.status(200).send(`TITAN ${terminalState.version}: FINAL SYNC ACTIVE`));
 
-// Health Check Route (Helps Render mark it as LIVE faster)
-app.get('/health', (req, res) => res.status(200).send('OK'));
+app.get('/api/trade/status', (req, res) => {
+    res.json(terminalState);
+});
 
-app.get('/api/trade/status', (req, res) => res.json(tradeData));
-app.post('/api/trade/status', (req, res) => { tradeData = req.body; res.sendStatus(200); });
+app.post('/api/trade/status', (req, res) => {
+    terminalState.account = req.body.account || terminalState.account;
+    terminalState.trades = req.body.trades || [];
+    res.json({ status: "success", synced: true });
+});
 
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, '0.0.0.0', () => console.log('TITAN CORE LIVE'));
+app.listen(PORT, () => console.log(`TITAN Node Server running on port ${PORT}`));
