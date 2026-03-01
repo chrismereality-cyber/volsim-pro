@@ -52,7 +52,7 @@ export default function TitanMasterTerminal() {
               <span className="text-neonPink flex items-center gap-1"><ShieldCheck size={12}/> AUTO-VAULT</span>
               <span className="text-gray-600">15% ALLOC</span>
             </div>
-            <h2 className="text-xl font-bold">${data.account.vault.toFixed(2)}</h2>
+            <h2 className="text-xl font-bold">${(data.account.vault || 0).toFixed(2)}</h2>
             <div className="w-full bg-gray-800 h-1 mt-3 rounded-full overflow-hidden">
                <div className="bg-neonPink h-full shadow-[0_0_8px_#ff007f]" style={{width: '45%'}} />
             </div>
