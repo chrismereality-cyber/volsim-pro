@@ -1,9 +1,12 @@
-﻿export default function RootLayout({ children }) {
+import './globals.css'
+
+export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body style={{ margin: 0, background: 'black', color: 'white', fontFamily: 'sans-serif' }}>
-        {children}
-      </body>
+      <head>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet" />
+      </head>
+      <body>{children}</body>
     </html>
   )
 }

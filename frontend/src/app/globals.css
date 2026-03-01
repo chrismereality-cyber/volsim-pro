@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --neon-blue: #00f3ff;
+  --neon-pink: #ff00ff;
+  --bg-black: #050505;
+}
+
+body {
+  background: var(--bg-black);
+  color: white;
+  font-family: 'Inter', sans-serif;
+}
+
+.neon-border {
+  border: 1px solid var(--neon-blue);
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+}
+
+.neon-text-blue { color: var(--neon-blue); text-shadow: 0 0 5px var(--neon-blue); }
+.neon-text-pink { color: var(--neon-pink); text-shadow: 0 0 5px var(--neon-pink); }
