@@ -1,109 +1,122 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Wallet, ArrowDownCircle, ArrowUpCircle, X, Copy, CheckCircle } from 'lucide-react';
+import { Activity, ShieldCheck, Wallet, Lock, Unlock, ArrowDownCircle, ArrowUpCircle, AlertOctagon, TrendingUp, Cpu } from 'lucide-react';
 
-export default function TitanVault() {
-  const [data, setData] = useState({ account: { equity: "19.69", profit: "0.00", vault: 0 } });
-  const [modal, setModal] = useState(null); // 'deposit' or 'withdraw'
-  const [copied, setCopied] = useState(false);
-
-  // YOUR WALLET ADDRESSES
-  const WALLETS = {
-    BTC: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh", // Replace with your real BTC address
-    USDT: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t" // Replace with your real TRC20 address
-  };
+export default function TitanMasterTerminal() {
+  const [data, setData] = useState({ account: { equity: "0.00", profit: "0.00", vault: 0 }, trades: [], logs: [] });
+  const [modal, setModal] = useState(null);
+  const [hedgeMode, setHedgeMode] = useState(false);
 
   useEffect(() => {
-    const interval = setInterval(async () => {
+    const sync = async () => {
       try {
         const res = await fetch('https://volsim-pro.onrender.com/api/trade/status');
-        setData(await res.json());
-      } catch (e) { console.error("Sync Lost"); }
-    }, 2000);
-    return () => clearInterval(interval);
+        const json = await res.json();
+        setData(prev => ({ ...prev, ...json }));
+      } catch (e) { console.error("Sync Interrupted"); }
+    };
+    const timer = setInterval(sync, 1500);
+    return () => clearInterval(timer);
   }, []);
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
-    <div className="min-h-screen bg-black text-white p-4 font-mono relative overflow-hidden">
-      {/* BACKGROUND NEON GLOW */}
-      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,_rgba(0,243,255,0.05)_0%,_transparent_50%)] pointer-events-none" />
-
-      {/* DASHBOARD HEADER */}
-      <div className="flex justify-between items-center border-b border-neonBlue/20 pb-4 mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-3 h-3 bg-neonBlue rounded-full animate-pulse shadow-[0_0_10px_#00f3ff]" />
-          <h1 className="text-xl font-bold tracking-tighter text-white">TITAN <span className="text-neonBlue">VAULT v5.8.8</span></h1>
+    <div className="min-h-screen bg-[#050505] text-white font-mono p-2 lg:p-4">
+      {/* HEADER: SYSTEM STATUS */}
+      <div className="flex justify-between items-center border-b border-neonBlue/20 pb-4 mb-4">
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-black tracking-widest neon-text-blue">TITAN v5.9</h1>
+          <div className="hidden md:flex gap-2 text-[10px] text-gray-500">
+            <span className="flex items-center gap-1"><Cpu size={12}/> ENGINE: <span className="text-green-500">OPTIMIZED</span></span>
+            <span className="flex items-center gap-1"><Activity size={12}/> LATENCY: <span className="text-neonBlue">18ms</span></span>
+          </div>
         </div>
-        <div className="text-[10px] text-gray-500">SECURE NODE: ACTIVE</div>
+        <button onClick={() => setHedgeMode(!hedgeMode)} className={`px-4 py-1 rounded-full border text-[10px] font-bold transition-all ${hedgeMode ? 'bg-neonPink/20 border-neonPink text-neonPink shadow-[0_0_10px_#ff007f]' : 'border-gray-800 text-gray-600'}`}>
+          HEDGE ENGINE: {hedgeMode ? "ACTIVE" : "STANDBY"}
+        </button>
       </div>
 
-      {/* MAIN GRID */}
-      <div className="grid grid-cols-12 gap-6">
-        {/* EQUITY & ACTIONS */}
-        <div className="col-span-12 lg:col-span-4 space-y-4">
-          <div className="p-6 rounded-xl bg-gray-900/40 border border-neonBlue/30 shadow-lg relative overflow-hidden">
-            <div className="text-xs text-neonBlue uppercase mb-2">Total Balance</div>
-            <div className="text-4xl font-black italic tracking-widest text-white">${data.account.equity}</div>
-            <div className="mt-4 flex gap-2">
-               <button onClick={() => setModal('deposit')} className="flex-1 bg-neonBlue text-black font-bold py-3 rounded flex items-center justify-center gap-2 hover:bg-white transition duration-300">
-                 <ArrowDownCircle size={18}/> DEPOSIT
-               </button>
-               <button onClick={() => setModal('withdraw')} className="flex-1 bg-transparent border border-gray-700 text-gray-400 font-bold py-3 rounded flex items-center justify-center gap-2 hover:border-white hover:text-white transition">
-                 <ArrowUpCircle size={18}/> WITHDRAW
-               </button>
+      <div className="grid grid-cols-12 gap-4">
+        {/* LEFT: FINANCIALS & VAULT */}
+        <div className="col-span-12 lg:col-span-3 space-y-4">
+          <div className="p-4 rounded-lg bg-gray-900/30 border border-gray-800 shadow-inner">
+            <p className="text-[10px] text-gray-500 uppercase mb-1">Live Equity</p>
+            <h2 className="text-3xl font-bold font-sans">${data.account.equity}</h2>
+            <p className={`text-xs mt-1 ${parseFloat(data.account.profit) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {parseFloat(data.account.profit) >= 0 ? '▲' : '▼'} ${data.account.profit} (Today)
+            </p>
+          </div>
+
+          <div className="p-4 rounded-lg bg-gray-900/30 border border-neonPink/20">
+            <div className="flex justify-between text-[10px] mb-2">
+              <span className="text-neonPink flex items-center gap-1"><ShieldCheck size={12}/> AUTO-VAULT</span>
+              <span className="text-gray-600">15% ALLOC</span>
             </div>
+            <h2 className="text-xl font-bold">${data.account.vault.toFixed(2)}</h2>
+            <div className="w-full bg-gray-800 h-1 mt-3 rounded-full overflow-hidden">
+               <div className="bg-neonPink h-full shadow-[0_0_8px_#ff007f]" style={{width: '45%'}} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 pt-2">
+            <button onClick={() => setModal('deposit')} className="bg-neonBlue/10 border border-neonBlue/50 text-neonBlue py-3 rounded text-[10px] font-bold hover:bg-neonBlue hover:text-black transition">DEPOSIT</button>
+            <button onClick={() => setModal('withdraw')} className="bg-gray-900 border border-gray-800 text-gray-500 py-3 rounded text-[10px] font-bold hover:border-white hover:text-white transition">WITHDRAW</button>
           </div>
         </div>
 
-        {/* CHART & ENGINE */}
-        <div className="col-span-12 lg:col-span-8">
-           <div className="rounded-xl border border-gray-800 h-[400px] bg-gray-900/20 overflow-hidden shadow-2xl">
-              <iframe 
-                src="https://s.tradingview.com/widgetembed/?symbol=BINANCE:BTCUSDT&interval=1&theme=dark"
-                className="w-full h-full border-none opacity-90"
-              />
-           </div>
+        {/* CENTER: THE TERMINAL (CHART & EXECUTION) */}
+        <div className="col-span-12 lg:col-span-6 space-y-4">
+          <div className="h-[450px] bg-black border border-gray-800 rounded-lg overflow-hidden relative">
+            <iframe 
+              src="https://s.tradingview.com/widgetembed/?symbol=BINANCE:BTCUSDT&interval=1&theme=dark&style=1"
+              className="w-full h-full border-none opacity-80"
+            />
+          </div>
+          
+          <div className="grid grid-cols-3 gap-3">
+            <button className="bg-green-600/10 border border-green-500/50 text-green-500 py-4 rounded text-xs font-bold hover:bg-green-500 hover:text-white transition">BUY 0.01 BTC</button>
+            <button className="bg-red-600/10 border border-red-500/50 text-red-500 py-4 rounded text-xs font-bold hover:bg-red-500 hover:text-white transition">SELL 0.01 BTC</button>
+            <button className="bg-red-900/20 border border-red-600 text-red-500 rounded flex items-center justify-center gap-2 text-[10px] font-bold hover:bg-red-600 hover:text-white transition">
+              <AlertOctagon size={14}/> PANIC
+            </button>
+          </div>
+        </div>
+
+        {/* RIGHT: ENGINE LOGS & TRACKER */}
+        <div className="col-span-12 lg:col-span-3">
+          <div className="h-full p-4 bg-gray-900/20 border border-gray-800 rounded-lg">
+            <h3 className="text-[10px] text-neonBlue font-bold mb-4 flex items-center gap-2">
+              <TrendingUp size={14}/> PROFIT TRACKER
+            </h3>
+            <div className="space-y-4 overflow-y-auto max-h-[500px] pr-2 custom-scrollbar">
+               {data.trades.length > 0 ? data.trades.map((t, i) => (
+                 <div key={i} className="flex justify-between items-center border-b border-gray-800 pb-2">
+                   <div>
+                     <p className="text-[10px] text-gray-400">BTC TICKET #{t.ticket}</p>
+                     <p className={`text-xs font-bold ${t.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                       {t.type === 0 ? 'BUY' : 'SELL'} {t.volume}
+                     </p>
+                   </div>
+                   <span className={t.profit >= 0 ? 'text-green-400' : 'text-red-400'}>${t.profit}</span>
+                 </div>
+               )) : (
+                 <p className="text-[10px] text-gray-600 italic">Scanning market for BTC signals...</p>
+               )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* PAYMENT MODAL (SLIDE UP) */}
+      {/* MODALS (Deposit/Withdraw) */}
       {modal && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-end lg:items-center justify-center p-4">
-          <div className="w-full max-w-md bg-gray-900 border border-neonBlue/50 rounded-2xl p-6 shadow-[0_0_50px_rgba(0,243,255,0.2)] animate-in slide-in-from-bottom duration-300">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-neonBlue">{modal === 'deposit' ? 'DEPOSIT FUNDS' : 'WITHDRAW FUNDS'}</h2>
-              <button onClick={() => setModal(null)} className="text-gray-500 hover:text-white"><X/></button>
-            </div>
-
-            {modal === 'deposit' ? (
-              <div className="space-y-6 text-center">
-                <div className="bg-white p-4 rounded-xl inline-block mx-auto shadow-[0_0_20px_#fff]">
-                  <QRCodeSVG value={WALLETS.BTC} size={180} />
-                </div>
-                <div className="space-y-2 text-left">
-                  <label className="text-[10px] text-gray-500 uppercase">Your Personal BTC Address</label>
-                  <div className="flex items-center gap-2 bg-black border border-gray-800 p-3 rounded group cursor-pointer" onClick={() => copyToClipboard(WALLETS.BTC)}>
-                    <code className="text-[11px] text-neonBlue break-all flex-1">{WALLETS.BTC}</code>
-                    {copied ? <CheckCircle size={16} className="text-green-500"/> : <Copy size={16} className="text-gray-600 group-hover:text-white"/>}
-                  </div>
-                </div>
-                <p className="text-[10px] text-gray-400 italic">Funds will reflect in TITAN equity after 2 network confirmations.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                 <p className="text-gray-400 text-sm">Withdrawal requests are processed within 30 minutes to your verified wallet.</p>
-                 <input className="w-full bg-black border border-gray-800 p-4 rounded text-white focus:border-neonBlue outline-none" placeholder="Enter Amount (USD)" />
-                 <input className="w-full bg-black border border-gray-800 p-4 rounded text-white focus:border-neonBlue outline-none" placeholder="Target BTC/USDT Address" />
-                 <button className="w-full bg-neonPink/20 border border-neonPink text-neonPink py-4 rounded font-bold hover:bg-neonPink hover:text-white transition">PROCESS WITHDRAWAL</button>
-              </div>
-            )}
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-[#0a0a0a] border border-neonBlue/30 p-8 rounded-2xl text-center">
+             <h2 className="text-xl font-bold mb-6 text-neonBlue italic">TITAN SECURE DEPOSIT</h2>
+             <div className="bg-white p-4 rounded-xl inline-block mb-6 shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+               <QRCodeSVG value="bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh" size={160} />
+             </div>
+             <p className="text-[10px] text-gray-400 mb-8 select-all">bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</p>
+             <button onClick={() => setModal(null)} className="w-full py-3 border border-gray-800 text-gray-500 rounded-lg hover:text-white transition">CLOSE TERMINAL</button>
           </div>
         </div>
       )}
