@@ -1,38 +1,39 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import os
-import json
 
 app = Flask(__name__)
 CORS(app)
 
-# File-based storage to survive Render's multi-process resets
-DATA_FILE = "trade_cache.json"
-
-def save_data(data):
-    with open(DATA_FILE, 'w') as f:
-        json.dump(data, f)
-
-def load_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, 'r') as f:
-            return json.load(f)
-    return {"balance": 0, "equity": 0, "profit": 0, "symbol": "Waiting...", "status": "BOOTING"}
+# Fallback data if nothing has been pushed yet
+latest_stats = {
+    "balance": 0.0,
+    "equity": 0.0,
+    "profit": 0.0,
+    "symbol": "WAITING_FOR_MT5",
+    "status": "BRIDGE_ONLINE"
+}
 
 @app.route('/')
-def home():
-    return "Bridge Persistent Mode: Active"
+def health():
+    return "Volsim Bridge: Operational"
 
 @app.route('/api/trade/status', methods=['GET'])
 def get_status():
-    return jsonify(load_data())
+    return jsonify(latest_stats)
 
 @app.route('/update', methods=['POST'])
 def update_data():
-    data = request.get_json(force=True)
-    if data:
-        save_data(data)
-        return jsonify({"status": "success"}), 200
+    global latest_stats
+    try:
+        data = request.get_json(force=True)
+        if data:
+            # Update our global memory
+            latest_stats.update(data)
+            print(f"DEBUG: Received update - Profit: {data.get('profit')}")
+            return jsonify({"status": "success", "synced": latest_stats}), 200
+    except Exception as e:
+        print(f"DEBUG: Error in update - {str(e)}")
     return jsonify({"status": "error"}), 400
 
 if __name__ == '__main__':
