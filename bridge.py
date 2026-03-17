@@ -1,37 +1,41 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+import MetaTrader5 as mt5
+import redis, json, time
 
-app = Flask(__name__)
-# This allows your Vercel frontend to talk to your local computer
-CORS(app)
+r = redis.Redis(host='127.0.0.1', port=6379, decode_responses=True)
 
-# Global variable to store the current signal
-current_signal = {"action": None}
+if not mt5.initialize():
+    print("MT5 Init Failed"); quit()
 
-@app.route('/')
-def home():
-    return "Titan Bridge is Online (Local Mode)"
+def close_all():
+    print("!!! EXECUTING CLOSE ALL !!!")
+    positions = mt5.positions_get()
+    if not positions: return
+    for pos in positions:
+        tick = mt5.symbol_info_tick(pos.symbol)
+        request = {
+            "action": mt5.TRADE_ACTION_DEAL,
+            "position": pos.ticket,
+            "symbol": pos.symbol,
+            "volume": pos.volume,
+            "type": mt5.ORDER_TYPE_SELL if pos.type == mt5.POSITION_TYPE_BUY else mt5.ORDER_TYPE_BUY,
+            "price": tick.bid if pos.type == mt5.POSITION_TYPE_BUY else tick.ask,
+            "deviation": 20,
+            "magic": 123456,
+            "type_time": mt5.ORDER_TIME_GTC,
+            "type_filling": mt5.ORDER_FILLING_IOC,
+        }
+        mt5.order_send(request)
+    r.delete("control_stream") # Clear signal after closing
 
-@app.route('/set-signal', methods=['GET'])
-def set_signal():
-    action = request.args.get('action')
-    if action in ['BUY', 'SELL', 'CLOSE']:
-        current_signal['action'] = action
-        print(f"?? SIGNAL SET: {action}")
-        return jsonify({"status": "success", "signal": action}), 200
-    return jsonify({"status": "error", "message": "Invalid action"}), 400
-
-@app.route('/get-signal', methods=['GET'])
-def get_signal():
-    # Retrieve the signal and then clear it
-    action = current_signal['action']
-    if action:
-        current_signal['action'] = None  # Clear signal after delivery
-        print(f"?? SIGNAL SENT TO MT5: {action}")
-        return action, 200
-    return "WAIT", 200
-
-if __name__ == '__main__':
-    print("? BRIDGE UPDATED WITH CORS SUPPORT")
-    print("?? Listening on http://127.0.0.1:5000")
-    app.run(host='0.0.0.0', port=5000, debug=False)
+while True:
+    positions = mt5.positions_get()
+    if positions:
+        # Push current PnL to Redis
+        for pos in positions:
+            r.xadd("ledger_stream", {"data": json.dumps({"ticket": pos.ticket, "profit": pos.profit})}, maxlen=10)
+    
+    # Check for commands
+    cmd = r.xread({"control_stream": "0"}, count=1)
+    if cmd: close_all()
+    
+    time.sleep(0.5)

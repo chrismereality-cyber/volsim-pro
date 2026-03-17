@@ -1,11 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // New way to ignore linting during build
-  eslint: {
-    ignoreDuringBuilds: true,
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NODE_ENV === 'development' 
+      ? 'http://127.0.0.1:5000' 
+      : 'https://volsim-api-main.onrender.com',
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  }
+  images: { unoptimized: true } 
 }
+
 module.exports = nextConfig

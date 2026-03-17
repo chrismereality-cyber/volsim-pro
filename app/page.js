@@ -7,7 +7,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('https://volsim-pro.onrender.com/api/status');
+        const res = await fetch('http://127.0.0.1:5000/api/status');
         const json = await res.json();
         setData(json);
       } catch (err) {
