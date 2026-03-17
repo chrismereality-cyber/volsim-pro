@@ -3,7 +3,7 @@ from flask_cors import CORS
 import os
 
 app = Flask(__name__)
-# THIS LINE ALLOWS VERCEL TO SEE THE FIGURES
+# Crucial: This allows Vercel to read the data
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 latest_stats = {
@@ -11,7 +11,7 @@ latest_stats = {
     "equity": 0.0,
     "profit": 0.0,
     "symbol": "BTCUSDm",
-    "status": "READY"
+    "status": "LIVE"
 }
 
 @app.route('/')
