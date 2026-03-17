@@ -1,27 +1,32 @@
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
 
-# Fail-safe for MetaTrader5
-try:
-    import MetaTrader5 as mt5
-    MT5_AVAILABLE = True
-except ImportError:
-    MT5_AVAILABLE = False
-    print("MT5 not detected (Running in Cloud Mode)")
+# Global variable to store the latest trade data
+latest_data = {
+    "status": "connected",
+    "symbol": "BTCUSDm",
+    "balance": 0.0,
+    "equity": 0.0,
+    "profit": 0.0,
+    "mode": "cloud"
+}
 
-@app.route('/api/trade/status')
+@app.route('/api/trade/status', methods=['GET'])
 def get_status():
-    # In Cloud mode, this would usually pull from a database
-    # For now, we return a success signal
-    return jsonify({
-        "status": "connected",
-        "mode": "cloud" if not MT5_AVAILABLE else "local",
-        "info": "Render API is Live"
-    })
+    return jsonify(latest_data)
+
+@app.route('/update', methods=['POST'])
+def update_data():
+    global latest_data
+    data = request.json
+    if data:
+        latest_data.update(data)
+        return jsonify({"message": "Data updated"}), 200
+    return jsonify({"error": "No data"}), 400
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
