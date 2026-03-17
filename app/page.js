@@ -1,7 +1,9 @@
 "use client";
 export const dynamic = 'force-dynamic';
 import React, { useEffect, useState } from 'react';
-import { API_URL } from './config';
+
+// Replace with your actual Render URL
+const RENDER_URL = "https://volsim-pro.onrender.com";
 
 export default function Dashboard() {
   const [data, setData] = useState({
@@ -15,7 +17,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(\/api/trade/status, { cache: 'no-store' });
+        const res = await fetch(RENDER_URL + "/api/trade/status", { cache: 'no-store' });
         const json = await res.json();
         setData(json);
       } catch (err) {
@@ -28,18 +30,23 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div style={{ backgroundColor: '#000', color: '#fff', padding: '20px', fontFamily: 'monospace', height: '100vh' }}>
-      <h2>VOLSIM PRO // v6.0 NEURAL</h2>
-      <hr />
-      <h3>{data.symbol} LIVE</h3>
-      <p>STATUS: {data.status}</p>
-      <div style={{ fontSize: '2em', color: data.profit >= 0 ? '#0f0' : '#f00' }}>
-        PROFIT: $\
+    <div style={{ backgroundColor: '#000', color: '#fff', padding: '20px', fontFamily: 'monospace', minHeight: '100vh' }}>
+      <h2 style={{ color: '#0f0' }}>VOLSIM PRO // v6.0 NEURAL</h2>
+      <hr style={{ borderColor: '#333' }} />
+      <div style={{ padding: '20px', border: '1px solid #333', borderRadius: '8px' }}>
+        <h3>{data.symbol} LIVE</h3>
+        <p>STATUS: <span style={{ color: '#0f0' }}>{data.status}</span></p>
+        <div style={{ fontSize: '2.5em', fontWeight: 'bold', color: data.profit >= 0 ? '#0f0' : '#f00' }}>
+          PROFIT: 
+        </div>
+        <p style={{ fontSize: '1.2em' }}>Balance: </p>
+        <p style={{ fontSize: '1.2em' }}>Equity: </p>
       </div>
-      <p>Balance: $\</p>
-      <p>Equity: $\</p>
-      <button style={{ backgroundColor: 'red', color: 'white', padding: '10px', width: '100%', fontWeight: 'bold' }}>
-        PANIC: CLOSE ALL
+      <br />
+      <button 
+        onClick={() => alert('Initiating Panic Close...')}
+        style={{ backgroundColor: '#f00', color: '#fff', border: 'none', padding: '15px', width: '100%', fontSize: '1.2em', fontWeight: 'bold', cursor: 'pointer' }}>
+        PANIC: CLOSE ALL POSITIONS
       </button>
     </div>
   );
