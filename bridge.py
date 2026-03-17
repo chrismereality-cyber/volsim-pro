@@ -5,18 +5,14 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# Fallback data if nothing has been pushed yet
+# Storage with strict formatting
 latest_stats = {
-    "balance": 0.0,
-    "equity": 0.0,
-    "profit": 0.0,
-    "symbol": "WAITING_FOR_MT5",
-    "status": "BRIDGE_ONLINE"
+    "balance": 0.00,
+    "equity": 0.00,
+    "profit": 0.00,
+    "symbol": "MT5_OFFLINE",
+    "status": "BRIDGE_LIVE"
 }
-
-@app.route('/')
-def health():
-    return "Volsim Bridge: Operational"
 
 @app.route('/api/trade/status', methods=['GET'])
 def get_status():
@@ -28,13 +24,16 @@ def update_data():
     try:
         data = request.get_json(force=True)
         if data:
-            # Update our global memory
-            latest_stats.update(data)
-            print(f"DEBUG: Received update - Profit: {data.get('profit')}")
-            return jsonify({"status": "success", "synced": latest_stats}), 200
+            # Force conversion to floats/strings to ensure React likes it
+            latest_stats["balance"] = float(data.get("balance", 0))
+            latest_stats["equity"] = float(data.get("equity", 0))
+            latest_stats["profit"] = float(data.get("profit", 0))
+            latest_stats["symbol"] = str(data.get("symbol", "BTCUSDm"))
+            latest_stats["status"] = "LIVE"
+            return jsonify({"status": "success"}), 200
     except Exception as e:
-        print(f"DEBUG: Error in update - {str(e)}")
-    return jsonify({"status": "error"}), 400
+        return jsonify({"status": "error", "message": str(e)}), 400
+    return jsonify({"status": "no_data"}), 400
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
