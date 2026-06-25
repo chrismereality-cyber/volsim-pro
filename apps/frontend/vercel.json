@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "cleanUrls": true,
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "http://localhost:8000/api/$1"
+    },
+    {
+      "handle": "filesystem"
+    }
+  ]
+}
