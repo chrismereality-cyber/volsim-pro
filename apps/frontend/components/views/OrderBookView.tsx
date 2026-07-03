@@ -1,225 +1,247 @@
 ﻿'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Layers, ArrowUpDown, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { RefreshCw, TrendingUp, ArrowUpDown, Layers, Activity, Percent } from 'lucide-react';
 
-interface OrderBookRow {
+interface MarketConfig {
+  symbol: string;
+  name: string;
+  basePrice: number;
+  decimals: number;
+  spread: number;
+  tickSize: number;
+  volatility: number;
+  volumeScale: number;
+}
+
+const SUPPORTED_MARKETS: MarketConfig[] = [
+  { 
+    symbol: 'XAUUSDm', 
+    name: 'Gold Spot (m)', 
+    basePrice: 4165.50, 
+    decimals: 2, 
+    spread: 0.12, 
+    tickSize: 0.01, 
+    volatility: 0.25,
+    volumeScale: 5.5
+  },
+  { 
+    symbol: '1HZ75V', 
+    name: 'Volatility 75 Index', 
+    basePrice: 172450.00, 
+    decimals: 2, 
+    spread: 4.80, 
+    tickSize: 0.05, 
+    volatility: 12.5,
+    volumeScale: 0.45
+  },
+  { 
+    symbol: '1HZ100V', 
+    name: 'Volatility 100 Index', 
+    basePrice: 4181.44, 
+    decimals: 2, 
+    spread: 0.35, 
+    tickSize: 0.01, 
+    volatility: 0.45,
+    volumeScale: 1.2
+  }
+];
+
+interface BookLevel {
   price: number;
   size: number;
   total: number;
 }
 
 export default function OrderBookView() {
-  const [activeAsset, setActiveAsset] = useState<string>('XAUUSDm');
-  const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
-  const [bids, setBids] = useState<OrderBookRow[]>([]);
-  const [asks, setAsks] = useState<OrderBookRow[]>([]);
-  const [midPrice, setMidPrice] = useState<number>(2345.56);
-  const [spread, setSpread] = useState<number>(0.02);
+  const [selectedSymbol, setSelectedSymbol] = useState<string>(SUPPORTED_MARKETS[0].symbol);
+  
+  const currentMarket = useMemo(() => {
+    return SUPPORTED_MARKETS.find(m => m.symbol === selectedSymbol) || SUPPORTED_MARKETS[0];
+  }, [selectedSymbol]);
 
-  const assets = ['XAUUSDm', 'Volatility 100 (1s) Index', 'Volatility 75 Index'];
+  const [midPrice, setMidPrice] = useState<number>(currentMarket.basePrice);
+  const [spread, setSpread] = useState<number>(currentMarket.spread);
 
-  // Base state definition generator based on chosen symbol
   useEffect(() => {
-    const generateInitialBook = () => {
-      let basePrice = 2345.50;
-      let tickStep = 0.05;
-      let sizeMultiplier = 1;
+    setMidPrice(currentMarket.basePrice);
+    setSpread(currentMarket.spread);
+  }, [currentMarket]);
 
-      if (activeAsset.includes('100 (1s)')) {
-        basePrice = 845210.30;
-        tickStep = 0.25;
-        sizeMultiplier = 0.1;
-      } else if (activeAsset.includes('75')) {
-        basePrice = 320455.15;
-        tickStep = 0.20;
-        sizeMultiplier = 0.5;
-      }
-
-      // Generate 8 levels of Asks (sorted from highest to lowest price)
-      const initialAsks: OrderBookRow[] = Array.from({ length: 8 }, (_, i) => {
-        const offset = (8 - i) * tickStep;
-        return {
-          price: +(basePrice + offset + (tickStep * 0.4)).toFixed(2),
-          size: +(Math.random() * 15 * sizeMultiplier + 0.5).toFixed(2),
-          total: 0
-        };
+  useEffect(() => {
+    const priceInterval = setInterval(() => {
+      setMidPrice(prev => {
+        const tickDrift = (Math.random() - 0.5) * currentMarket.volatility;
+        const unrounded = prev + tickDrift;
+        return Math.round(unrounded / currentMarket.tickSize) * currentMarket.tickSize;
       });
 
-      // Generate 8 levels of Bids (sorted from highest to lowest price)
-      const initialBids: OrderBookRow[] = Array.from({ length: 8 }, (_, i) => {
-        const offset = i * tickStep;
-        return {
-          price: +(basePrice - offset - (tickStep * 0.4)).toFixed(2),
-          size: +(Math.random() * 18 * sizeMultiplier + 0.5).toFixed(2),
-          total: 0
-        };
+      setSpread(prev => {
+        const spreadFluctuation = (Math.random() - 0.5) * (currentMarket.spread * 0.1);
+        const nextSpread = prev + spreadFluctuation;
+        return Math.max(currentMarket.tickSize * 2, parseFloat(nextSpread.toFixed(2)));
       });
+    }, 450);
 
-      // Recalculate Totals
-      let askAccumulator = 0;
-      for (let i = initialAsks.length - 1; i >= 0; i--) {
-        askAccumulator += initialAsks[i].size;
-        initialAsks[i].total = +askAccumulator.toFixed(2);
-      }
+    return () => clearInterval(priceInterval);
+  }, [currentMarket]);
 
-      let bidAccumulator = 0;
-      for (let i = 0; i < initialBids.length; i++) {
-        bidAccumulator += initialBids[i].size;
-        initialBids[i].total = +bidAccumulator.toFixed(2);
-      }
+  const orderBookData = useMemo(() => {
+    const depthLevels = 8;
+    const tickSize = currentMarket.tickSize;
+    const halfSpread = spread / 2;
 
-      setAsks(initialAsks);
-      setBids(initialBids);
+    const askPrices: number[] = [];
+    const bidPrices: number[] = [];
+
+    for (let i = 1; i <= depthLevels; i++) {
+      const askPrice = midPrice + halfSpread + (i - 1) * tickSize;
+      const bidPrice = midPrice - halfSpread - (i - 1) * tickSize;
       
-      const currentMid = (initialAsks[initialAsks.length - 1].price + initialBids[0].price) / 2;
-      setMidPrice(+currentMid.toFixed(2));
-      setSpread(+(initialAsks[initialAsks.length - 1].price - initialBids[0].price).toFixed(2));
+      askPrices.push(parseFloat(askPrice.toFixed(currentMarket.decimals)));
+      bidPrices.push(parseFloat(bidPrice.toFixed(currentMarket.decimals)));
+    }
+
+    askPrices.reverse();
+
+    const generateSize = (index: number) => {
+      const base = Math.random() * currentMarket.volumeScale;
+      const depthMultiplier = 1 + (index * 0.25); 
+      return parseFloat((base * depthMultiplier).toFixed(2));
     };
 
-    generateInitialBook();
-  }, [activeAsset]);
+    let askAccumulator = 0;
+    const asks: BookLevel[] = askPrices.map((price, idx) => {
+      const size = generateSize(depthLevels - idx);
+      askAccumulator += size;
+      return { price, size, total: parseFloat(askAccumulator.toFixed(2)) };
+    });
+    asks.reverse();
+    
+    let askRunningTotal = 0;
+    const sortedAsks = [...asks].reverse().map(item => {
+      askRunningTotal += item.size;
+      return { ...item, total: parseFloat(askRunningTotal.toFixed(2)) };
+    }).reverse();
 
-  // Microsecond Order Engine Simulator (Simulates real-time limit order modifications)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Pick random side to fluctuate: 0 = Bid side, 1 = Ask side
-      const side = Math.random() > 0.5 ? 0 : 1;
-      const targetIndex = Math.floor(Math.random() * 8);
+    let bidAccumulator = 0;
+    const bids: BookLevel[] = bidPrices.map((price, idx) => {
+      const size = generateSize(idx + 1);
+      bidAccumulator += size;
+      return { price, size, total: parseFloat(bidAccumulator.toFixed(2)) };
+    });
 
-      if (side === 0 && bids.length > 0) {
-        setBids(prevBids => {
-          const next = [...prevBids];
-          const sizeDelta = (Math.random() - 0.5) * (activeAsset.includes('XAU') ? 2 : 0.5);
-          next[targetIndex].size = Math.max(0.1, +(next[targetIndex].size + sizeDelta).toFixed(2));
-          
-          let accum = 0;
-          return next.map((row, i) => {
-            accum += row.size;
-            return { ...row, total: +accum.toFixed(2) };
-          });
-        });
-      } else if (side === 1 && asks.length > 0) {
-        setAsks(prevAsks => {
-          const next = [...prevAsks];
-          const sizeDelta = (Math.random() - 0.5) * (activeAsset.includes('XAU') ? 2 : 0.5);
-          next[targetIndex].size = Math.max(0.1, +(next[targetIndex].size + sizeDelta).toFixed(2));
-          
-          let accum = 0;
-          for (let i = next.length - 1; i >= 0; i--) {
-            accum += next[i].size;
-            next[i].total = +accum.toFixed(2);
-          }
-          return next;
-        });
-      }
-    }, 200);
+    const maxTotal = Math.max(
+      sortedAsks.length > 0 ? sortedAsks[0].total : 1,
+      bids.length > 0 ? bids[bids.length - 1].total : 1
+    );
 
-    return () => clearInterval(interval);
-  }, [bids.length, asks.length, activeAsset]);
-
-  // Determine relative size weight for visualization bars
-  const maxTotal = Math.max(
-    asks.length > 0 ? asks[0].total : 1, 
-    bids.length > 0 ? bids[bids.length - 1].total : 1
-  );
+    return { asks: sortedAsks, bids, maxTotal };
+  }, [midPrice, spread, currentMarket]);
 
   return (
     <div className="space-y-4">
-      {/* Header Log and Asset Switcher combo */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-zinc-800 bg-zinc-950/40 p-4 rounded-sm font-mono text-xs tracking-wider">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border border-zinc-800 bg-zinc-950/40 p-4 rounded-sm font-mono text-xs tracking-wider gap-3">
         <div className="space-y-1">
           <div className="text-emerald-400 flex items-center gap-2">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             // LIQUIDITY ORDER BOOK LAYER HANDSHAKE ACTIVE...
           </div>
           <p className="text-zinc-500">Real-time composite bridge cross-matching matrix engine.</p>
         </div>
-        
-        {/* Customized Dropdown Select */}
-        <div className="relative">
-          <button 
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="bg-zinc-900 border border-zinc-800 px-4 py-1.5 rounded text-[11px] font-bold tracking-wide text-zinc-300 flex items-center gap-2 min-w-[180px] justify-between focus:outline-none focus:border-zinc-700"
+
+        <div className="flex items-center gap-2 border border-zinc-850 bg-zinc-900 rounded-sm p-1">
+          <Layers className="w-3.5 h-3.5 text-zinc-500 ml-1.5" />
+          <select 
+            value={selectedSymbol}
+            onChange={(e) => setSelectedSymbol(e.target.value)}
+            className="bg-transparent text-zinc-200 border-none outline-none focus:ring-0 font-mono text-xs font-bold py-1 px-2 cursor-pointer uppercase"
           >
-            <span>{activeAsset}</span>
-            <ChevronDown className="w-3 h-3 text-zinc-500" />
-          </button>
-          
-          {dropdownOpen && (
-            <div className="absolute right-0 mt-1 w-full bg-zinc-900 border border-zinc-800 rounded-sm shadow-2xl z-50 overflow-hidden font-bold">
-              {assets.map((asset) => (
-                <button
-                  key={asset}
-                  onClick={() => {
-                    setActiveAsset(asset);
-                    setDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-[11px] transition-colors hover:bg-zinc-800/80 ${
-                    activeAsset === asset ? 'text-emerald-400 bg-zinc-950/40' : 'text-zinc-400'
-                  }`}
-                >
-                  {asset}
-                </button>
-              ))}
-            </div>
-          )}
+            {SUPPORTED_MARKETS.map(market => (
+              <option key={market.symbol} value={market.symbol} className="bg-zinc-950 text-zinc-200">
+                {market.name} ({market.symbol})
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* Main Ladder Panel */}
-      <div className="border border-zinc-800 bg-zinc-950/20 rounded-sm overflow-hidden shadow-xl font-mono text-xs">
-        {/* Table Column Headers */}
+      <div className="border border-zinc-800 bg-zinc-950/20 rounded-sm overflow-hidden shadow-2xl font-mono text-xs">
         <div className="grid grid-cols-3 p-3 text-zinc-500 border-b border-zinc-900 bg-zinc-950 text-[10px] uppercase tracking-widest font-bold">
-          <div>Price ({activeAsset.includes('XAU') ? 'USD' : 'IDX'})</div>
+          <div>Price ({selectedSymbol.includes('XAU') ? 'USD' : 'PTS'})</div>
           <div className="text-right">Size</div>
-          <div className="text-right">Total</div>
+          <div className="text-right">Total Size</div>
         </div>
 
-        {/* Asks Matrix Block (Sells) */}
-        <div className="flex flex-col">
-          {asks.map((ask, idx) => {
-            const widthPercentage = Math.min(100, (ask.total / maxTotal) * 100);
+        <div className="divide-y divide-zinc-900/40">
+          {orderBookData.asks.map((ask, idx) => {
+            const sizePercent = Math.min(100, (ask.total / orderBookData.maxTotal) * 100);
             return (
-              <div key={`ask-${idx}`} className="relative grid grid-cols-3 px-3 py-1.5 hover:bg-zinc-900/40 transition-colors text-rose-400 font-medium">
-                {/* Visual Density Overlay bar representing structural sell resistance */}
+              <div 
+                key={`ask-${idx}-${ask.price}`} 
+                className="grid grid-cols-3 px-3 py-1.5 relative hover:bg-zinc-900/10 transition-colors items-center"
+              >
                 <div 
-                  className="absolute right-0 top-0 bottom-0 bg-rose-950/10 pointer-events-none transition-all duration-150"
-                  style={{ width: `${widthPercentage}%` }}
+                  className="absolute right-0 top-0 bottom-0 bg-rose-950/15 border-r-2 border-rose-500/10 pointer-events-none transition-all duration-300"
+                  style={{ width: `${sizePercent}%` }}
                 />
-                <div className="z-10">{ask.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-                <div className="text-right text-zinc-300 z-10">{ask.size.toFixed(2)}</div>
-                <div className="text-right text-zinc-500 z-10">{ask.total.toFixed(2)}</div>
+                <div className="text-rose-500 font-bold z-10">
+                  {ask.price.toLocaleString(undefined, { minimumFractionDigits: currentMarket.decimals })}
+                </div>
+                <div className="text-right text-zinc-300 font-semibold z-10">
+                  {ask.size.toFixed(2)}
+                </div>
+                <div className="text-right text-zinc-500 z-10">
+                  {ask.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </div>
               </div>
             );
           })}
         </div>
 
-        {/* Centralized Mid-Market Spread Engine Banner */}
-        <div className="grid grid-cols-3 px-3 py-2.5 bg-zinc-900/40 border-y border-zinc-800/60 font-bold tracking-wide">
-          <div className="text-zinc-200 text-sm self-center">
-            {midPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        <div className="grid grid-cols-3 px-3 py-3 border-y border-zinc-900 bg-zinc-950 items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] text-zinc-100 font-bold">
+              {midPrice.toLocaleString(undefined, { minimumFractionDigits: currentMarket.decimals })}
+            </span>
+            <Activity className="w-3.5 h-3.5 text-zinc-500 animate-pulse" />
           </div>
-          <div className="text-center text-zinc-500 text-[10px] uppercase tracking-wider self-center col-span-2 flex justify-end items-center gap-1.5">
-            <ArrowUpDown className="w-3 h-3 text-zinc-600" /> 
-            Spread: <span className="text-zinc-300 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded-sm">{spread.toFixed(2)}</span>
+          <div className="col-span-2 text-right flex items-center justify-end gap-3 text-[10px] text-zinc-400 font-semibold">
+            <span className="flex items-center gap-1">
+              <ArrowUpDown className="w-3 h-3 text-zinc-600" /> SPREAD:
+              <span className="text-zinc-200 font-bold">{spread.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            </span>
+            <span className="h-3 w-[1px] bg-zinc-800"></span>
+            <span className="flex items-center gap-1 text-[9.5px]">
+              <Percent className="w-2.5 h-2.5 text-zinc-600" /> SPREAD %:
+              <span className="text-zinc-400 font-bold">
+                {((spread / midPrice) * 100).toFixed(4)}%
+              </span>
+            </span>
           </div>
         </div>
 
-        {/* Bids Matrix Block (Buys) */}
-        <div className="flex flex-col">
-          {bids.map((bid, idx) => {
-            const widthPercentage = Math.min(100, (bid.total / maxTotal) * 100);
+        <div className="divide-y divide-zinc-900/40">
+          {orderBookData.bids.map((bid, idx) => {
+            const sizePercent = Math.min(100, (bid.total / orderBookData.maxTotal) * 100);
             return (
-              <div key={`bid-${idx}`} className="relative grid grid-cols-3 px-3 py-1.5 hover:bg-zinc-900/40 transition-colors text-emerald-400 font-medium">
-                {/* Visual Density Overlay bar representing structural buy support */}
+              <div 
+                key={`bid-${idx}-${bid.price}`} 
+                className="grid grid-cols-3 px-3 py-1.5 relative hover:bg-zinc-900/10 transition-colors items-center"
+              >
                 <div 
-                  className="absolute right-0 top-0 bottom-0 bg-emerald-950/10 pointer-events-none transition-all duration-150"
-                  style={{ width: `${widthPercentage}%` }}
+                  className="absolute right-0 top-0 bottom-0 bg-emerald-950/15 border-r-2 border-emerald-500/10 pointer-events-none transition-all duration-300"
+                  style={{ width: `${sizePercent}%` }}
                 />
-                <div className="z-10">{bid.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-                <div className="text-right text-zinc-300 z-10">{bid.size.toFixed(2)}</div>
-                <div className="text-right text-zinc-500 z-10">{bid.total.toFixed(2)}</div>
+                <div className="text-emerald-500 font-bold z-10">
+                  {bid.price.toLocaleString(undefined, { minimumFractionDigits: currentMarket.decimals })}
+                </div>
+                <div className="text-right text-zinc-300 font-semibold z-10">
+                  {bid.size.toFixed(2)}
+                </div>
+                <div className="text-right text-zinc-500 z-10">
+                  {bid.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </div>
               </div>
             );
           })}
