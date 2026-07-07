@@ -1,6 +1,5 @@
 ﻿import asyncio
 import numpy as np
-import MetaTrader5 as mt5
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -33,54 +32,20 @@ risk_engine = InstitutionalRiskEngine()
 
 @app.post("/api/positions/close")
 async def close_position(payload: ClosePositionRequest, db: Session = Depends(get_db)):
-    ticket_int = int(payload.ticket) if payload.ticket.isdigit() else None
-    if not ticket_int:
-        raise HTTPException(status_code=400, detail="Invalid MT5 ticket identifier format.")
-
-    # 1. Initialize MT5 context within the API request to dispatch the execution command
-    if not mt5.initialize():
-        raise HTTPException(status_code=500, detail="Could not connect to MT5 Terminal for order disposal.")
-
-    try:
-        # Check if the position exists live in the terminal
-        positions = mt5.positions_get(ticket=ticket_int)
-        if not positions or len(positions) == 0:
-            raise HTTPException(status_code=404, detail="Target position not found active on MT5 terminal.")
-            
-        position = positions[0]
+    # Find the trade record
+    position = db.query(TradeRecord).filter(
+        TradeRecord.ticket == payload.ticket,
+        TradeRecord.status == "OPEN"
+    ).first()
+    
+    if not position:
+        raise HTTPException(status_code=404, detail="Active position target not found.")
         
-        # 2. Formulate the precise order closure request packet required by MT5 API
-        close_request = {
-            "action": mt5.TRADE_ACTION_DEAL,
-            "symbol": position.symbol,
-            "volume": position.volume,
-            "type": mt5.ORDER_TYPE_SELL if position.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY,
-            "position": position.ticket,
-            "price": mt5.symbol_info_tick(position.symbol).bid if position.type == mt5.ORDER_TYPE_BUY else mt5.symbol_info_tick(position.symbol).ask,
-            "deviation": 20,
-            "magic": 999999,
-            "comment": "VOLSIM Dashboard Override Liquidation",
-            "type_time": mt5.ORDER_TIME_GTC,
-            "type_filling": mt5.ORDER_FILLING_IOC,
-        }
-
-        # Send execution request to the broker
-        result = mt5.order_send(close_request)
-        if result.retcode != mt5.TRADE_RETCODE_DONE:
-            raise HTTPException(status_code=500, detail=f"Broker execution rejection. Code: {result.retcode}")
-
-        # 3. Mark the record status as CLOSED inside the local architecture database
-        db.query(TradeRecord).filter(TradeRecord.ticket == payload.ticket).update({"status": "CLOSED"})
-        db.commit()
-        
-        print(f"🛑 [BROKER DISPATCHED]: Successfully closed position ticket {payload.ticket} at market price.")
-        return {"status": "success", "message": f"Position ticket {payload.ticket} successfully liquidated on live broker matrix."}
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal liquidation failure: {str(e)}")
-    finally:
-        # Avoid breaking the bridge terminal link context
-        pass
+    # Set status to PENDING_CLOSE so the background bridge handles the deletion safely
+    position.status = "PENDING_CLOSE"
+    db.commit()
+    print(f"🛑 [SIGNAL SENT]: Ticket {payload.ticket} flagged as PENDING_CLOSE for bridge execution.")
+    return {"status": "success", "message": "Liquidation command enqueued."}
 
 @app.get("/api/analytics/performance")
 async def get_performance(timeframe: str = "30D", db: Session = Depends(get_db)):
@@ -147,13 +112,11 @@ async def get_performance(timeframe: str = "30D", db: Session = Depends(get_db))
 @app.websocket("/ws/trading-state")
 async def websocket_trading_state(websocket: WebSocket):
     await websocket.accept()
-    print(f"Authorized live telemetry feed: {websocket.client}")
-    
     db = SessionLocal()
     try:
         while True:
             closed_trades = db.query(TradeRecord).filter(TradeRecord.status == "CLOSED").all()
-            open_trades = db.query(TradeRecord).filter(TradeRecord.status == "OPEN").all()
+            open_trades = db.query(TradeRecord).filter(TradeRecord.status.in_(["OPEN", "PENDING_CLOSE"])).all()
             
             total_trades = len(closed_trades)
             net_profit = sum([t.profit for t in closed_trades])
@@ -165,7 +128,6 @@ async def websocket_trading_state(websocket: WebSocket):
             sharpe_ratio = 0.0
             max_dd = 0.0
             
-            initial_derived_seed = 1000.0
             if total_trades > 0:
                 profits = [t.profit for t in closed_trades]
                 wins = [p for p in profits if p > 0]
@@ -176,9 +138,6 @@ async def websocket_trading_state(websocket: WebSocket):
                 sharpe_ratio = (np.mean(profits) / np.std(profits) * np.sqrt(252)) if np.std(profits) > 0 else 0.0
                 
                 initial_derived_seed = total_balance - net_profit
-                if initial_derived_seed <= 0:
-                    initial_derived_seed = 1000.0
-                
                 equity_curve = initial_derived_seed + np.cumsum(profits)
                 peaks = np.maximum.accumulate(equity_curve)
                 max_dd = np.max((peaks - equity_curve) / peaks) * 100 if len(peaks) > 0 else 0.0
@@ -192,11 +151,7 @@ async def websocket_trading_state(websocket: WebSocket):
             if open_trades:
                 for t in open_trades:
                     calc_positions.append({
-                        "symbol": t.symbol,
-                        "volume": t.volume,
-                        "current_price": 2350.0 if "XAU" in t.symbol else 65000.0,
-                        "side": "BUY",
-                        "margin": t.volume * 200.0
+                        "symbol": t.symbol, "volume": t.volume, "current_price": 2350.0 if "XAU" in t.symbol else 65000.0, "side": "BUY", "margin": t.volume * 200.0
                     })
                     frontend_positions.append({
                         "ticket": t.ticket if t.ticket else str(t.id),
@@ -208,13 +163,6 @@ async def websocket_trading_state(websocket: WebSocket):
                         "profit": float(t.profit)
                     })
                 floating_pl = sum([t.profit for t in open_trades])
-            else:
-                calc_positions = [
-                    {"symbol": "XAUUSDm", "volume": 2.5, "current_price": 2345.50, "side": "BUY", "margin": 500.0},
-                    {"symbol": "BTCUSDm", "volume": 0.8, "current_price": 67200.00, "side": "BUY", "margin": 800.0},
-                    {"symbol": "Volatility_100", "volume": 10.0, "current_price": 125.40, "side": "SELL", "margin": 300.0}
-                ]
-                floating_pl = 0.0
 
             total_equity = total_balance + floating_pl
             metrics = risk_engine.calculate_position_metrics(calc_positions)
@@ -227,30 +175,11 @@ async def websocket_trading_state(websocket: WebSocket):
                 "equity": float(total_equity),
                 "floatingPl": float(floating_pl),
                 "totalNetProfit": float(net_profit),
-                "cagr": float((net_profit / initial_derived_seed) * 100) if initial_derived_seed > 0 else 0.0,
-                "totalTrades": int(total_trades),
-                "avgDurationMinutes": 12,
-                
-                "winRate": float(win_rate),
-                "profitFactor": float(profit_factor),
-                "expectancy": float(expectancy),
-                "sharpeRatio": float(sharpe_ratio),
-                "maxDrawdown": float(max_dd),
-                "currentDrawdown": float((peaks[-1] - total_equity) / peaks[-1] * 100) if len(peaks) > 0 else 0.0,
-                "riskRewardRatio": float(profit_factor),
-                "riskExposure": float(metrics["net_exposure"]),
-                
-                "dailyPl": float(net_profit * 0.3),
-                "weeklyPl": float(net_profit * 0.7),
-                "monthlyPl": float(net_profit),
-                
                 "portfolio_value": float(metrics["total_portfolio_value"]),
                 "net_exposure": float(metrics["net_exposure"]),
                 "allocations": metrics["asset_allocations"],
                 "risk_status": hedge_status["risk_status"],
-                "hedging_signals": hedge_status["hedging_orders"],
                 "value_at_risk": float(value_at_risk),
-                
                 "positions": frontend_positions
             }
             

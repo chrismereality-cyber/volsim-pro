@@ -1,92 +1,73 @@
 ﻿import time
 import datetime
 import MetaTrader5 as mt5
-from database import SessionLocal, engine
-from models import Base, TradeRecord
+from database import SessionLocal
+from models import TradeRecord
 from sqlalchemy import or_
 
 def init_bridge():
-    print("Initializing Database Schemas...")
-    Base.metadata.create_all(bind=engine)
-    
-    print("Connecting to MetaTrader 5 Terminal...")
     if not mt5.initialize():
-        print(f"❌ MT5 Terminal initialization failed! Error code: {mt5.last_error()}")
+        print("❌ MT5 Initialization failed!")
         return False
-    
-    account_info = mt5.account_info()
-    if account_info is not None:
-        print(f"🟢 Linked to MT5 Account: {account_info.login} | Company: {account_info.company}")
-        print(f"📊 Live Terminal Balance: ${account_info.balance} | Current Equity: ${account_info.equity}")
     return True
 
 def sync_mt5_to_db():
-    if not init_bridge():
-        return
-
-    print("\n🚀 VOLSIM-PRO MT5 Telemetry Link is online and listening...")
+    if not init_bridge(): return
+    print("\n🚀 VOLSIM-PRO MT5 Telemetry Link Duplex Engine Online...")
     
-    try:
-        while True:
-            db = SessionLocal()
-            try:
-                # 1. Fetch current live positions directly from the terminal
-                positions = mt5.positions_get()
-                active_tickets = []
+    while True:
+        db = SessionLocal()
+        try:
+            # 1. Look for pending manual closures sent from the dashboard UI
+            pending_closures = db.query(TradeRecord).filter(TradeRecord.status == "PENDING_CLOSE").all()
+            for pending in pending_closures:
+                ticket_id = int(pending.ticket)
+                live_pos = mt5.positions_get(ticket=ticket_id)
+                if live_pos:
+                    p = live_pos[0]
+                    close_request = {
+                        "action": mt5.TRADE_ACTION_DEAL,
+                        "symbol": p.symbol,
+                        "volume": p.volume,
+                        "type": mt5.ORDER_TYPE_SELL if p.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY,
+                        "position": p.ticket,
+                        "price": mt5.symbol_info_tick(p.symbol).bid if p.type == mt5.ORDER_TYPE_BUY else mt5.symbol_info_tick(p.symbol).ask,
+                        "deviation": 20,
+                        "magic": 999999,
+                        "comment": "Dashboard Liquidation",
+                        "type_time": mt5.ORDER_TIME_GTC,
+                        "type_filling": mt5.ORDER_FILLING_IOC,
+                    }
+                    res = mt5.order_send(close_request)
+                    if res.retcode == mt5.TRADE_RETCODE_DONE:
+                        print(f"🛑 Successfully closed ticket {ticket_id} on broker terminal.")
+                pending.status = "CLOSED"
+                db.commit()
 
-                if positions is not None and len(positions) > 0:
-                    for pos in positions:
-                        ticket_str = str(pos.ticket)
-                        active_tickets.append(ticket_str)
-                        
-                        existing = db.query(TradeRecord).filter(
-                            TradeRecord.ticket == ticket_str
-                        ).first()
-                        
-                        if not existing:
-                            new_position = TradeRecord(
-                                ticket=ticket_str,
-                                symbol=pos.symbol,
-                                volume=float(pos.volume),
-                                profit=float(pos.profit),
-                                status="OPEN",
-                                created_at=datetime.datetime.utcnow()
-                            )
-                            db.add(new_position)
-                            print(f"➕ New live trade detected! Ticket: {ticket_str} | {pos.symbol} {pos.volume} Lots")
-                        else:
-                            existing.profit = float(pos.profit)
-                            existing.volume = float(pos.volume)
-                            existing.status = "OPEN"
-                    
-                    # 2. Sweep away old open database records (including those with NULL tickets)
-                    db.query(TradeRecord).filter(
-                        TradeRecord.status == "OPEN",
-                        or_(
-                            TradeRecord.ticket.is_(None),
-                            ~TradeRecord.ticket.in_(active_tickets)
-                        )
-                    ).update({"status": "CLOSED"}, synchronize_session='fetch')
-                    
-                    db.commit()
-                    print(f"🔄 Synced {len(positions)} active MT5 positions to local engine matrix.")
-                else:
-                    # No active positions on terminal -> close everything down
-                    db.query(TradeRecord).filter(TradeRecord.status == "OPEN").update({"status": "CLOSED"})
-                    db.commit()
+            # 2. Run normal position sync loop
+            positions = mt5.positions_get()
+            active_tickets = []
+            if positions:
+                for pos in positions:
+                    t_str = str(pos.ticket)
+                    active_tickets.append(t_str)
+                    existing = db.query(TradeRecord).filter(TradeRecord.ticket == t_str).first()
+                    if not existing:
+                        db.add(TradeRecord(ticket=t_str, symbol=pos.symbol, volume=pos.volume, profit=pos.profit, status="OPEN", created_at=datetime.datetime.utcnow()))
+                    else:
+                        existing.profit = pos.profit
+                        existing.status = "OPEN"
                 
-            except Exception as ex:
-                print(f"⚠️ Worker cycle database exception encountered: {str(ex)}")
-                db.rollback()
-            finally:
-                db.close()
-                
-            time.sleep(1)
-            
-    except KeyboardInterrupt:
-        print("\n🛑 MT5 Telemetry synchronization loop stopped by operator request.")
-    finally:
-        mt5.shutdown()
+                db.query(TradeRecord).filter(TradeRecord.status == "OPEN", ~TradeRecord.ticket.in_(active_tickets)).update({"status": "CLOSED"}, synchronize_session='fetch')
+                db.commit()
+            else:
+                db.query(TradeRecord).filter(TradeRecord.status == "OPEN").update({"status": "CLOSED"})
+                db.commit()
+        except Exception as e:
+            db.rollback()
+        finally:
+            db.close()
+        time.sleep(1)
 
 if __name__ == "__main__":
     sync_mt5_to_db()
