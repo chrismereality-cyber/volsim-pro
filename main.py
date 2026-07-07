@@ -203,3 +203,33 @@ async def websocket_trading_state(websocket: WebSocket):
         pass
     finally:
         db.close()
+# ==========================================
+# VOLSIM-PRO QUANT REGIME WEBSOCKET MATRIX
+# ==========================================
+import json
+import os
+import asyncio
+
+STATE_FILE = "C:\\volsim-dev\\regime_state.json"
+
+@app.websocket("/ws/robustness-state")
+async def websocket_robustness_state(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            if os.path.exists(STATE_FILE):
+                with open(STATE_FILE, "r") as f:
+                    data = json.load(f)
+                await websocket.send_json(data)
+            else:
+                await websocket.send_json({
+                    "regime_name": "AWAITING_ENGINE_INIT",
+                    "variance_sigma": 0.0,
+                    "var_1d_95": 0.0,
+                    "margin_viability": 100.0,
+                    "stress_liquidity_delta": 0.0,
+                    "stress_black_swan_delta": 0.0
+                })
+            await asyncio.sleep(2)
+    except WebSocketDisconnect:
+        pass
