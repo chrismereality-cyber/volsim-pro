@@ -86,7 +86,7 @@ export default function RiskManagementView() {
         </div>
         <div className="border border-zinc-800 bg-zinc-950 p-4">
           <div className="text-zinc-500 text-[10px] tracking-wider uppercase">Parametric VaR (1D 95%)</div>
-          <div className="text-lg font-bold mt-1 text-amber-500">${metrics.value_at_risk.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+          <div className="text-lg font-bold mt-1 text-amber-500">${(metrics.value_at_risk ?? 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
         </div>
         <div className="border border-zinc-800 bg-zinc-950 p-4">
           <div className="text-zinc-500 text-[10px] tracking-wider uppercase">Active Allocations</div>
