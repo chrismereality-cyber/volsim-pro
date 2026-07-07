@@ -12,12 +12,12 @@ def init_bridge():
 
 def sync_mt5_to_db():
     if not init_bridge(): return
-    print("\n🚀 VOLSIM-PRO MT5 Telemetry Link Duplex Engine Online [REAL-HISTORY ACTIVE]...")
+    print("\n🚀 VOLSIM-PRO MT5 Telemetry Link Duplex Engine Online [COST ANALYSIS PROTOCOL ACTIVE]...")
     
     while True:
         db = SessionLocal()
         try:
-            # 1. Handle incoming PENDING_CLOSE requests from dashboard UI
+            # 1. Intercept manual dashboard close requests
             pending_closures = db.query(TradeRecord).filter(TradeRecord.status == "PENDING_CLOSE").all()
             for pending in pending_closures:
                 ticket_id = int(pending.ticket)
@@ -39,11 +39,11 @@ def sync_mt5_to_db():
                     }
                     res = mt5.order_send(close_request)
                     if res.retcode == mt5.TRADE_RETCODE_DONE:
-                        print(f"🛑 Closed ticket {ticket_id} on broker terminal via UI signal.")
+                        print(f"🛑 Closed ticket {ticket_id} via manual dashboard command.")
                 pending.status = "CLOSED"
                 db.commit()
 
-            # 2. Sync active open positions
+            # 2. Sync running open trades
             positions = mt5.positions_get()
             active_tickets = []
             if positions:
@@ -61,33 +61,40 @@ def sync_mt5_to_db():
                         existing.status = "OPEN"
                 db.commit()
 
-            # 3. Fetch and sync real historical closed deals from MT5 terminal
+            # 3. Pull historical deals along with full execution slip costs
             from_date = datetime.datetime.utcnow() - datetime.timedelta(days=90)
             to_date = datetime.datetime.utcnow() + datetime.timedelta(days=1)
             history_deals = mt5.history_deals_get(from_date, to_date)
             
             if history_deals:
                 for deal in history_deals:
-                    # Filter out deposits/withdrawals; focus entirely on trade executions
+                    # Focus entirely on outbound trade closure entries to compute final ledger metrics
                     if deal.entry == mt5.DEAL_ENTRY_OUT and deal.profit != 0:
                         hist_ticket = str(deal.position_id)
                         existing_hist = db.query(TradeRecord).filter(TradeRecord.ticket == hist_ticket).first()
                         
+                        # Gather fee architecture data arrays straight from the deal struct
+                        extracted_comm = float(deal.commission)
+                        extracted_swap = float(deal.swap)
+                        extracted_comment = str(deal.comment) if deal.comment else "Manual Execution"
+                        
                         if not existing_hist:
-                            # Add closed historical trade record if it doesn't exist
                             db.add(TradeRecord(
                                 ticket=hist_ticket, symbol=deal.symbol, volume=deal.volume,
-                                profit=deal.profit, status="CLOSED", 
+                                profit=deal.profit, commission=extracted_comm, swap=extracted_swap,
+                                comment=extracted_comment, status="CLOSED", 
                                 created_at=datetime.datetime.fromtimestamp(deal.time)
                             ))
                         else:
-                            # Update existing record status and final profit configuration
-                            if existing_hist.status != "CLOSED":
-                                existing_hist.status = "CLOSED"
-                                existing_hist.profit = deal.profit
+                            # Update existing records safely with absolute execution costs
+                            existing_hist.status = "CLOSED"
+                            existing_hist.profit = deal.profit
+                            existing_hist.commission = extracted_comm
+                            existing_hist.swap = extracted_swap
+                            existing_hist.comment = extracted_comment
                 db.commit()
 
-            # Move active rows that disappeared from terminal to CLOSED fallback safely
+            # Catch instances where trades vanished without trigger updates
             if active_tickets:
                 db.query(TradeRecord).filter(
                     TradeRecord.status == "OPEN", 
@@ -96,7 +103,7 @@ def sync_mt5_to_db():
                 db.commit()
                 
         except Exception as e:
-            print(f"⚠️ Error inside Sync loop: {e}")
+            print(f"⚠️ Telemetry processing exception hit: {e}")
             db.rollback()
         finally:
             db.close()
