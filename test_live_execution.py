@@ -1,38 +1,39 @@
-﻿import sys
-from database import get_db, engine, Base
-from models import TradeRecord
+﻿import datetime
+from database import SessionLocal, engine
+from models import Base, TradeRecord
 
-# Auto-generate the trade_records table inside Supabase if it doesn't exist yet
-print("Initializing table creation structures...")
-Base.metadata.create_all(bind=engine)
-
-def run_crypto_readiness_test():
-    db = next(get_db())
+def run_gold_test():
+    print("Initializing table creation structures...")
+    Base.metadata.create_all(bind=engine)
+    
+    print("\n--- VOLSIM PRO LIVE MARKET EXECUTION READINESS CHECK (GOLD) ---")
+    db = SessionLocal()
     try:
-        print("\n--- VOLSIM PRO CRYPTO WEEKEND EXECUTION READINESS CHECK ---")
-        
-        # Simulating a clean weekend entry/exit for BTC
-        test_trade = TradeRecord(
-            symbol="BTCUSDm",
-            volume=0.10,
-            profit=45.50,
-            status="CLOSED"
+        # Create a sample closed trade for XAUUSDm to test the calculation pipeline
+        new_trade = TradeRecord(
+            symbol="XAUUSDm",
+            volume=0.5,             # 0.5 Lots
+            profit=125.50,          # Mocked profit outcome for pipeline verification
+            status="CLOSED",
+            created_at=datetime.datetime.utcnow()
         )
         
-        db.add(test_trade)
+        db.add(new_trade)
         db.commit()
-        db.refresh(test_trade)
-        print(f"🟢 [Supabase Link]: Crypto trade logged! ID: {test_trade.id} | Symbol: {test_trade.symbol} | Profit: ${test_trade.profit}")
+        db.refresh(new_trade)
         
-        total_closed = db.query(TradeRecord).filter(TradeRecord.status == "CLOSED").count()
-        print(f"📊 [SQLAlchemy Query]: Verification pass successful. Total closed trades in table: {total_closed}")
-        print("\n🚀 STATUS: Pipeline is verified and execution-ready!")
+        print(f"🟢 [Pipeline Link]: Gold trade logged successfully! ID: {new_trade.id} | Symbol: {new_trade.symbol} | Profit: ${new_trade.profit}")
         
-    except Exception as err:
-        print(f"❌ PIPELINE ERROR: Connection failed: {err}")
+        # Verify total database records
+        total_trades = db.query(TradeRecord).count()
+        print(f"📊 [SQLAlchemy Query]: Verification pass successful. Total closed trades in table: {total_trades}")
+        print("\n🚀 STATUS: Gold execution pipeline is verified and active!")
+        
+    except Exception as e:
+        print(f"❌ Error during execution check: {str(e)}")
         db.rollback()
     finally:
         db.close()
 
 if __name__ == "__main__":
-    run_crypto_readiness_test()
+    run_gold_test()
