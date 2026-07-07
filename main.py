@@ -32,7 +32,6 @@ risk_engine = InstitutionalRiskEngine()
 
 @app.post("/api/positions/close")
 async def close_position(payload: ClosePositionRequest, db: Session = Depends(get_db)):
-    # Find the trade record
     position = db.query(TradeRecord).filter(
         TradeRecord.ticket == payload.ticket,
         TradeRecord.status == "OPEN"
@@ -41,7 +40,6 @@ async def close_position(payload: ClosePositionRequest, db: Session = Depends(ge
     if not position:
         raise HTTPException(status_code=404, detail="Active position target not found.")
         
-    # Set status to PENDING_CLOSE so the background bridge handles the deletion safely
     position.status = "PENDING_CLOSE"
     db.commit()
     print(f"🛑 [SIGNAL SENT]: Ticket {payload.ticket} flagged as PENDING_CLOSE for bridge execution.")
@@ -169,6 +167,7 @@ async def websocket_trading_state(websocket: WebSocket):
             hedge_status = risk_engine.evaluate_hedge_triggers(metrics)
             value_at_risk = risk_engine.compute_parametric_var(calc_positions)
 
+            # Ensure hedging_signals is mapped into the state payload safely
             payload = {
                 "event": "metrics_update",
                 "balance": float(total_balance),
@@ -179,6 +178,7 @@ async def websocket_trading_state(websocket: WebSocket):
                 "net_exposure": float(metrics["net_exposure"]),
                 "allocations": metrics["asset_allocations"],
                 "risk_status": hedge_status["risk_status"],
+                "hedging_signals": hedge_status.get("hedging_orders", []),
                 "value_at_risk": float(value_at_risk),
                 "positions": frontend_positions
             }

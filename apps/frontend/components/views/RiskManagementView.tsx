@@ -121,7 +121,7 @@ export default function RiskManagementView() {
         <div className="border border-zinc-800 bg-zinc-950 p-4 space-y-4">
           <h2 className="text-xs font-bold text-zinc-400 tracking-wide">// AUTOMATED HEDGE STRATEGY EXECUTION LOGIC</h2>
           <div className="space-y-2 max-h-[220px] overflow-y-auto">
-            {metrics.hedging_signals.map((sig, idx) => (
+            {(metrics?.hedging_signals || []).map((sig, idx) => (
               <div key={idx} className={`p-3 border text-xs flex justify-between items-center ${
                 sig.status === 'BREACHED' ? 'border-rose-900/50 bg-rose-950/10' : 'border-zinc-800 bg-zinc-900/30'
               }`}>
