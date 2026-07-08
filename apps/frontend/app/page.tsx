@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useState } from 'react';
 import { 
   TrendingUp, 
@@ -28,6 +28,7 @@ import RiskManagementView from '../components/views/RiskManagementView';
 import TradeJournalView from '../components/views/TradeJournalView';
 import RegimeRobustnessView from '../components/views/RegimeRobustnessView';
 import CostAnalysisView from '../components/views/CostAnalysisView';
+import ImmutableVault from '../src/pages/ImmutableVault';
 
 export default function EnterpriseShell() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -37,31 +38,29 @@ export default function EnterpriseShell() {
   useDataStream();
 
   const navigationItems = [
-    { id: 'overview', name: 'Overview Console', icon: TrendingUp },
-    { id: 'market', name: 'Market Overview', icon: BarChart3 },
-    { id: 'orderbook', name: 'Order Book', icon: BookOpen },
-    { id: 'positions', name: 'Live Positions', icon: Activity },
-    { id: 'charts', name: 'TradingView Chart', icon: LineChart },
-    { id: 'analytics', name: 'Performance Analytics', icon: LineChart },
-    { id: 'risk-management', name: 'Risk Management', icon: ShieldCheck },
-    { id: 'journal', name: 'Trade Journal / History', icon: History },
-    { id: 'regime-robustness', name: 'Regime & Robustness', icon: Cpu },
-    { id: 'cost-analysis', name: 'Cost Analysis', icon: Coins },
-    { id: 'vault', name: 'Immutable Vault', icon: Wallet },
-    { id: 'telemetry', name: 'System Telemetry', icon: Activity },
-    { id: 'settings', name: 'System Settings', icon: SettingsIcon },
+    { id: "overview", name: "Overview Console", icon: TrendingUp },
+    { id: "market", name: "Market Overview", icon: BarChart3 },
+    { id: "orderbook", name: "Order Book", icon: BookOpen },
+    { id: "positions", name: "Live Positions", icon: Activity },
+    { id: "charts", name: "TradingView Chart", icon: LineChart },
+    { id: "analytics", name: "Performance Analytics", icon: LineChart },
+    { id: "risk-management", name: "Risk Management", icon: ShieldCheck },
+    { id: "journal", name: "Trade Journal / History", icon: History },
+    { id: "regime-robustness", name: "Regime & Robustness", icon: Cpu },
+    { id: "cost-analysis", name: "Cost Analysis", icon: Coins },
+    { id: "vault", name: "Immutable Vault", icon: Wallet },
+    { id: "telemetry", name: "System Telemetry", icon: Activity },
+    { id: "settings", name: "System Settings", icon: SettingsIcon }
   ];
 
   return (
     <div className="flex h-screen w-screen bg-black text-zinc-100 font-sans overflow-hidden">
-      {/* Structural Admin Sidebar */}
       <aside className="w-64 bg-zinc-950 border-r border-zinc-900 flex flex-col justify-between p-4 flex-shrink-0">
         <div>
           <div className="flex flex-col gap-1 px-2 mb-6">
             <h1 className="text-md font-black tracking-tighter text-white">VOLSIM-PRO</h1>
             <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Enterprise Edition</span>
           </div>
-
           <nav className="flex flex-col gap-1 overflow-y-auto max-h-[calc(100vh-140px)] primitive-scroll space-y-0.5">
             {navigationItems.map((item) => {
               const Icon = item.icon;
@@ -69,11 +68,7 @@ export default function EnterpriseShell() {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded text-xs font-medium font-mono tracking-tight transition-all text-left ${
-                    activeTab === item.id 
-                      ? 'bg-zinc-900 text-emerald-400 border border-zinc-800' 
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50'
-                  }`}
+                  className={`flex items-center gap-3 px-3 py-2 rounded text-xs font-medium font-mono tracking-tight transition-all text-left ${activeTab === item.id ? "bg-zinc-900 text-emerald-400 border border-zinc-800" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"}`}
                 >
                   <Icon className="w-4 h-4 text-zinc-500" />
                   {item.name}
@@ -82,31 +77,33 @@ export default function EnterpriseShell() {
             })}
           </nav>
         </div>
-
         <div className="border-t border-zinc-900 pt-4 px-2 flex flex-col gap-2 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${isFastApiConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></span>
+            <span className={`w-2 h-2 rounded-full ${isFastApiConnected ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
             <span className="text-[10px] font-mono text-zinc-400 uppercase">
-              {isFastApiConnected ? 'FASTAPI PORT 8080 LIVE' : 'FASTAPI DISCONNECTED'}
+              {isFastApiConnected ? "FASTAPI PORT 8080 LIVE" : "FASTAPI DISCONNECTED"}
             </span>
           </div>
         </div>
       </aside>
 
-      {/* Main Panel View Area Container */}
       <main className="flex-1 h-full overflow-y-auto bg-black p-6">
-        {activeTab === 'overview' && <PortfolioOverviewView />}
-        {activeTab === 'market' && <MarketOverviewView />}
-        {activeTab === 'orderbook' && <OrderBookView />}
-        {activeTab === 'positions' && <LivePositionsView />}
-        {activeTab === 'charts' && <MainChartView />}
-        {activeTab === 'analytics' && <PerformanceAnalyticsView />}
-        {activeTab === 'risk-management' && <RiskManagementView />}
-        {activeTab === 'journal' && <TradeJournalView />}
-        {activeTab === 'regime-robustness' && <RegimeRobustnessView />}
-        {activeTab === 'cost-analysis' && <CostAnalysisView />}
-        
-        {!['overview', 'market', 'orderbook', 'positions', 'charts', 'analytics', 'risk-management', 'journal', 'regime-robustness', 'cost-analysis'].includes(activeTab) && (
+        {activeTab === "overview" && <PortfolioOverviewView />}
+        {activeTab === "market" && <MarketOverviewView />}
+        {activeTab === "orderbook" && <OrderBookView />}
+        {activeTab === "positions" && <LivePositionsView />}
+        {activeTab === "charts" && <MainChartView />}
+        {activeTab === "analytics" && <PerformanceAnalyticsView />}
+        {activeTab === "risk-management" && <RiskManagementView />}
+        {activeTab === "journal" && <TradeJournalView />}
+        {activeTab === "regime-robustness" && <RegimeRobustnessView />}
+        {activeTab === "cost-analysis" && <CostAnalysisView />}
+        {activeTab === "vault" && <ImmutableVault />}
+
+        {[
+          "telemetry",
+          "settings"
+        ].includes(activeTab) && (
           <div className="h-full w-full flex items-center justify-center border border-dashed border-zinc-900 rounded bg-zinc-950/30">
             <p className="font-mono text-xs text-zinc-600 uppercase tracking-widest">
               [ {activeTab} panel view construction pipeline active ]

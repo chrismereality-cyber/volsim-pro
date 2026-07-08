@@ -8,7 +8,6 @@ import {
   Percent, 
   Layers, 
   BarChart3, 
-  Download, 
   Loader2,
   AlertCircle
 } from 'lucide-react';
@@ -99,15 +98,25 @@ export default function PerformanceAnalyticsView() {
     );
   }
 
+  // Fallback structural safety values to explicitly guard against undefined properties
+  const sharpe = data.sharpeRatio ?? 0.0;
+  const pFactor = data.profitFactor ?? 1.0;
+  const sortino = data.sortinoRatio ?? 0.0;
+  const wRate = data.winRate ?? 0.0;
+  const maxDD = data.maxDrawdown ?? 0.0;
+  const averageWin = data.avgWin ?? 0.0;
+  const averageLoss = data.avgLoss ?? 0.0;
+  const expRatio = data.expectancy ?? 0.0;
+  const assetRows = data.assetMetrics ?? [];
+
   return (
     <div className="space-y-6 font-mono text-xs">
       
-      {/* Top Banner Control Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border border-zinc-800 bg-zinc-950/40 p-4 rounded-sm tracking-wider gap-3">
         <div className="space-y-1">
           <div className="text-emerald-400 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            // PERFORMANCE ANALYTICS WORKSPACE TERMINAL (LIVE DATA)
+            <span>// PERFORMANCE ANALYTICS WORKSPACE TERMINAL (LIVE DATA)</span>
           </div>
           <p className="text-zinc-500">Live transaction ledger audit derived via local MT5 execution database pipelines.</p>
         </div>
@@ -129,17 +138,15 @@ export default function PerformanceAnalyticsView() {
         </div>
       </div>
 
-      {/* Dynamic Analytical Summary Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard label="Sharpe Ratio (Ann.)" value={data.sharpeRatio.toFixed(2)} subtext="Risk-adjusted metric premium" icon={<Activity className="w-4 h-4" />} colorClass="text-emerald-400" />
-        <MetricCard label="Profit Factor" value={data.profitFactor.toFixed(2)} subtext="Gross Profits / Gross Losses" icon={<TrendingUp className="w-4 h-4" />} colorClass="text-emerald-400" />
-        <MetricCard label="Sortino Ratio" value={data.sortinoRatio.toFixed(2)} subtext="Downside variance threshold" icon={<ShieldCheck className="w-4 h-4" />} colorClass="text-cyan-400" />
-        <MetricCard label="Win Rate Matrix" value={`${data.winRate.toFixed(1)}%`} subtext={`${data.winningTrades} W / ${data.losingTrades} L distribution`} icon={<Percent className="w-4 h-4" />} colorClass="text-emerald-400" />
+        <MetricCard label="Sharpe Ratio (Ann.)" value={sharpe.toFixed(2)} subtext="Risk-adjusted metric premium" icon={<Activity className="w-4 h-4" />} colorClass="text-emerald-400" />
+        <MetricCard label="Profit Factor" value={pFactor.toFixed(2)} subtext="Gross Profits / Gross Losses" icon={<TrendingUp className="w-4 h-4" />} colorClass="text-emerald-400" />
+        <MetricCard label="Sortino Ratio" value={sortino.toFixed(2)} subtext="Downside variance threshold" icon={<ShieldCheck className="w-4 h-4" />} colorClass="text-cyan-400" />
+        <MetricCard label="Win Rate Matrix" value={`${wRate.toFixed(1)}%`} subtext={`${data.winningTrades ?? 0} W / ${data.losingTrades ?? 0} L distribution`} icon={<Percent className="w-4 h-4" />} colorClass="text-emerald-400" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Drawdown Exposure Metrics */}
         <div className="lg:col-span-2 border border-zinc-800 bg-zinc-950/20 rounded-sm p-4 space-y-4 flex flex-col justify-between">
           <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
             <div className="flex items-center gap-2 font-bold text-zinc-200 uppercase tracking-wider text-[11px]">
@@ -152,16 +159,15 @@ export default function PerformanceAnalyticsView() {
             <div>
               <div className="flex justify-between text-[11px] mb-1.5 font-bold">
                 <span className="text-zinc-400">Max System Peak-To-Trough Drawdown</span>
-                <span className="text-rose-400">-{data.maxDrawdown.toFixed(2)}%</span>
+                <span className="text-rose-400">-{maxDD.toFixed(2)}%</span>
               </div>
               <div className="w-full bg-zinc-900 h-2 rounded-sm overflow-hidden border border-zinc-800/40">
-                <div className="bg-rose-500/80 h-full rounded-sm" style={{ width: `${Math.min(100, (data.maxDrawdown / 7.50) * 100)}%` }} />
+                <div className="bg-rose-500/80 h-full rounded-sm" style={{ width: `${document ? Math.min(100, (maxDD / 7.50) * 100) : 0}%` }} />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Statistical Ledger Breakdown Summary */}
         <div className="border border-zinc-800 bg-zinc-950/20 rounded-sm p-4 space-y-3">
           <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
             <div className="flex items-center gap-2 font-bold text-zinc-200 uppercase tracking-wider text-[11px]">
@@ -171,17 +177,16 @@ export default function PerformanceAnalyticsView() {
           </div>
 
           <div className="divide-y divide-zinc-900/60 text-[11px]">
-            <div className="flex justify-between py-2"><span className="text-zinc-500">Total Tracked Executions</span><span className="text-zinc-200 font-bold">{data.totalTrades}</span></div>
-            <div className="flex justify-between py-2"><span className="text-zinc-500">Average Winning Trade</span><span className="text-emerald-400">+${data.avgWin.toFixed(2)}</span></div>
-            <div className="flex justify-between py-2"><span className="text-zinc-500">Average Losing Trade</span><span className="text-rose-400">-${Math.abs(data.avgLoss).toFixed(2)}</span></div>
-            <div className="flex justify-between py-2"><span className="text-zinc-500">Expectancy Ratio Per Trade</span><span className="text-zinc-200 font-bold">+${data.expectancy.toFixed(2)}</span></div>
-            <div className="flex justify-between py-2"><span className="text-zinc-500">Max Consecutive Wins</span><span className="text-zinc-200 font-bold">{data.maxConsecutiveWins}</span></div>
+            <div className="flex justify-between py-2"><span className="text-zinc-500">Total Tracked Executions</span><span className="text-zinc-200 font-bold">{data.totalTrades ?? 0}</span></div>
+            <div className="flex justify-between py-2"><span className="text-zinc-500">Average Winning Trade</span><span className="text-emerald-400">+${averageWin.toFixed(2)}</span></div>
+            <div className="flex justify-between py-2"><span className="text-zinc-500">Average Losing Trade</span><span className="text-rose-400">-${Math.abs(averageLoss).toFixed(2)}</span></div>
+            <div className="flex justify-between py-2"><span className="text-zinc-500">Expectancy Ratio Per Trade</span><span className="text-zinc-200 font-bold">+${expRatio.toFixed(2)}</span></div>
+            <div className="flex justify-between py-2"><span className="text-zinc-500">Max Consecutive Wins</span><span className="text-zinc-200 font-bold">{data.maxConsecutiveWins ?? 0}</span></div>
           </div>
         </div>
 
       </div>
 
-      {/* Asset Level Breakdown Matrix */}
       <div className="border border-zinc-800 bg-zinc-950/20 rounded-sm overflow-hidden shadow-2xl">
         <div className="grid grid-cols-5 p-3 text-zinc-500 border-b border-zinc-900 bg-zinc-950 text-[10px] uppercase tracking-widest font-bold">
           <div>Core Asset Target</div>
@@ -192,7 +197,7 @@ export default function PerformanceAnalyticsView() {
         </div>
 
         <div className="divide-y divide-zinc-900/60 font-mono text-[11px]">
-          {data.assetMetrics.map((row, idx) => (
+          {assetRows.map((row, idx) => (
             <div key={idx} className="grid grid-cols-5 px-3 py-3 items-center hover:bg-zinc-900/20 transition-colors">
               <div className="text-zinc-200 font-bold">{row.symbol}</div>
               <div className="text-right text-zinc-400 font-medium">{row.volume.toFixed(2)} Lots</div>
