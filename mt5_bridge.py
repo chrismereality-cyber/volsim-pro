@@ -1,4 +1,5 @@
-﻿import time
+﻿from sqlalchemy.exc import OperationalError
+import time
 import datetime
 import MetaTrader5 as mt5
 from database import SessionLocal
@@ -102,11 +103,29 @@ def sync_mt5_to_db():
                 ).update({"status": "CLOSED"}, synchronize_session='fetch')
                 db.commit()
                 
-        except Exception as e:
-            print(f"⚠️ Telemetry processing exception hit: {e}")
-            db.rollback()
+        except (OperationalError, Exception) as e:
+            # Detect network connection pooler drops or DNS lookup disruptions cleanly
+            if "operationalerror" in str(type(e)).lower() or "pooler" in str(e).lower() or "connection" in str(e).lower():
+                print(f"⚠️ Telemetry processing exception hit: {e}")
+                print("🔄 Supabase Connection broken or DNS resolution dropped. Cooldown initializing...")
+                try:
+                    db.close()
+                except Exception:
+                    pass
+                time.sleep(5)
+                print("⚡ Re-priming database connection pool layer...")
+                continue
+            else:
+                print(f"⚠️ Telemetry processing exception hit: {e}")
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
         finally:
-            db.close()
+            try:
+                db.close()
+            except Exception:
+                pass
         time.sleep(2)
 
 if __name__ == "__main__":
