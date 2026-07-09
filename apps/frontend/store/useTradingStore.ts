@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 
 interface Position {
   ticket: number; symbol: string; type: 'BUY' | 'SELL'; volume: number;
@@ -9,6 +9,8 @@ interface MarketAsset {
   symbol: string; bid: number; ask: number; spread: number; digits: number; volume_min: number; description: string;
 }
 
+export type ThemeType = 'dark' | 'light' | 'hacker';
+
 interface TradingState {
   isFastApiConnected: boolean; isBrokerConnected: boolean; balance: number; equity: number;
   floatingPl: number; currentDrawdown: number; winRate: number; profitFactor: number;
@@ -16,7 +18,9 @@ interface TradingState {
   totalTrades: number; avgDurationMinutes: number; dailyPl: number; weeklyPl: number; monthlyPl: number;
   totalNetProfit: number; cagr: number; positions: Position[];
   marketSymbols: MarketAsset[];
+  theme: ThemeType;
   updateMetrics: (metrics: Partial<TradingState>) => void;
+  setTheme: (newTheme: ThemeType) => void;
 }
 
 export const useTradingStore = create<TradingState>((set) => ({
@@ -25,10 +29,11 @@ export const useTradingStore = create<TradingState>((set) => ({
   riskRewardRatio: 0, totalTrades: 0, avgDurationMinutes: 0, dailyPl: 0, weeklyPl: 0, monthlyPl: 0,
   totalNetProfit: 0, cagr: 0, positions: [],
   marketSymbols: [],
+  theme: 'dark',
+  setTheme: (newTheme) => set({ theme: newTheme }),
   updateMetrics: (metrics) => set((state) => {
     const cleanUpdates: Partial<TradingState> = {};
     
-    // Core structural metrics that should never flash back to 0 once loaded
     const protectedMetrics = [
       'balance', 'equity', 'totalNetProfit', 'cagr', 'expectancy', 
       'sharpeRatio', 'riskRewardRatio', 'avgDurationMinutes'
@@ -36,13 +41,12 @@ export const useTradingStore = create<TradingState>((set) => ({
 
     for (const [key, value] of Object.entries(metrics)) {
       if (value !== undefined && value !== null) {
-        // If the metric is protected, current state has data, and incoming is 0, skip it!
         if (protectedMetrics.includes(key) && value === 0 && (state as any)[key] !== 0) {
           continue;
         }
         (cleanUpdates as any)[key] = value;
       }
     }
-    return { ...state, ...cleanUpdates };
+    return cleanUpdates;
   }),
 }));
