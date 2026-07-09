@@ -29,6 +29,7 @@ import TradeJournalView from '../components/views/TradeJournalView';
 import RegimeRobustnessView from '../components/views/RegimeRobustnessView';
 import CostAnalysisView from '../components/views/CostAnalysisView';
 import ImmutableVault from '../src/pages/ImmutableVault';
+import SystemTelemetryView from '../components/views/SystemTelemetryView';
 
 export default function EnterpriseShell() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -99,9 +100,9 @@ export default function EnterpriseShell() {
         {activeTab === "regime-robustness" && <RegimeRobustnessView />}
         {activeTab === "cost-analysis" && <CostAnalysisView />}
         {activeTab === "vault" && <ImmutableVault />}
+        {activeTab === "telemetry" && <SystemTelemetryView />}
 
         {[
-          "telemetry",
           "settings"
         ].includes(activeTab) && (
           <div className="h-full w-full flex items-center justify-center border border-dashed border-zinc-900 rounded bg-zinc-950/30">

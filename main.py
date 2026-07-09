@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from database import engine, SessionLocal
 from models import TradeRecord, ImmutableVaultState
 from risk_engine import InstitutionalRiskEngine
-from vault_manager import ImmutableVaultEngine
+from vault_manager import get_latest_vault_balance
 import MetaTrader5 as mt5
 
 app = FastAPI(title="VOLSIM-PRO Institutional Execution Engine")
@@ -32,7 +32,6 @@ def get_db():
         db.close()
 
 risk_engine = InstitutionalRiskEngine()
-vault_engine = ImmutableVaultEngine()
 
 @app.post("/api/positions/close")
 async def close_position(payload: ClosePositionRequest, db: Session = Depends(get_db)):
@@ -50,23 +49,16 @@ async def close_position(payload: ClosePositionRequest, db: Session = Depends(ge
     return {"status": "success", "message": "Liquidation command enqueued."}
 
 @app.get("/api/vault/metrics")
-async def get_immutable_vault_metrics(db: Session = Depends(get_db)):
+async def get_immutable_vault_metrics():
     try:
         if not mt5.initialize():
             mt5.initialize()
         account_info = mt5.account_info()
         current_balance = float(account_info.balance) if account_info is not None else 1129.12
         
-        state = db.query(ImmutableVaultState).order_by(ImmutableVaultState.id.desc()).first()
-        if not state:
-            state = ImmutableVaultState(trading_equity_balance=current_balance, vault_balance=0.0)
-            db.add(state)
-            db.commit()
-            db.refresh(state)
-
-        eq_alloc, vt_alloc, equity_pct = vault_engine.get_allocation_tier(
-            state.trading_equity_balance, state.vault_balance
-        )
+        vault_balance = get_latest_vault_balance()
+        total_capital = current_balance + vault_balance
+        equity_pct = (current_balance / total_capital * 100) if total_capital > 0 else 100.0
         
         if equity_pct <= 10.0: next_tier_str = "10% - 20% Tier"
         elif equity_pct <= 20.0: next_tier_str = "20% - 30% Tier"
@@ -75,112 +67,12 @@ async def get_immutable_vault_metrics(db: Session = Depends(get_db)):
         else: next_tier_str = "Maximum Capital Preservation Cap Enforced"
 
         return {
-            "tradingEquity": round(state.trading_equity_balance, 2),
-            "vaultBalance": round(state.vault_balance, 2),
-            "totalCapital": round(state.trading_equity_balance + state.vault_balance, 2),
-            "equityPercentage": equity_pct,
+            "tradingEquity": round(current_balance, 2),
+            "vaultBalance": round(vault_balance, 2),
+            "totalCapital": round(total_capital, 2),
+            "equityPercentage": round(equity_pct, 2),
             "vaultPercentage": round(100.0 - equity_pct, 2),
-            "currentEquityAllocation": round(eq_alloc * 100, 2),
-            "currentVaultAllocation": round(vt_alloc * 100, 2),
-            "nextTierThreshold": next_tier_str,
-            "stateHash": state.state_hash or "0x0000000000000000000000000000000000000000000000000000000000000000"
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/analytics/performance")
-async def get_performance(timeframe: str = "30D", db: Session = Depends(get_db)):
-    try:
-        trades = db.query(TradeRecord).filter(TradeRecord.status == "CLOSED").order_by(TradeRecord.created_at.asc()).all()
-        profits = [float(t.profit) for t in trades]
-        total_trades = len(profits)
-        
-        if not mt5.initialize():
-            mt5.initialize()
-            
-        account_info = mt5.account_info()
-        current_actual_balance = float(account_info.balance) if account_info is not None else 1129.12
-        
-        if total_trades == 0:
-            return {
-                "sharpeRatio": 0.0, "profitFactor": 1.0, "sortinoRatio": 0.0, "winRate": 0.0,
-                "totalTrades": 0, "winningTrades": 0, "losingTrades": 0, "avgWin": 0.0, "avgLoss": 0.0,
-                "maxDrawdown": 0.0, "expectancy": 0.0, "maxConsecutiveWins": 0, "assetMetrics": [], "data": []
-            }
-            
-        winning_trades = sum(1 for p in profits if p > 0)
-        losing_trades = sum(1 for p in profits if p < 0)
-        win_rate = (winning_trades / total_trades * 100)
-        
-        gross_profits = sum(p for p in profits if p > 0)
-        gross_losses = abs(sum(p for p in profits if p < 0))
-        profit_factor = (gross_profits / gross_losses) if gross_losses > 0 else (gross_profits if gross_profits > 0 else 1.0)
-        
-        win_array = [p for p in profits if p > 0]
-        loss_array = [p for p in profits if p < 0]
-        avg_win = np.mean(win_array) if win_array else 0.0
-        avg_loss = np.mean(loss_array) if loss_array else 0.0
-        expectancy = ( (win_rate/100) * avg_win ) + ( (1 - (win_rate/100)) * avg_loss )
-        
-        max_consec_wins = 0
-        current_consec = 0
-        
-        total_net_historical_change = sum(profits)
-        running_equity = current_actual_balance - total_net_historical_change
-        peak = running_equity
-        max_dd = 0.0
-        
-        for p in profits:
-            if p > 0:
-                current_consec += 1
-                max_consec_wins = max(max_consec_wins, current_consec)
-            else:
-                current_consec = 0
-                
-            running_equity += p
-            if running_equity > peak:
-                peak = running_equity
-            if peak > 0:
-                dd = ((peak - running_equity) / peak) * 100
-                max_dd = max(max_dd, dd)
-
-        sharpe_ratio, sortino_ratio = 0.0, 0.0
-        if total_trades > 1:
-            std_dev = np.std(profits)
-            if std_dev > 0:
-                sharpe_ratio = (np.mean(profits) / std_dev) * np.sqrt(252)
-            downside_deviation = np.std(loss_array) if len(loss_array) > 1 else std_dev
-            if downside_deviation > 0:
-                sortino_ratio = (np.mean(profits) / downside_deviation) * np.sqrt(252)
-
-        asset_map = {}
-        for t in trades:
-            sym = t.symbol
-            if sym not in asset_map:
-                asset_map[sym] = {"symbol": sym, "volume": 0.0, "profit": 0.0, "loss": 0.0, "net": 0.0}
-            val = float(t.profit)
-            asset_map[sym]["volume"] += float(t.volume)
-            asset_map[sym]["net"] += val
-            if val > 0:
-                asset_map[sym]["profit"] += val
-            else:
-                asset_map[sym]["loss"] += abs(val)
-
-        return {
-            "sharpeRatio": float(sharpe_ratio),
-            "profitFactor": float(profit_factor),
-            "sortinoRatio": float(sortino_ratio),
-            "winRate": float(win_rate),
-            "totalTrades": total_trades,
-            "winningTrades": winning_trades,
-            "losingTrades": losing_trades,
-            "avgWin": float(avg_win),
-            "avgLoss": float(avg_loss),
-            "maxDrawdown": float(max_dd),
-            "expectancy": float(expectancy),
-            "maxConsecutiveWins": max_consec_wins,
-            "assetMetrics": list(asset_map.values()),
-            "data": []
+            "nextTierThreshold": next_tier_str
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -188,7 +80,7 @@ async def get_performance(timeframe: str = "30D", db: Session = Depends(get_db))
 @app.websocket("/ws/trading-state")
 async def websocket_trading_state(websocket: WebSocket):
     await websocket.accept()
-    print("📡 [WEBSOCKET CONNECTED]: Frontend live streaming active.")
+    print("📡 [WEBSOCKET CONNECTED]: Frontend live streaming active with Vault Data Tracking.")
     
     if not mt5.initialize():
         print("❌ [MT5 ERROR]: Could not bind to local terminal from websocket runtime.")
@@ -208,6 +100,9 @@ async def websocket_trading_state(websocket: WebSocket):
                 account_balance = 1129.12
                 account_equity = account_balance + floating_pl
             
+            # Fetch the live synchronized database value from our postgres vault_ledger
+            live_vault = get_latest_vault_balance()
+            
             positions_array = []
             for pos in open_trades:
                 positions_array.append({
@@ -222,6 +117,7 @@ async def websocket_trading_state(websocket: WebSocket):
                 "balance": round(account_balance, 2),
                 "equity": round(account_equity, 2),
                 "floating_pl": round(floating_pl, 2),
+                "vault_balance": round(live_vault, 2),  # Crucial: Keeps frontend in perfect live step
                 "positions": positions_array,
                 "timestamp": datetime.datetime.utcnow().isoformat()
             }

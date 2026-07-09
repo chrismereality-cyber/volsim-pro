@@ -4,6 +4,7 @@ import datetime
 import MetaTrader5 as mt5
 from database import SessionLocal
 from models import TradeRecord
+from vault_manager import process_live_trade_allocation
 
 def init_bridge():
     if not mt5.initialize():
@@ -13,7 +14,7 @@ def init_bridge():
 
 def sync_mt5_to_db():
     if not init_bridge(): return
-    print("\n🚀 VOLSIM-PRO MT5 Telemetry Link Duplex Engine Online [COST ANALYSIS PROTOCOL ACTIVE]...")
+    print("\n🚀 VOLSIM-PRO MT5 Telemetry Link Duplex Engine Online [VAULT ENHANCED]...")
     
     while True:
         db = SessionLocal()
@@ -62,22 +63,31 @@ def sync_mt5_to_db():
                         existing.status = "OPEN"
                 db.commit()
 
-            # 3. Pull historical deals along with full execution slip costs
+            # 3. Pull historical deals safely
             from_date = datetime.datetime.utcnow() - datetime.timedelta(days=90)
             to_date = datetime.datetime.utcnow() + datetime.timedelta(days=1)
             history_deals = mt5.history_deals_get(from_date, to_date)
             
+            account_info = mt5.account_info()
+            current_actual_balance = float(account_info.balance) if account_info is not None else 1129.12
+            
             if history_deals:
                 for deal in history_deals:
-                    # Focus entirely on outbound trade closure entries to compute final ledger metrics
                     if deal.entry == mt5.DEAL_ENTRY_OUT and deal.profit != 0:
                         hist_ticket = str(deal.position_id)
                         existing_hist = db.query(TradeRecord).filter(TradeRecord.ticket == hist_ticket).first()
                         
-                        # Gather fee architecture data arrays straight from the deal struct
                         extracted_comm = float(deal.commission)
                         extracted_swap = float(deal.swap)
                         extracted_comment = str(deal.comment) if deal.comment else "Manual Execution"
+                        
+                        # FIX: ONLY trigger vault splitting logic if the trade is NOT already marked CLOSED in our DB
+                        if float(deal.profit) > 0 and (not existing_hist or existing_hist.status != "CLOSED"):
+                            process_live_trade_allocation(
+                                trade_id=hist_ticket,
+                                profit=float(deal.profit),
+                                current_balance=current_actual_balance
+                            )
                         
                         if not existing_hist:
                             db.add(TradeRecord(
@@ -87,7 +97,6 @@ def sync_mt5_to_db():
                                 created_at=datetime.datetime.fromtimestamp(deal.time)
                             ))
                         else:
-                            # Update existing records safely with absolute execution costs
                             existing_hist.status = "CLOSED"
                             existing_hist.profit = deal.profit
                             existing_hist.commission = extracted_comm
@@ -95,7 +104,6 @@ def sync_mt5_to_db():
                             existing_hist.comment = extracted_comment
                 db.commit()
 
-            # Catch instances where trades vanished without trigger updates
             if active_tickets:
                 db.query(TradeRecord).filter(
                     TradeRecord.status == "OPEN", 
@@ -104,28 +112,19 @@ def sync_mt5_to_db():
                 db.commit()
                 
         except (OperationalError, Exception) as e:
-            # Detect network connection pooler drops or DNS lookup disruptions cleanly
             if "operationalerror" in str(type(e)).lower() or "pooler" in str(e).lower() or "connection" in str(e).lower():
                 print(f"⚠️ Telemetry processing exception hit: {e}")
-                print("🔄 Supabase Connection broken or DNS resolution dropped. Cooldown initializing...")
-                try:
-                    db.close()
-                except Exception:
-                    pass
+                try: db.close()
+                except Exception: pass
                 time.sleep(5)
-                print("⚡ Re-priming database connection pool layer...")
                 continue
             else:
                 print(f"⚠️ Telemetry processing exception hit: {e}")
-                try:
-                    db.rollback()
-                except Exception:
-                    pass
+                try: db.rollback()
+                except Exception: pass
         finally:
-            try:
-                db.close()
-            except Exception:
-                pass
+            try: db.close()
+            except Exception: pass
         time.sleep(2)
 
 if __name__ == "__main__":

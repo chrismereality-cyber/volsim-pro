@@ -1,70 +1,78 @@
-﻿import datetime
-from sqlalchemy.orm import Session
-from models import ImmutableVaultState
-from web3 import Web3
+﻿import psycopg2
+import hashlib
 
-class ImmutableVaultEngine:
-    def __init__(self):
-        # Local or isolated web3 utility instance for cryptographic utilities
-        self.w3 = Web3()
+DB_URI = "postgresql://postgres.eqvxnfzuinrbwidztrtm:Greedy2026Volsim@aws-1-eu-north-1.pooler.supabase.com:6543/postgres"
 
-    def get_allocation_tier(self, trading_equity: float, vault_balance: float):
-        total_capital = trading_equity + vault_balance
-        if total_capital <= 0:
-            return 0.50, 0.50, 50.0
-
-        equity_pct = (trading_equity / total_capital) * 100
-
-        if equity_pct <= 10.0:
-            equity_alloc, vault_alloc = 0.10, 0.90
-        elif equity_pct <= 20.0:
-            equity_alloc, vault_alloc = 0.20, 0.80
-        elif equity_pct <= 30.0:
-            equity_alloc, vault_alloc = 0.30, 0.70
-        elif equity_pct <= 40.0:
-            equity_alloc, vault_alloc = 0.40, 0.60
-        else:
-            equity_alloc, vault_alloc = 0.50, 0.50
-
-        return equity_alloc, vault_alloc, round(equity_pct, 2)
-
-    def generate_state_hash(self, prev_hash: str, equity: float, vault: float, timestamp: str) -> str:
-        """
-        Generates a secure, deterministic Keccak-256 hash using web3.py 
-        to bind the current state to the previous block hash.
-        """
-        encoded_data = self.w3.solidity_keccak(
-            ['string', 'uint256', 'uint256', 'string'],
-            [prev_hash, int(equity * 100), int(vault * 100), timestamp]
-        )
-        return encoded_data.hex()
-
-    def process_profit_event(self, db: Session, realized_profit: float):
-        state = db.query(ImmutableVaultState).order_by(ImmutableVaultState.id.desc()).first()
+def get_latest_vault_balance():
+    """Fetches the current accumulated balance from the vault ledger."""
+    try:
+        conn = psycopg2.connect(DB_URI)
+        cursor = conn.cursor()
         
-        prev_hash = "0x" + "0" * 64
-        if not state:
-            state = ImmutableVaultState(trading_equity_balance=0.0, vault_balance=0.0)
-            db.add(state)
-            db.commit()
-            db.refresh(state)
-            
-        if hasattr(state, 'state_hash') and state.state_hash:
-            prev_hash = state.state_hash
-
-        if realized_profit <= 0:
-            state.trading_equity_balance = max(0.0, state.trading_equity_balance + realized_profit)
-        else:
-            eq_alloc, vt_alloc, _ = self.get_allocation_tier(state.trading_equity_balance, state.vault_balance)
-            state.trading_equity_balance += (realized_profit * eq_alloc)
-            state.vault_balance += (realized_profit * vt_alloc)
-
-        now_str = datetime.datetime.utcnow().isoformat()
-        state.last_updated = datetime.datetime.utcnow()
+        cursor.execute("SELECT balance FROM public.vault_ledger ORDER BY id DESC LIMIT 1;")
+        row = cursor.fetchone()
         
-        # Calculate dynamic cryptographic audit proof using web3
-        state.state_hash = self.generate_state_hash(prev_hash, state.trading_equity_balance, state.vault_balance, now_str)
+        cursor.close()
+        conn.close()
         
-        db.commit()
-        db.refresh(state)
-        return state
+        return float(row[0]) if row else 0.00
+    except Exception as e:
+        print(f"⚠️ Error reading vault balance: {str(e)}")
+        return 0.00
+
+def process_live_trade_allocation(trade_id, profit, current_balance):
+    """
+    Evaluates a closed trade. If profit > 0, calculates the split based on the progressive matrix
+    and writes it securely to the Supabase ledger database.
+    """
+    profit = float(profit)
+    if profit <= 0:
+        return get_latest_vault_balance()
+
+    try:
+        conn = psycopg2.connect(DB_URI)
+        cursor = conn.cursor()
+        
+        # 1. Idempotency Check: Verify if this trade ticket was already processed
+        cursor.execute("SELECT id FROM public.vault_ledger WHERE trade_id = %s;", (str(trade_id),))
+        if cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return get_latest_vault_balance() # Already logged, skip processing
+
+        # 2. Get current state metrics
+        last_vault_balance = get_latest_vault_balance()
+        total_combined_capital = float(current_balance) + last_vault_balance
+        trading_equity_percent = (float(current_balance) / total_combined_capital * 100) if total_combined_capital > 0 else 100
+
+        # 3. Dynamic Spec-Tier Ratio Allocation Logic
+        vault_share_percent = 50
+        if trading_equity_percent <= 10: vault_share_percent = 90
+        elif trading_equity_percent <= 20: vault_share_percent = 80
+        elif trading_equity_percent <= 30: vault_share_percent = 70
+        elif trading_equity_percent <= 40: vault_share_percent = 60
+
+        # 4. Calculate the split allocation
+        allocated_amount = profit * (vault_share_percent / 100.0)
+        new_vault_balance = last_vault_balance + allocated_amount
+
+        # 5. Build Cryptographic Hash Sequence Verification String
+        seed_string = f"{trade_id}-{new_vault_balance}-{allocated_amount}"
+        audit_hash = f"0x{hashlib.sha256(seed_string.encode('utf-8')).hexdigest().upper()}"
+
+        # 6. Push safely into the database ledger table
+        cursor.execute("""
+            INSERT INTO public.vault_ledger (balance, allocated_from, trade_id, audit_hash)
+            VALUES (%s, %s, %s, %s);
+        """, (new_vault_balance, allocated_amount, str(trade_id), audit_hash))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        print(f"✅ [VAULT PROVISIONED]: Trade {trade_id} split. Allocated ${allocated_amount:.2f} to Vault.")
+        return new_vault_balance
+
+    except Exception as e:
+        print(f"❌ [VAULT ERROR]: Allocation pipeline crash: {str(e)}")
+        return get_latest_vault_balance()
