@@ -64,7 +64,7 @@ def sync_mt5_to_db():
                 db.commit()
 
             # 3. Pull historical deals safely
-            from_date = datetime.datetime.utcnow() - datetime.timedelta(days=90)
+            from_date = datetime.datetime.utcnow() - datetime.timedelta(days=1)
             to_date = datetime.datetime.utcnow() + datetime.timedelta(days=1)
             history_deals = mt5.history_deals_get(from_date, to_date)
             
