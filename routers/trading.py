@@ -1,8 +1,15 @@
 from fastapi import APIRouter, WebSocket
+import asyncio
 
 router = APIRouter()
 
 @router.websocket("/trading-state")
-async def websocket_trading_state(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    # Add your trading logic here
+    try:
+        while True:
+            # Persistent connection loop
+            await websocket.send_json({"status": "active", "message": "handshake_confirmed"})
+            await asyncio.sleep(1)
+    except Exception as e:
+        print(f"Connection closed: {e}")
