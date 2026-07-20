@@ -1,78 +1,62 @@
-﻿import psycopg2
-import hashlib
+import requests
+import datetime
 
-DB_URI = "postgresql://postgres.eqvxnfzuinrbwidztrtm:Greedy2026Volsim@aws-1-eu-north-1.pooler.supabase.com:6543/postgres"
+# --- Configuration ---
+SUPABASE_URL = "https://eqvxnfzuinrbwidztrtm.supabase.co"
+SUPABASE_KEY = "***REMOVED***"
 
-def get_latest_vault_balance():
-    """Fetches the current accumulated balance from the vault ledger."""
+def get_active_allocation():
+    """Phase 1: Fetch active allocation profile from DB."""
+    url = f"{SUPABASE_URL}/rest/v1/allocation_profiles?is_active=eq.true"
+    headers = {
+        "apikey": SUPABASE_KEY, 
+        "Authorization": f"Bearer {SUPABASE_KEY}", 
+        "Accept-Profile": "public"
+    }
     try:
-        conn = psycopg2.connect(DB_URI)
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT balance FROM public.vault_ledger ORDER BY id DESC LIMIT 1;")
-        row = cursor.fetchone()
-        
-        cursor.close()
-        conn.close()
-        
-        return float(row[0]) if row else 0.00
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200 and response.json():
+            return response.json()[0]
     except Exception as e:
-        print(f"⚠️ Error reading vault balance: {str(e)}")
-        return 0.00
+        print(f"❌ Error fetching allocation: {e}")
+    
+    # Fallback to 50/50 if DB call fails
+    return {"trading_equity_pct": 50.0, "vault_pct": 50.0}
 
-def process_live_trade_allocation(trade_id, profit, current_balance):
-    """
-    Evaluates a closed trade. If profit > 0, calculates the split based on the progressive matrix
-    and writes it securely to the Supabase ledger database.
-    """
-    profit = float(profit)
-    if profit <= 0:
-        return get_latest_vault_balance()
+def process_profit_allocation(realized_profit):
+    """Phase 2: Calculate split and queue for blockchain."""
+    profile = get_active_allocation()
+    equity_pct = float(profile['trading_equity_pct']) / 100
+    vault_pct = float(profile['vault_pct']) / 100
+    
+    allocation = {
+        "equity_amount": realized_profit * equity_pct,
+        "vault_amount": realized_profit * vault_pct,
+        "timestamp": datetime.datetime.utcnow().isoformat()
+    }
+    
+    print(f"✅ Allocation Calculated: {allocation}")
+    
+    # Insert into ledger as PENDING (for web3.py to pick up)
+    insert_ledger_entry(allocation)
+    return allocation
 
-    try:
-        conn = psycopg2.connect(DB_URI)
-        cursor = conn.cursor()
-        
-        # 1. Idempotency Check: Verify if this trade ticket was already processed
-        cursor.execute("SELECT id FROM public.vault_ledger WHERE trade_id = %s;", (str(trade_id),))
-        if cursor.fetchone():
-            cursor.close()
-            conn.close()
-            return get_latest_vault_balance() # Already logged, skip processing
+def insert_ledger_entry(data):
+    url = f"{SUPABASE_URL}/rest/v1/vault_ledger"
+    headers = {
+        "apikey": SUPABASE_KEY, 
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+    }
+    payload = {
+        "equity_allocation": data['equity_amount'],
+        "vault_allocation": data['vault_amount'],
+        "sync_status": "PENDING",
+        "blockchain_status": "QUEUED"
+    }
+    requests.post(url, headers=headers, json=payload)
 
-        # 2. Get current state metrics
-        last_vault_balance = get_latest_vault_balance()
-        total_combined_capital = float(current_balance) + last_vault_balance
-        trading_equity_percent = (float(current_balance) / total_combined_capital * 100) if total_combined_capital > 0 else 100
-
-        # 3. Dynamic Spec-Tier Ratio Allocation Logic
-        vault_share_percent = 50
-        if trading_equity_percent <= 10: vault_share_percent = 90
-        elif trading_equity_percent <= 20: vault_share_percent = 80
-        elif trading_equity_percent <= 30: vault_share_percent = 70
-        elif trading_equity_percent <= 40: vault_share_percent = 60
-
-        # 4. Calculate the split allocation
-        allocated_amount = profit * (vault_share_percent / 100.0)
-        new_vault_balance = last_vault_balance + allocated_amount
-
-        # 5. Build Cryptographic Hash Sequence Verification String
-        seed_string = f"{trade_id}-{new_vault_balance}-{allocated_amount}"
-        audit_hash = f"0x{hashlib.sha256(seed_string.encode('utf-8')).hexdigest().upper()}"
-
-        # 6. Push safely into the database ledger table
-        cursor.execute("""
-            INSERT INTO public.vault_ledger (balance, allocated_from, trade_id, audit_hash)
-            VALUES (%s, %s, %s, %s);
-        """, (new_vault_balance, allocated_amount, str(trade_id), audit_hash))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        print(f"✅ [VAULT PROVISIONED]: Trade {trade_id} split. Allocated ${allocated_amount:.2f} to Vault.")
-        return new_vault_balance
-
-    except Exception as e:
-        print(f"❌ [VAULT ERROR]: Allocation pipeline crash: {str(e)}")
-        return get_latest_vault_balance()
+if __name__ == "__main__":
+    # Test: Simulate a profit of 1000.0 being closed
+    process_profit_allocation(1000.0)

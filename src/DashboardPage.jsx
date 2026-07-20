@@ -3,7 +3,7 @@ import { useTelemetry } from './useTelemetry';
 
 export default function DashboardPage() {
   // Correctly target your local FastAPI port (default fallback inside hook)
-  const { data, error } = useTelemetry("http://127.0.0.1:8000");
+  const { data, error } = useTelemetry("http://127.0.0.1:10000");
 
   const getStatusColor = (status) => {
     if (status === 'HEALTHY' || status === 'CONNECTED') return 'bg-green-500/10 text-green-400 border-green-500/30';

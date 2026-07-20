@@ -16,7 +16,7 @@ export default function TradePage() {
   useEffect(() => {
     async function fetchLivePositions() {
       try {
-        const res = await fetch('http://127.0.0.1:8080/status');
+        const res = await fetch(\\/status\);
         if (res.ok) {
           const data = await res.json();
           const active = data.active_positions || [];

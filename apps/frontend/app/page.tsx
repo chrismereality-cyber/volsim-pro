@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import React, { useState } from 'react';
 import { 
   TrendingUp, Wallet, Cpu, Activity, Settings as SettingsIcon, 
@@ -97,7 +97,7 @@ export default function EnterpriseShell() {
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${isFastApiConnected ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
             <span className="text-[10px] font-mono uppercase text-zinc-400">
-              {isFastApiConnected ? "FASTAPI PORT 8080 LIVE" : "FASTAPI DISCONNECTED"}
+              {isFastApiConnected ? "FASTAPI PORT 10000 LIVE" : "FASTAPI DISCONNECTED"}
             </span>
           </div>
         </div>

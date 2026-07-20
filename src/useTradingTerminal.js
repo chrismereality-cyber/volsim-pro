@@ -7,7 +7,7 @@ export function useTradingTerminal() {
   const [orderbook, setOrderbook] = useState(null);
 
   useEffect(() => {
-    const ws = new WebSocket("ws://127.0.0.1:8000/ws/dashboard");
+    import { WS_BASE } from '../apiConfig'; const ws = new WebSocket(\\/ws/dashboard\);
 
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
