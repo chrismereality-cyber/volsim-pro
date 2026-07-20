@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Radio, AlertTriangle, Square } from 'lucide-react';
@@ -23,7 +23,7 @@ export default function LivePositionsView() {
 
     function connectBridgeWS() {
       try {
-        ws = new WebSocket('ws://localhost:8080/ws/trading-state');
+        ws = new WebSocket('ws://localhost:10000/ws/trading-state');
 
         ws.onopen = () => setConnected(true);
         ws.onclose = () => {
@@ -54,7 +54,7 @@ export default function LivePositionsView() {
     const ticketStr = String(ticket);
     setActionLoading(ticketStr);
     try {
-      const response = await fetch('http://127.0.0.1:8080/api/positions/close', {
+      const response = await fetch('http://127.0.0.1:10000/api/positions/close', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticket: ticketStr })

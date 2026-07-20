@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import trading, risk
+from src.risk import risk_engine
 
 app = FastAPI(title="VolSim API")
 
@@ -14,9 +14,11 @@ app.add_middleware(
 )
 
 # Include Routers
-app.include_router(trading.router, prefix="/ws")
-app.include_router(risk.router, prefix="/ws")
+# Note: Ensure risk_engine.py contains a FastAPI APIRouter named 'router'
+# If risk_engine uses a different name, update 'risk_engine.router' accordingly
+app.include_router(risk_engine.router, prefix="/ws")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8080, reload=True)
+    # Updated to run from the src package root
+    uvicorn.run("src.api.main:app", host="127.0.0.1", port=10000, reload=True)

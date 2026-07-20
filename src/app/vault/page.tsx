@@ -12,7 +12,7 @@ export default function VaultPage() {
   useEffect(() => {
     async function syncVaultReserves() {
       try {
-        const res = await fetch('http://127.0.0.1:8080/status');
+        const res = await fetch(\\/status\);
         if (res.ok) {
           const data = await res.json();
           setVaultBalance(data.vault_total_balance ?? data.telemetry?.vault_total_balance ?? 0.00);
@@ -31,7 +31,7 @@ export default function VaultPage() {
     setIsProcessing(true);
     setFeedback("Initiating Multi-Signature Vault Validation Process...");
     try {
-      const response = await fetch('http://127.0.0.1:8080/vault/sweep', {
+      const response = await fetch('http://127.0.0.1:10000/vault/sweep', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ratio: allocationRatio })

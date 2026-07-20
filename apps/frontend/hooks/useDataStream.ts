@@ -5,7 +5,7 @@ export function useDataStream() {
   const updateMetrics = useTradingStore((state) => state.updateMetrics);
 
   useEffect(() => {
-    const socketUrl = 'ws://127.0.0.1:8080/ws/trading-state';
+    const socketUrl = 'ws://127.0.0.1:10000/ws/trading-state';
     let socket: WebSocket | null = null;
     let reconnectTimeout: NodeJS.Timeout;
 

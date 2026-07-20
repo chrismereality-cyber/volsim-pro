@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export function useTelemetry(backendUrl = "http://127.0.0.1:8000") {
+export function useTelemetry(backendUrl = "http://127.0.0.1:10000") {
   const [data, setData] = useState({
     account_info: { balance: 0, equity: 0, free_margin: 0, spread: 0 },
     vault_total_balance: 0,

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Activity, Server, Database, Radio, Cpu, HardDrive, ShieldAlert } from 'lucide-react';

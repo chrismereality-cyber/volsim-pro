@@ -1,9 +1,9 @@
-﻿*.pyc
-__pycache__/
 .venv/
-node_modules/
-.next/
-.venv/
-*.log
-__pycache__/
 .env
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.DS_Store
+alembic/versions/*.py
+node_modules/
