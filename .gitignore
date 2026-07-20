@@ -7,3 +7,13 @@ __pycache__/
 .DS_Store
 alembic/versions/*.py
 node_modules/
+# Build & Compiled
+cpp_core/build/
+cpp_core/*.pyd
+.next/
+apps/frontend/.next/
+*.pyc
+__pycache__/
+.venv/
+.env
+.env.local
