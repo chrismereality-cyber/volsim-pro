@@ -4,7 +4,7 @@ export default function TradingTerminal() {
   const [vault, setVault] = useState(null);
 
   useEffect(() => {
-    const ws = new WebSocket('ws://127.0.0.1:8000/ws/vault');
+    import { WS_BASE } from '../apiConfig'; const ws = new WebSocket(\\/ws/vault\);
 
     ws.onmessage = (event) => {
       setVault(JSON.parse(event.data));

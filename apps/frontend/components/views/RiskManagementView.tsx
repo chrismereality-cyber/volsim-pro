@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 
@@ -24,7 +24,7 @@ export default function RiskManagementView() {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    const socket = new WebSocket('ws://127.0.0.1:8080/ws/trading-state');
+    const socket = new WebSocket('ws://127.0.0.1:10000/ws/trading-state');
 
     socket.onopen = () => setConnected(true);
     socket.onclose = () => setConnected(false);
