@@ -1,13 +1,15 @@
-﻿'use client';
+'use client';
+
+
 
 import React, { useState, useEffect } from 'react';
-import { 
-  TrendingUp, 
-  Activity, 
-  ShieldCheck, 
-  Percent, 
-  Layers, 
-  BarChart3, 
+import {
+  TrendingUp,
+  Activity,
+  ShieldCheck,
+  Percent,
+  Layers,
+  BarChart3,
   Loader2,
   AlertCircle
 } from 'lucide-react';
@@ -66,10 +68,16 @@ export default function PerformanceAnalyticsView() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`http://localhost:8080/api/analytics/performance?timeframe=${timeframe}`);
-        if (!response.ok) throw new Error(`HTTP Error: ${response.statusText}`);
-        const result = await response.json();
-        setData(result);
+        const response = await fetch(
+  `http://127.0.0.1:10000/api/analytics/performance?timeframe=${timeframe}`
+);
+
+if (!response.ok) {
+  throw new Error(`HTTP ${response.status}`);
+}
+
+const result = await response.json();
+setData(result);
       } catch (err: any) {
         setError(err.message || 'Failed to retrieve metrics from MT5 kernel.');
       } finally {
@@ -111,7 +119,7 @@ export default function PerformanceAnalyticsView() {
 
   return (
     <div className="space-y-6 font-mono text-xs">
-      
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border border-zinc-800 bg-zinc-950/40 p-4 rounded-sm tracking-wider gap-3">
         <div className="space-y-1">
           <div className="text-emerald-400 flex items-center gap-2">
@@ -146,7 +154,7 @@ export default function PerformanceAnalyticsView() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         <div className="lg:col-span-2 border border-zinc-800 bg-zinc-950/20 rounded-sm p-4 space-y-4 flex flex-col justify-between">
           <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
             <div className="flex items-center gap-2 font-bold text-zinc-200 uppercase tracking-wider text-[11px]">

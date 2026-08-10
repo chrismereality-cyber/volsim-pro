@@ -1,64 +1,57 @@
-﻿import math
-import time
+import redis
 import json
-import os
-from database import SessionLocal
-from models import TradeRecord
+import time
+import psycopg2
+from collections import deque
 
-STATE_FILE = "C:\\volsim-dev\\regime_state.json"
+# Configuration
+REDIS_KEY = 'tick:XAUUSDm'
+WINDOW_SIZE = 10
+# Replace with your actual DB credentials
+DB_CONFIG = "dbname=volsim_db user=postgres password=yourpassword host=localhost port=5432"
 
-def calculate_parametric_metrics(equity, open_positions):
-    rolling_prices = [2345.00, 2345.66, 2347.46, 2350.53, 2345.79]
-    log_returns = []
-    for i in range(1, len(rolling_prices)):
-        log_returns.append(math.log(rolling_prices[i] / rolling_prices[i-1]))
-    
-    mean_return = sum(log_returns) / len(log_returns) if log_returns else 0.0
-    var_returns = sum((r - mean_return) ** 2 for r in log_returns) / len(log_returns) if log_returns else 0.0
-    sigma = math.sqrt(var_returns) * math.sqrt(252) * 100
-    
-    if sigma < 12.5:
-        regime = "REGIME_01_REVERSION"
-    elif sigma <= 25.0:
-        regime = "REGIME_02_EXPANSION"
-    else:
-        regime = "REGIME_03_CRISIS"
-        
-    var_1d = equity * (1.645 * (sigma / 100) / math.sqrt(252))
-    stress_liquidity = -(equity * 0.125)
-    stress_black_swan = -(equity * 0.291)
-    margin_viability = max(0.0, ((equity + stress_liquidity) / equity) * 100)
+r = redis.Redis(host='localhost', port=6380, db=0, decode_responses=True)
 
-    return {
-        "regime_name": regime,
-        "variance_sigma": round(sigma, 2),
-        "drift_mu": round(mean_return, 6),
-        "var_1d_95": round(var_1d, 2),
-        "margin_viability": round(margin_viability, 2),
-        "stress_liquidity_delta": round(stress_liquidity, 2),
-        "stress_black_swan_delta": round(stress_black_swan, 2)
-    }
-
-def run_engine_cycle():
-    db = SessionLocal()
+def log_to_postgres(price, signal):
     try:
-        # Pull exact live equity directly from active terminal telemetry
-        current_equity = 1074.44
-        
-        metrics = calculate_parametric_metrics(current_equity, [])
-        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 📊 Evaluated {metrics['regime_name']} | 1D VaR: ${metrics['var_1d_95']}")
-        
-        # Write state memory cleanly for immediate ASGI frame retrieval
-        with open(STATE_FILE, 'w') as f:
-            json.dump(metrics, f)
-            
+        conn = psycopg2.connect(DB_CONFIG)
+        cur = conn.cursor()
+        cur.execute(
+            'INSERT INTO market_signals (symbol, price, signal, created_at) VALUES (%s, %s, %s, NOW())',
+            ('XAUUSDm', price, signal)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
     except Exception as e:
-        print(f"🛑 Engine loop anomaly: {e}")
-    finally:
-        db.close()
+        print(f'DB Error: {e}')
 
-if __name__ == "__main__":
-    print("⚡ Starting VOLSIM-PRO Institutional Regime Assessment Loop...")
+def calculate_signal(price_history):
+    if len(price_history) < WINDOW_SIZE:
+        return 'INSUFFICIENT_DATA'
+    avg = sum(price_history) / len(price_history)
+    latest = price_history[-1]
+    if latest > avg: return 'BULLISH'
+    elif latest < avg: return 'BEARISH'
+    return 'NEUTRAL'
+
+def main():
+    price_history = deque(maxlen=WINDOW_SIZE)
+    print(f'Regime Engine active. Logging to Postgres...')
+
     while True:
-        run_engine_cycle()
-        time.sleep(5) # Upgraded sweep latency to 5 seconds
+        data = r.get(REDIS_KEY)
+        if data:
+            tick = json.loads(data)
+            mid_price = (tick['bid'] + tick['ask']) / 2
+            price_history.append(mid_price)
+
+            signal = calculate_signal(price_history)
+            if signal != 'INSUFFICIENT_DATA':
+                log_to_postgres(mid_price, signal)
+                print(f'Price: {mid_price:.3f} | Signal: {signal} | Logged')
+
+        time.sleep(1)
+
+if __name__ == '__main__':
+    main()

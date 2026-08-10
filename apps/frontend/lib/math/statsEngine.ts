@@ -46,7 +46,7 @@ export interface AdvancedTradingMetrics {
 }
 
 export function calculateAdvancedMetrics(
-  trades: RawTradeLog[], 
+  trades: RawTradeLog[],
   equityHistory: EquitySnapshot[],
   startingBalance: number = 1000,
   riskFreeRate: number = 0.02

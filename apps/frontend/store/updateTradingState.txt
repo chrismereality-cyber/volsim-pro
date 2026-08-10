@@ -1,0 +1,113 @@
+updateTradingState:(payload)=>{
+
+    const statistics =
+        payload.statistics ?? {};
+
+    const account =
+        payload.account ?? {};
+
+    const portfolio =
+        payload.portfolio ?? {};
+
+    const positions =
+        payload.positions ?? {};
+
+    const risk =
+        payload.risk ?? {};
+
+
+    set({
+
+        isFastApiConnected:true,
+
+
+        // ACCOUNT
+
+        balance:
+            account.balance ?? 0,
+
+
+        equity:
+            account.equity ?? 0,
+
+
+
+        // PORTFOLIO
+
+        floatingPl:
+            portfolio.floating_pl ?? 0,
+
+
+        portfolioValue:
+            portfolio.equity ??
+            account.equity ??
+            0,
+
+
+
+        // POSITIONS
+
+        positions:
+            positions.open_positions ?? [],
+
+
+        netExposure:
+            positions.total_exposure ?? 0,
+
+
+
+        // STATISTICS
+
+        winRate:
+            statistics.win_rate ?? 0,
+
+
+        profitFactor:
+            statistics.profit_factor ?? 0,
+
+
+        expectancy:
+            statistics.expectancy ?? 0,
+
+
+        sharpeRatio:
+            statistics.sharpe_ratio ?? 0,
+
+
+        totalTrades:
+            statistics.trade_count ?? 0,
+
+
+
+        // RISK
+
+        currentDrawdown:
+            risk.current_drawdown ?? 0,
+
+
+        maxDrawdown:
+            risk.maximum_allowed_drawdown ?? 0,
+
+
+        riskPerTrade:
+            risk.risk_per_trade ?? 0,
+
+
+        maximumAllowedDrawdown:
+            risk.maximum_allowed_drawdown ?? 0,
+
+
+        marginUsage:
+            risk.margin_usage ?? 0,
+
+
+        liquidationWarning:
+            risk.liquidation_warning ?? false,
+
+
+        riskStatus:
+            risk.status ?? "HEALTHY"
+
+    });
+
+}

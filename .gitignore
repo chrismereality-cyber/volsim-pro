@@ -17,3 +17,57 @@ __pycache__/
 .venv/
 .env
 .env.local
+
+# ============================================================
+# VolSim-Pro local repair / migration artifacts
+# ============================================================
+
+# Python repair / patch scripts
+add_*.py
+check_*.py
+clean_*.py
+connect_*.py
+create_*.py
+debug_*.py
+expose_*.py
+fix_*.py
+inspect_*.py
+patch_*.py
+rebuild_*.py
+repair_*.py
+
+# Python diagnostic / verification scripts
+verify_*.py
+test_*.py
+
+# PowerShell migration / repair scripts
+Audit-*.ps1
+Cleanup-*.ps1
+Enterprise-*-Audit.ps1
+Final-*.ps1
+Fix-*.ps1
+Force-*.ps1
+Migrate-*.ps1
+Remove-*.ps1
+Replace-*.ps1
+Restore-*.ps1
+audit-network.ps1
+
+# Temporary patches / transcripts
+*.patch.txt
+*.before-*
+*.before_*
+*.backup
+*.backup.*
+*.active-backup.*
+*.corrupted-backup.*
+*.pre-repair.*
+**/backup_ws_migration/
+**/backup/
+
+# TypeScript compiler cache
+*.tsbuildinfo
+
+# Local diagnostic output
+balances.txt
+metrics.txt

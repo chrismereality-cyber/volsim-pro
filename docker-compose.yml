@@ -3,23 +3,23 @@ services:
     image: redis:alpine
     ports:
       - "6380:6379"
-  
-  volsim-api:
+    volumes:
+      - redis_data:/data
+
+  regime_engine:
     build: .
-    ports:
-      - "10000:10000"
     environment:
       - REDIS_HOST=redis
-      - PYTHONPATH=/app
     depends_on:
       - redis
 
-  volsim-worker:
+  execution_service:
     build: .
-    command: python /app/src/risk/risk_engine.py
     environment:
       - REDIS_HOST=redis
-      - PYTHONPATH=/app
-      - PYTHONUNBUFFERED=1
     depends_on:
       - redis
+      - regime_engine
+
+volumes:
+  redis_data:
