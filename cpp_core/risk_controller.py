@@ -1,9 +1,10 @@
+import os
 import requests
 import datetime
 
 # --- Configuration ---
 SUPABASE_URL = "https://eqvxnfzuinrbwidztrtm.supabase.co"
-SUPABASE_KEY = "sb_secret_yQXsne0YM8MRZYv9C4lUkg_OSofvWv2"
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 DAILY_LOSS_LIMIT = 500.0
 
 def get_today_realized_loss():
@@ -13,7 +14,7 @@ def get_today_realized_loss():
     # We use 'pnl=lt.0' to only sum losses
     url = f"{SUPABASE_URL}/rest/v1/order_audit?created_at=gte.{today}&pnl=lt.0"
     headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Accept-Profile": "public"}
-    
+
     try:
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
@@ -29,9 +30,9 @@ def get_today_realized_loss():
 def safe_execute_trade(mt5_bridge, *args, **kwargs):
     """Production Gatekeeper: Checks DB-backed PnL before execution."""
     current_loss = get_today_realized_loss()
-    
+
     if current_loss >= DAILY_LOSS_LIMIT:
         print(f"🛑 Trading Halted: Persistent daily loss ({current_loss}) reached.")
         return False
-    
+
     return mt5_bridge.send_order(*args, **kwargs)

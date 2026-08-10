@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { Settings, Sliders, Palette, Shield, Check } from 'lucide-react';
@@ -31,7 +31,7 @@ export default function SystemSettingsView() {
             Configure top-tier execution parameters, risk control thresholds, and high-performance visual display matrices.
           </p>
         </div>
-        <button 
+        <button
           onClick={handleSave}
           className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold rounded shadow transition-all flex items-center gap-2"
         >
@@ -47,9 +47,9 @@ export default function SystemSettingsView() {
           <p className="text-[11px] leading-relaxed text-zinc-500">
             Select an operational presentation frame configured to maintain clean optical precision across volatile shifts.
           </p>
-          
+
           <div className="space-y-2 pt-2">
-            <button 
+            <button
               onClick={() => setGlobalTheme('dark')}
               className={`w-full p-3 rounded text-left border flex justify-between items-center transition-all ${globalTheme === 'dark' ? 'bg-zinc-900 border-emerald-500 text-white' : 'bg-zinc-950 border-zinc-900 text-zinc-400'}`}
             >
@@ -57,7 +57,7 @@ export default function SystemSettingsView() {
               {globalTheme === 'dark' && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
             </button>
 
-            <button 
+            <button
               onClick={() => setGlobalTheme('light')}
               className={`w-full p-3 rounded text-left border flex justify-between items-center transition-all ${globalTheme === 'light' ? 'bg-zinc-900 border-zinc-400 text-white' : 'bg-zinc-950 border-zinc-900 text-zinc-400'}`}
             >
@@ -65,7 +65,7 @@ export default function SystemSettingsView() {
               {globalTheme === 'light' && <div className="w-2 h-2 rounded-full bg-zinc-400" />}
             </button>
 
-            <button 
+            <button
               onClick={() => setGlobalTheme('hacker')}
               className={`w-full p-3 rounded text-left border flex justify-between items-center transition-all ${globalTheme === 'hacker' ? 'bg-emerald-950/20 border-emerald-500 text-emerald-400' : 'bg-zinc-950 border-zinc-900 text-zinc-400'}`}
             >

@@ -1,24 +1,77 @@
+import asyncio
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.risk import risk_engine
+from fastapi.responses import JSONResponse
+from fastapi.websockets import WebSocket
+from fastapi.websockets import WebSocketDisconnect
 
-app = FastAPI(title="VolSim API")
+from routers.analytics import router as analytics_router
 
-# Centralized CORS Configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+from src.services.global_trading_state_service import global_trading_state_service
+from src.services.global_state_service import global_state_orchestrator
+
+
+app = FastAPI(title="VolSim-Pro Enterprise")
+
+
+# Analytics API
+app.include_router(
+    analytics_router,
+    prefix="/api/analytics"
 )
 
-# Include Routers
-# Note: Ensure risk_engine.py contains a FastAPI APIRouter named 'router'
-# If risk_engine uses a different name, update 'risk_engine.router' accordingly
-app.include_router(risk_engine.router, prefix="/ws")
 
-if __name__ == "__main__":
-    import uvicorn
-    # Updated to run from the src package root
-    uvicorn.run("src.api.main:app", host="127.0.0.1", port=10000, reload=True)
+@app.get("/api/trading-state")
+async def trading_state():
+
+    return global_trading_state_service.snapshot()
+
+
+app.add_middleware(
+
+    CORSMiddleware,
+
+    allow_origins=["*"],
+
+    allow_credentials=True,
+
+    allow_methods=["*"],
+
+    allow_headers=["*"]
+
+)
+
+
+@app.get("/api/telemetry")
+async def telemetry():
+
+    return JSONResponse(
+        global_trading_state_service.snapshot()
+    )
+
+
+@app.websocket("/ws/trading-state")
+async def trading_state_socket(
+    websocket: WebSocket
+):
+
+    await websocket.accept()
+
+    try:
+
+        while True:
+
+            await websocket.send_json(
+                global_trading_state_service.snapshot()
+            )
+
+            await asyncio.sleep(1)
+
+    except WebSocketDisconnect:
+
+        pass
+
+    except Exception:
+
+        await websocket.close()

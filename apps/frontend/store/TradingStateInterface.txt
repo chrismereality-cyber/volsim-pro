@@ -1,0 +1,61 @@
+export type ThemeType = "dark" | "light";
+
+import { create } from "zustand";
+
+interface HedgingSignal {
+    asset: string;
+    status: string;
+    action: string;
+    reason?: string;
+    target_delta_offset?: number;
+}
+
+interface TradingState {
+
+    isFastApiConnected:boolean;
+
+    theme:string;
+    setTheme:(theme:string)=>void;
+
+    balance:number;
+    equity:number;
+    floatingPl:number;
+
+    currentDrawdown:number;
+    maxDrawdown:number;
+
+    winRate:number;
+    profitFactor:number;
+    expectancy:number;
+    sharpeRatio:number;
+
+    totalTrades:number;
+    avgDurationMinutes:number;
+
+    dailyPl:number;
+    weeklyPl:number;
+    monthlyPl:number;
+
+    totalNetProfit:number;
+    cagr:number;
+
+    riskRewardRatio:number;
+
+    positions:any[];
+
+    riskPerTrade:number;
+    maximumAllowedDrawdown:number;
+    marginUsage:number;
+    liquidationWarning:boolean;
+
+    portfolioValue:number;
+    netExposure:number;
+    valueAtRisk:number;
+
+    allocations:Record<string,number>;
+    hedgingSignals:HedgingSignal[];
+
+    riskStatus:string;
+
+    updateTradingState:(payload:any)=>void;
+}

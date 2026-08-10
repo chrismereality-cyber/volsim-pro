@@ -20,13 +20,13 @@ export default function SystemTelemetryView() {
 
   useEffect(() => {
     const startTimestamp = Date.now();
-    
+
     const interval = setInterval(() => {
       const diffMs = Date.now() - startTimestamp;
       const secs = Math.floor((diffMs / 1000) % 60).toString().padStart(2, '0');
       const mins = Math.floor((diffMs / (1000 * 60)) % 60).toString().padStart(2, '0');
       const hrs = Math.floor((diffMs / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
-      
+
       setMetrics(prev => ({
         cpuUsage: Math.max(5.2, Math.min(65.0, Number((prev.cpuUsage + (Math.random() * 4 - 2)).toFixed(1)))),
         ramUsage: Math.max(38.0, Math.min(48.5, Number((prev.ramUsage + (Math.random() * 0.4 - 0.2)).toFixed(1)))),
@@ -63,7 +63,7 @@ export default function SystemTelemetryView() {
             <Server className="w-4 h-4 text-emerald-500" />
           </div>
           <div>
-            <div className="text-xl font-black text-white font-mono">PORT 8080</div>
+            <div className="text-xl font-black text-white font-mono">PORT 10000</div>
             <span className="text-[10px] font-mono text-emerald-400 block mt-1">● SERVICE ONLINE & LISTEN</span>
           </div>
         </div>
@@ -105,7 +105,7 @@ export default function SystemTelemetryView() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-zinc-950 border border-zinc-900 p-6 rounded space-y-6 md:col-span-2">
           <h3 className="text-xs font-bold font-mono uppercase text-white tracking-wide border-b border-zinc-900 pb-3">// HARDWARE ALLOCATION PERFORMANCE</h3>
-          
+
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-mono">
               <span className="text-zinc-400 flex items-center gap-2"><Cpu className="w-3.5 h-3.5 text-zinc-500" /> CPU Core Utilization</span>
@@ -139,7 +139,7 @@ export default function SystemTelemetryView() {
 
         <div className="bg-zinc-950 border border-zinc-900 p-6 rounded space-y-4">
           <h3 className="text-xs font-bold font-mono uppercase text-white tracking-wide border-b border-zinc-900 pb-3">// DUPLEX SUBSYSTEMS MAPPED</h3>
-          
+
           <div className="space-y-3 font-mono text-[11px]">
             <div className="flex justify-between items-center py-1.5 border-b border-zinc-900/40">
               <span className="text-zinc-500">MT5 IPC Connection</span>

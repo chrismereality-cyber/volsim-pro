@@ -1,24 +1,103 @@
-import numpy as np
+import asyncio
 import time
-import sys
-import redis
-import json
-import os
 
-class RiskEngine:
-    def __init__(self):
-        self.redis_client = redis.Redis(host=os.getenv('REDIS_HOST', 'localhost'), port=6379, db=0)
-        self.pubsub = self.redis_client.pubsub()
-        self.pubsub.subscribe('market_data')
-        
-    def run(self):
-        print("Risk Worker initialized and listening on 'market_data'...", file=sys.stdout, flush=True)
-        for message in self.pubsub.listen():
-            if message['type'] == 'message':
-                data = json.loads(message['data'])
-                print(f"Received market update: {data}", file=sys.stdout, flush=True)
-                # Here you will soon trigger your calculate_position_metrics
+from fastapi import (
+    APIRouter,
+    WebSocket,
+    WebSocketDisconnect,
+    Query,
+    Body,
+)
 
-if __name__ == "__main__":
-    engine = RiskEngine()
-    engine.run()
+from src.services.global_state_service import global_state_orchestrator
+
+router = APIRouter()
+
+
+@router.get("/telemetry")
+async def get_telemetry():
+    return global_state_orchestrator.snapshot()
+
+
+@router.get("/metrics")
+async def get_metrics():
+    return global_state_orchestrator.snapshot()
+
+
+@router.get("/analytics/performance")
+async def get_performance_analytics(
+    timeframe: str = Query("30D")
+):
+
+    state = global_state_orchestrator.snapshot()
+
+    return {
+
+        "timeframe": timeframe,
+
+        "performance_curve": [],
+
+        "summary": state.get(
+            "statistics_state",
+            {}
+        )
+
+    }
+
+
+@router.get("/risk/limits")
+async def risk_limits():
+
+    return {
+
+        "max_daily_drawdown": 5.0,
+
+        "risk_per_trade": 1.0,
+
+        "max_position_size": 2.0,
+
+        "daily_loss_limit": 500.0,
+
+        "circuit_breaker_active": False
+
+    }
+
+
+@router.post("/risk/config")
+async def update_risk_config(
+    payload: dict = Body(...)
+):
+
+    return {
+
+        "status": "success",
+
+        "updated_config": payload
+
+    }
+
+
+@router.websocket("/trading-state")
+async def websocket_trading_state(
+    websocket: WebSocket
+):
+
+    await websocket.accept()
+
+    try:
+
+        while True:
+
+            state = global_state_orchestrator.snapshot()
+
+            await websocket.send_json(state)
+
+            await asyncio.sleep(1)
+
+    except WebSocketDisconnect:
+
+        pass
+
+    except Exception as ex:
+
+        print(ex)

@@ -1,31 +1,26 @@
-import requests
-import datetime
+import redis
+import json
 
-SUPABASE_URL = "https://eqvxnfzuinrbwidztrtm.supabase.co"
-SUPABASE_KEY = "sb_secret_yQXsne0YM8MRZYv9C4lUkg_OSofvWv2"
+class RiskController:
+    def __init__(self):
+        self.r = redis.Redis(host='localhost', port=6380, db=0, decode_responses=True)
+        self.MAX_DAILY_LOSS = 500.0
 
-def log_to_supabase(action, magic, reason):
-    # Use the base table name only
-    url = f"{SUPABASE_URL}/rest/v1/order_audit"
-    headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-        "Accept-Profile": "public",
-        "Prefer": "return=minimal"
-    }
-    data = {
-        "action": action, 
-        "magic_number": magic, 
-        "reason": reason, 
-        "created_at": datetime.datetime.utcnow().isoformat()
-    }
-    try:
-        response = requests.post(url, headers=headers, json=data)
-        print(f"DEBUG: Status {response.status_code} | Response: {response.text}")
-    except Exception as e:
-        print(f"DEBUG: Request failed: {e}")
+    def check_trade_eligibility(self, symbol, signal):
+        # 1. Check current PnL from Redis (assuming another service tracks this)
+        daily_pnl = float(self.r.get('metrics:daily_pnl') or 0.0)
 
-if __name__ == "__main__":
-    print("🚀 Testing with clean URL and Accept-Profile...")
-    log_to_supabase("TEST_EXIT", 9999, "SIMULATED_PROFIT_MET")
+        # 2. Hard Stop Check
+        if daily_pnl < -self.MAX_DAILY_LOSS:
+            return False, 'MAX_LOSS_EXCEEDED'
+
+        # 3. Prevent over-trading (e.g., no signals if market is too volatile)
+        # This is where you would integrate volatility filters
+
+        return True, 'PROCEED'
+
+# Example usage for your engine:
+# risk = RiskController()
+# allowed, reason = risk.check_trade_eligibility('XAUUSDm', 'BULLISH')
+# if allowed:
+#     # send to MT5 bridge

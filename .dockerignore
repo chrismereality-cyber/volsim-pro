@@ -1,4 +1,5 @@
-﻿*
+*
 !src/
 !requirements.txt
 !Dockerfile
+!*.py

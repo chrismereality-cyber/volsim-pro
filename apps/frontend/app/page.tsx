@@ -1,7 +1,8 @@
 'use client';
+
 import React, { useState } from 'react';
-import { 
-  TrendingUp, Wallet, Cpu, Activity, Settings as SettingsIcon, 
+import {
+  TrendingUp, Wallet, Cpu, Activity, Settings as SettingsIcon,
   BarChart3, BookOpen, LineChart, History, Coins, ShieldCheck
 } from 'lucide-react';
 
@@ -72,7 +73,7 @@ export default function EnterpriseShell() {
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isSelected = activeTab === item.id;
-              
+
               let btnClass = isSelected ? "bg-zinc-900 text-emerald-400 border border-zinc-800" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50";
               if (theme === 'light') {
                 btnClass = isSelected ? "bg-zinc-200 text-zinc-900 font-bold border border-zinc-300" : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100";
