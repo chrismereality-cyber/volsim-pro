@@ -1,16 +1,16 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  BarChart3, 
-  ShieldAlert, 
-  Zap, 
-  TrendingUp, 
-  TrendingDown, 
-  ChevronUp, 
-  ChevronDown, 
-  Settings, 
-  ShieldCheck, 
+import {
+  BarChart3,
+  ShieldAlert,
+  Zap,
+  TrendingUp,
+  TrendingDown,
+  ChevronUp,
+  ChevronDown,
+  Settings,
+  ShieldCheck,
   Loader2
 } from 'lucide-react';
 
@@ -25,30 +25,30 @@ interface AssetConfig {
 }
 
 const SUPPORTED_ASSETS: AssetConfig[] = [
-  { 
-    id: 'xauusd', 
-    name: 'Gold Spot (m)', 
-    backendSymbol: 'XAUUSDm', 
-    chartSymbol: 'OANDA:XAUUSD', 
-    exchange: 'OANDA', 
+  {
+    id: 'xauusd',
+    name: 'Gold Spot (m)',
+    backendSymbol: 'XAUUSDm',
+    chartSymbol: 'OANDA:XAUUSD',
+    exchange: 'OANDA',
     feedType: 'MT5_BRIDGE',
     basePrice: 4167.50 // Updated to recent 2026 market range
   },
-  { 
-    id: 'v75', 
-    name: 'Volatility 75 Index', 
-    backendSymbol: '1HZ75V', 
-    chartSymbol: 'SPY', 
-    exchange: 'NYSE', 
+  {
+    id: 'v75',
+    name: 'Volatility 75 Index',
+    backendSymbol: '1HZ75V',
+    chartSymbol: 'SPY',
+    exchange: 'NYSE',
     feedType: 'DERIV_SYNTHETIC',
     basePrice: 172450.00
   },
-  { 
-    id: 'v100', 
-    name: 'Volatility 100 Index', 
-    backendSymbol: '1HZ100V', 
-    chartSymbol: 'QQQ', 
-    exchange: 'NASDAQ', 
+  {
+    id: 'v100',
+    name: 'Volatility 100 Index',
+    backendSymbol: '1HZ100V',
+    chartSymbol: 'QQQ',
+    exchange: 'NASDAQ',
     feedType: 'DERIV_SYNTHETIC',
     basePrice: 4181.44
   }
@@ -61,7 +61,7 @@ export default function MainChartView() {
   const [tp, setTp] = useState<number>(0);
   const [deviation, setDeviation] = useState<number>(20);
   const [orderType, setOrderType] = useState<'MARKET' | 'LIMIT'>('MARKET');
-  
+
   const [bidPrice, setBidPrice] = useState<number>(SUPPORTED_ASSETS[0].basePrice);
   const [askPrice, setAskPrice] = useState<number>(SUPPORTED_ASSETS[0].basePrice + 0.15);
 
@@ -75,14 +75,14 @@ export default function MainChartView() {
     // Reset pricing parameters immediately upon asset switch
     const initialBid = selectedAsset.basePrice;
     const initialSpread = selectedAsset.id === 'v75' ? 5.0 : 0.15;
-    
+
     setBidPrice(initialBid);
     setAskPrice(initialBid + initialSpread);
 
     const priceInterval = setInterval(() => {
       const volatility = selectedAsset.id === 'v75' ? 8.5 : selectedAsset.id === 'v100' ? 0.35 : 0.12;
       const change = (Math.random() - 0.5) * volatility;
-      
+
       setBidPrice(prev => {
         // Guard against out-of-bounds component switching states
         if (Math.abs(prev - selectedAsset.basePrice) > selectedAsset.basePrice * 0.05) {
@@ -146,7 +146,7 @@ export default function MainChartView() {
     };
 
     try {
-      const response = await fetch('http://localhost:8080/api/trade/execute', {
+      const response = await fetch('http://127.0.0.1:10000/api/trade/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -154,7 +154,7 @@ export default function MainChartView() {
 
       if (!response.ok) throw new Error(`Execution error: ${response.statusText}`);
       const result = await response.json();
-      
+
       setExecutionResult({
         success: true,
         message: `Order completed successfully. Trade executed on MetaTrader 5 kernel.`,
@@ -176,14 +176,14 @@ export default function MainChartView() {
 
   return (
     <div className="space-y-4 h-[calc(100vh-140px)] min-h-[600px] flex flex-col">
-      
+
       {/* Top Navigation & Fast Asset Switch Board */}
       <div className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between border border-zinc-800 bg-zinc-950/40 p-3 rounded-sm font-mono text-xs">
         <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto whitespace-nowrap scrollbar-none">
           <BarChart3 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
           <span className="text-zinc-400 font-bold uppercase tracking-wider">[ ENGINE CHART MATRIX ]</span>
           <div className="h-4 w-[1px] bg-zinc-800 hidden sm:block"></div>
-          
+
           <div className="flex gap-1.5">
             {SUPPORTED_ASSETS.map((asset) => {
               const isActive = asset.id === selectedAsset.id;
@@ -211,7 +211,7 @@ export default function MainChartView() {
             TV Proxy Feed: <span className="text-zinc-300">{selectedAsset.chartSymbol}</span>
           </div>
           <div className="flex items-center gap-2 px-3 py-1 rounded-sm border border-zinc-800 bg-zinc-900 text-[10px] font-bold tracking-widest text-zinc-400">
-            MT5 KERNEL TARGET: 
+            MT5 KERNEL TARGET:
             <span className={selectedAsset.feedType === 'DERIV_SYNTHETIC' ? 'text-amber-400' : 'text-emerald-400'}>
               {selectedAsset.backendSymbol}
             </span>
@@ -221,7 +221,7 @@ export default function MainChartView() {
 
       {/* Main Workspace Split */}
       <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
-        
+
         {/* Left Column: Interactive TradingView Canvas */}
         <div className="flex-1 border border-zinc-800 bg-zinc-950/20 rounded-sm overflow-hidden relative shadow-2xl flex flex-col min-h-[350px] lg:min-h-0">
           <div id="volsim_tradingview_widget_frame" ref={containerRef} className="w-full h-full flex-1" />
@@ -236,7 +236,7 @@ export default function MainChartView() {
 
         {/* Right Column: Institutional Quick-Execution Panel */}
         <div className="w-full lg:w-[350px] border border-zinc-800 bg-zinc-950/80 rounded-sm p-4 flex flex-col justify-between font-mono text-xs shadow-2xl">
-          
+
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
               <div className="flex items-center gap-1.5 text-zinc-200 font-bold uppercase tracking-wider text-[11px]">
@@ -247,7 +247,7 @@ export default function MainChartView() {
             </div>
 
             <div className="grid grid-cols-2 gap-1 bg-zinc-900 p-0.5 rounded-sm">
-              <button 
+              <button
                 onClick={() => setOrderType('MARKET')}
                 className={`py-1.5 rounded-sm font-bold text-[10px] uppercase tracking-wider transition-colors ${
                   orderType === 'MARKET' ? 'bg-zinc-800 text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'
@@ -255,7 +255,7 @@ export default function MainChartView() {
               >
                 Market Order
               </button>
-              <button 
+              <button
                 onClick={() => setOrderType('LIMIT')}
                 className={`py-1.5 rounded-sm font-bold text-[10px] uppercase tracking-wider transition-colors ${
                   orderType === 'LIMIT' ? 'bg-zinc-800 text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'
@@ -271,8 +271,8 @@ export default function MainChartView() {
                 <button onClick={() => adjustVolume(-0.01)} className="px-3 py-2 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors">
                   <ChevronDown className="w-3.5 h-3.5" />
                 </button>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   value={volume}
                   onChange={(e) => setVolume(Math.max(0.01, parseFloat(e.target.value) || 0.01))}
                   className="flex-1 bg-transparent text-center text-zinc-100 font-bold focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -289,8 +289,8 @@ export default function MainChartView() {
                     key={preset}
                     onClick={() => setVolume(preset)}
                     className={`py-1 text-[9px] font-bold rounded-sm border transition-colors ${
-                      volume === preset 
-                        ? 'border-emerald-500/50 bg-emerald-950/20 text-emerald-400' 
+                      volume === preset
+                        ? 'border-emerald-500/50 bg-emerald-950/20 text-emerald-400'
                         : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200'
                     }`}
                   >
@@ -303,7 +303,7 @@ export default function MainChartView() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-zinc-500 text-[10px] uppercase tracking-widest font-bold">Stop Loss (SL)</label>
-                <input 
+                <input
                   type="number" value={sl}
                   onChange={(e) => setSl(Math.max(0, parseInt(e.target.value) || 0))}
                   className="w-full border border-zinc-800 bg-zinc-900 py-1.5 px-3 rounded-sm text-zinc-100 font-semibold focus:outline-none"
@@ -312,7 +312,7 @@ export default function MainChartView() {
               </div>
               <div className="space-y-1.5">
                 <label className="text-zinc-500 text-[10px] uppercase tracking-widest font-bold">Take Profit (TP)</label>
-                <input 
+                <input
                   type="number" value={tp}
                   onChange={(e) => setTp(Math.max(0, parseInt(e.target.value) || 0))}
                   className="w-full border border-zinc-800 bg-zinc-900 py-1.5 px-3 rounded-sm text-zinc-100 font-semibold focus:outline-none"
@@ -327,7 +327,7 @@ export default function MainChartView() {
                 Deviation / Slippage
               </div>
               <div className="flex items-center gap-1.5">
-                <input 
+                <input
                   type="number" value={deviation}
                   onChange={(e) => setDeviation(Math.max(0, parseInt(e.target.value) || 0))}
                   className="w-12 bg-transparent text-right text-zinc-300 font-bold focus:outline-none"

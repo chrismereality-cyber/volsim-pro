@@ -1,35 +1,34 @@
-import React, { createContext, useContext, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { WS_BASE } from '../apiConfig';
 
-const GlobalStateContext = createContext<any>(null);
-const globalSockets: Record<string, WebSocket> = {};
+const GlobalStateContext = createContext(null);
 
-export const GlobalStateProvider = ({ children }: { children: React.ReactNode }) => {
-  const initialized = useRef(false);
+export const GlobalStateProvider = ({ children }) => {
+    const [globalState, setGlobalState] = useState({});
 
-  useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
+    useEffect(() => {
+        const wsUrl = WS_BASE ? ${WS_BASE}/ws/trading-state : 'ws://127.0.0.1:10000/ws/trading-state';
+        const ws = new WebSocket(wsUrl);
 
-    const channels = ['trading-state', 'vault-state', 'robustness-state', 'risk-state'];
-    
-    channels.forEach((channel) => {
-      if (!globalSockets[channel]) {
-        import { WS_BASE } from '../apiConfig'; globalSockets[channel] = new WebSocket(\\/ws/\\);
-        
-        globalSockets[channel].onopen = () => {
-            console.log('Connected to ' + channel);
-            // Send handshake signal immediately upon connection
-            globalSockets[channel].send(JSON.stringify({ action: 'handshake', type: 'init' }));
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                setGlobalState(data);
+            } catch (err) {
+                console.error("Failed to parse global state WebSocket message", err);
+            }
         };
-      }
-    });
-  }, []);
 
-  return (
-    <GlobalStateContext.Provider value={{ sockets: globalSockets }}>
-      {children}
-    </GlobalStateContext.Provider>
-  );
+        return () => {
+            ws.close();
+        };
+    }, []);
+
+    return (
+        <GlobalStateContext.Provider value={globalState}>
+            {children}
+        </GlobalStateContext.Provider>
+    );
 };
 
 export const useGlobalState = () => useContext(GlobalStateContext);

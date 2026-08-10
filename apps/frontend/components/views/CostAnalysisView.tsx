@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { DollarSign, Percent, Zap, Layers } from 'lucide-react';
@@ -57,7 +57,7 @@ export default function CostAnalysisView() {
         <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
           // Asset Friction Vector Ledger
         </h2>
-        
+
         <div className="overflow-x-auto border border-zinc-800 bg-zinc-950">
           <table className="w-full text-left text-xs text-zinc-400">
             <thead className="bg-zinc-900 border-b border-zinc-800 text-[10px] uppercase font-bold text-zinc-500 tracking-wider">

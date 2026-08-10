@@ -1,7 +1,17 @@
-﻿'use client';
+'use client';
+﻿import { useTradingStore } from "../../store/useTradingStore";
 
-import React, { useState, useEffect } from 'react';
-import { Shield, Activity, BarChart3, AlertOctagon } from 'lucide-react';
+
+import { useState, useEffect } from "react";
+import { tradingSocket } from "../../lib/TradingSocketManager";
+
+import {
+    Activity,
+    Shield,
+    AlertOctagon,
+    BarChart3
+} from "lucide-react";
+
 
 interface EngineMetrics {
   regime_name: string;
@@ -22,23 +32,53 @@ export default function RegimeRobustnessView() {
     stress_liquidity_delta: 0,
     stress_black_swan_delta: 0
   });
-  
-  useEffect(() => {
-    const ws = new WebSocket('ws://localhost:8080/ws/robustness-state');
-    ws.onopen = () => setConnected(true);
-    ws.onmessage = (event) => {
-      try {
-        const parsed = JSON.parse(event.data);
-        setMetrics(parsed);
-      } catch (err) {
-        console.error("Data parse error", err);
-      }
-    };
-    ws.onclose = () => setConnected(false);
-    return () => ws.close();
-  }, []);
 
-  return (
+
+useEffect(() => {
+
+    tradingSocket.connect(
+        "/ws/trading-state",
+        (payload:any) => {
+
+            if (!payload) {
+                return;
+            }
+
+            setMetrics({
+
+                regime_name:
+                    payload.risk?.status || "ACTIVE",
+
+                variance_sigma:
+                    payload.risk?.value_at_risk || 0,
+
+                var_1d_95:
+                    payload.risk?.value_at_risk || 0,
+
+                margin_viability:
+                    payload.risk?.margin_usage
+                    ? 100 - payload.risk.margin_usage
+                    : 100,
+
+                stress_liquidity_delta: 0,
+
+                stress_black_swan_delta: 0
+
+            });
+
+            setConnected(true);
+
+        }
+    );
+
+
+    return () => {
+};
+
+
+}, []);
+
+return (
     <div className="space-y-6 p-6 font-mono text-zinc-100 bg-black min-h-screen">
       <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
         <div>
@@ -81,7 +121,7 @@ export default function RegimeRobustnessView() {
         <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-emerald-500" /> // Live Macro Stress Shock Allocations
         </h2>
-        
+
         <div className="overflow-x-auto border border-zinc-800 bg-zinc-950">
           <table className="w-full text-left text-xs text-zinc-400">
             <thead className="bg-zinc-900 border-b border-zinc-800 text-[10px] uppercase font-bold text-zinc-500 tracking-wider">

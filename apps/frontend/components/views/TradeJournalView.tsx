@@ -1,4 +1,7 @@
-﻿import React, { useEffect, useState } from 'react';
+
+import { TradingApiClient } from "../../lib/TradingApiClient";
+
+import React, { useEffect, useState } from 'react';
 
 interface AssetMetric {
   symbol: string;
@@ -13,15 +16,15 @@ export default function TradeJournalView() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8080/api/analytics/performance')
-      .then((res) => res.json())
-      .then((data) => {
+    TradingApiClient.get('/api/analytics/performance')
+      .then((res: Response) => res.json())
+      .then((data: any) => {
         if (data.status === 'success' && data.assetMetrics) {
           setMetrics(data.assetMetrics);
         }
         setLoading(false);
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error("Failed fetching ledger data:", err);
         setLoading(false);
       });

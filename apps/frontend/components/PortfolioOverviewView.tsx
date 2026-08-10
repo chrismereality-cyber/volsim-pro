@@ -1,34 +1,41 @@
-﻿'use client';
-import React, { useEffect, useState } from 'react';
-import { useGlobalState } from '../src/context/GlobalStateContext';
+'use client';
+
+import React from "react";
+import { useTradingStore } from "../store/useTradingStore";
 
 const PortfolioOverviewView = () => {
-  const { sockets } = useGlobalState();
-  const [status, setStatus] = useState('Awaiting Link Handshake');
+    const connected = useTradingStore((state) => state.isFastApiConnected);
+    const balance = useTradingStore((state) => state.balance);
+    const equity = useTradingStore((state) => state.equity);
+    const floatingPl = useTradingStore((state) => state.floatingPl);
 
-  useEffect(() => {
-    // Check if the trading-state socket is ready and assign the listener
-    if (sockets && sockets['trading-state']) {
-      sockets['trading-state'].onmessage = (event) => {
-        try {
-          const payload = JSON.parse(event.data);
-          console.log('--- PAYLOAD RECEIVED ---', payload);
-          // Look for the specific confirmation from the backend
-          if (payload.status === 'active') {
-            setStatus('Active');
-          }
-        } catch (e) {
-          console.error('Error parsing WebSocket data', e);
-        }
-      };
-    }
-  }, [sockets]);
+    return (
+        <div className="space-y-3">
+            <h3 className="text-lg font-bold">
+                Portfolio Overview
+            </h3>
 
-  return (
-    <div>
-      <h3>Status: {status}</h3>
-    </div>
-  );
+            <div>
+                <strong>Connection:</strong>{" "}
+                {connected ? "FASTAPI ONLINE" : "DISCONNECTED"}
+            </div>
+
+            <div>
+                <strong>Balance:</strong>{" "}
+                {balance ?? "--"}
+            </div>
+
+            <div>
+                <strong>Equity:</strong>{" "}
+                {equity ?? "--"}
+            </div>
+
+            <div>
+                <strong>Floating P/L:</strong>{" "}
+                {floatingPl ?? "--"}
+            </div>
+        </div>
+    );
 };
 
 export default PortfolioOverviewView;
