@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import {
@@ -6,7 +6,6 @@ import {
   BarChart3, BookOpen, LineChart, History, Coins, ShieldCheck
 } from 'lucide-react';
 
-import { useDataStream } from '../hooks/useDataStream';
 import { useTradingStore } from '../store/useTradingStore';
 
 // Standalone views
@@ -26,11 +25,14 @@ import SystemSettingsView from '../components/views/SystemSettingsView';
 
 export default function EnterpriseShell() {
   const [activeTab, setActiveTab] = useState('overview');
-  const isFastApiConnected = useTradingStore((state) => state.isFastApiConnected);
-  const theme = useTradingStore((state) => state.theme);
 
-  // Initialize background streaming sockets
-  useDataStream();
+  const isFastApiConnected = useTradingStore(
+    (state) => state.isFastApiConnected
+  );
+
+  const theme = useTradingStore(
+    (state) => state.theme
+  );
 
   const navigationItems = [
     { id: "overview", name: "Overview Console", icon: TrendingUp },
@@ -48,7 +50,6 @@ export default function EnterpriseShell() {
     { id: "settings", name: "System Settings", icon: SettingsIcon }
   ];
 
-  // Map theme styles across structural layout hulls
   const getShellBg = () => {
     if (theme === 'light') return 'bg-zinc-100 text-zinc-900';
     if (theme === 'hacker') return 'bg-black text-emerald-400 font-mono';
@@ -62,23 +63,46 @@ export default function EnterpriseShell() {
   };
 
   return (
-    <div className={`flex h-screen w-screen overflow-hidden transition-colors duration-300 ${getShellBg()}`}>
-      <aside className={`w-64 border-r flex flex-col justify-between p-4 flex-shrink-0 ${getAsideBg()}`}>
+    <div
+      className={`flex h-screen w-screen overflow-hidden transition-colors duration-300 ${getShellBg()}`}
+    >
+      <aside
+        className={`w-64 border-r flex flex-col justify-between p-4 flex-shrink-0 ${getAsideBg()}`}
+      >
         <div>
           <div className="flex flex-col gap-1 px-2 mb-6">
-            <h1 className={`text-md font-black tracking-tighter ${theme === 'light' ? 'text-zinc-900' : 'text-white'}`}>VOLSIM-PRO</h1>
-            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Enterprise Edition</span>
+            <h1
+              className={`text-md font-black tracking-tighter ${
+                theme === 'light'
+                  ? 'text-zinc-900'
+                  : 'text-white'
+              }`}
+            >
+              VOLSIM-PRO
+            </h1>
+
+            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+              Enterprise Edition
+            </span>
           </div>
+
           <nav className="flex flex-col gap-1 overflow-y-auto max-h-[calc(100vh-140px)] primitive-scroll space-y-0.5">
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isSelected = activeTab === item.id;
 
-              let btnClass = isSelected ? "bg-zinc-900 text-emerald-400 border border-zinc-800" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50";
+              let btnClass = isSelected
+                ? "bg-zinc-900 text-emerald-400 border border-zinc-800"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50";
+
               if (theme === 'light') {
-                btnClass = isSelected ? "bg-zinc-200 text-zinc-900 font-bold border border-zinc-300" : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100";
+                btnClass = isSelected
+                  ? "bg-zinc-200 text-zinc-900 font-bold border border-zinc-300"
+                  : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100";
               } else if (theme === 'hacker') {
-                btnClass = isSelected ? "bg-emerald-950/20 text-emerald-400 border border-emerald-500" : "text-emerald-600 hover:text-emerald-400";
+                btnClass = isSelected
+                  ? "bg-emerald-950/20 text-emerald-400 border border-emerald-500"
+                  : "text-emerald-600 hover:text-emerald-400";
               }
 
               return (
@@ -87,18 +111,41 @@ export default function EnterpriseShell() {
                   onClick={() => setActiveTab(item.id)}
                   className={`flex items-center gap-3 px-3 py-2 rounded text-xs font-medium font-mono tracking-tight transition-all text-left ${btnClass}`}
                 >
-                  <Icon className={`w-4 h-4 ${theme === 'hacker' ? 'text-emerald-600' : 'text-zinc-500'}`} />
+                  <Icon
+                    className={`w-4 h-4 ${
+                      theme === 'hacker'
+                        ? 'text-emerald-600'
+                        : 'text-zinc-500'
+                    }`}
+                  />
+
                   {item.name}
                 </button>
               );
             })}
           </nav>
         </div>
-        <div className={`border-t pt-4 px-2 flex flex-col gap-2 flex-shrink-0 ${theme === 'light' ? 'border-zinc-200' : 'border-zinc-900'}`}>
+
+        <div
+          className={`border-t pt-4 px-2 flex flex-col gap-2 flex-shrink-0 ${
+            theme === 'light'
+              ? 'border-zinc-200'
+              : 'border-zinc-900'
+          }`}
+        >
           <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${isFastApiConnected ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isFastApiConnected
+                  ? "bg-emerald-500 animate-pulse"
+                  : "bg-rose-500"
+              }`}
+            />
+
             <span className="text-[10px] font-mono uppercase text-zinc-400">
-              {isFastApiConnected ? "FASTAPI PORT 10000 LIVE" : "FASTAPI DISCONNECTED"}
+              {isFastApiConnected
+                ? "FASTAPI PORT 10000 LIVE"
+                : "FASTAPI DISCONNECTED"}
             </span>
           </div>
         </div>
@@ -122,4 +169,3 @@ export default function EnterpriseShell() {
     </div>
   );
 }
-
