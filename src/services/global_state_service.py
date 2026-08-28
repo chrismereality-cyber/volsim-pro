@@ -1,8 +1,11 @@
-import time
+﻿import time
 
 from src.services.mt5_service import mt5_service
 from src.services.execution_service import execution_service
 from src.services.vault_service import vault_service
+from src.services.capital_allocation_service import (
+    capital_allocation_service
+)
 from src.services.oms_service import oms_service
 from src.services.telemetry_service import telemetry_service
 from src.services.ai_service import ai_service
@@ -28,7 +31,9 @@ class GlobalStateOrchestrator:
     def snapshot(self):
 
         #
+        # --------------------------------------------------------------
         # MT5 DATA SOURCE
+        # --------------------------------------------------------------
         #
 
         account = mt5_service.get_account_state()
@@ -43,7 +48,9 @@ class GlobalStateOrchestrator:
 
 
         #
+        # --------------------------------------------------------------
         # PORTFOLIO STATE
+        # --------------------------------------------------------------
         #
 
         if portfolio_service:
@@ -54,137 +61,239 @@ class GlobalStateOrchestrator:
 
             portfolio = {
 
-                "balance": account.get("balance", 0.0),
+                "balance":
+                    account.get(
+                        "balance",
+                        0.0
+                    ),
 
-                "equity": account.get("equity", 0.0),
+                "equity":
+                    account.get(
+                        "equity",
+                        0.0
+                    ),
 
-                "floating_pl": 0.0,
+                "floating_pl":
+                    0.0,
 
-                "realized_pl": 0.0,
+                "realized_pl":
+                    0.0,
 
-                "daily_pl": 0.0,
+                "daily_pl":
+                    0.0,
 
-                "weekly_pl": 0.0,
+                "weekly_pl":
+                    0.0,
 
-                "monthly_pl": 0.0,
+                "monthly_pl":
+                    0.0,
 
-                "exposure": positions.get(
-                    "total_exposure",
-                    0.0
-                ),
-
-                "allocations": {},
-
-                "open_positions": len(
+                "exposure":
                     positions.get(
-                        "open_positions",
-                        []
+                        "total_exposure",
+                        0.0
+                    ),
+
+                "allocations":
+                    {},
+
+                "open_positions":
+                    len(
+                        positions.get(
+                            "open_positions",
+                            []
+                        )
                     )
-                )
 
             }
 
 
         #
+        # --------------------------------------------------------------
+        # CAPITAL ALLOCATION STATE
+        # --------------------------------------------------------------
+        #
+        # CapitalAllocationService is the policy layer.
+        #
+        # Current policy:
+        #
+        #   70% -> productive trading equity
+        #   30% -> immutable vault
+        #
+        # observe_equity() only recognizes NEW growth above
+        # the high-water mark, preventing repeated snapshots
+        # from creating duplicate vault allocations.
+        #
+
+        current_equity = float(
+            portfolio.get(
+                "equity",
+                account.get(
+                    "equity",
+                    0.0
+                )
+            ) or 0.0
+        )
+
+        capital_allocation = (
+            capital_allocation_service.snapshot(
+                current_equity
+            )
+        )
+
+
+        #
+        # --------------------------------------------------------------
         # RISK STATE
+        # --------------------------------------------------------------
         #
 
+        if risk_engine_service:
+
+            risk_state = (
+                risk_engine_service.snapshot()
+            )
+
+        else:
+
+            risk_state = {
+                "status": "PENDING"
+            }
+
+
         #
-        # RISK STATE
-        #
-
-        risk_state = risk_engine_service.snapshot()
-
-
-
-        #
+        # --------------------------------------------------------------
         # STATISTICS STATE
+        # --------------------------------------------------------------
         #
 
+        if statistics_service:
+
+            statistics_state = (
+                statistics_service.snapshot()
+            )
+
+        else:
+
+            statistics_state = {
+                "status": "PENDING"
+            }
+
+
         #
-        # STATISTICS STATE
-        #
-
-        statistics_state = statistics_service.snapshot()
-
-
-
-        #
+        # --------------------------------------------------------------
         # EXECUTION STATE
+        # --------------------------------------------------------------
         #
 
-        execution_state = execution_service.snapshot()
-
+        execution_state = (
+            execution_service.snapshot()
+        )
 
 
         #
+        # --------------------------------------------------------------
         # VAULT STATE
+        # --------------------------------------------------------------
         #
 
-        vault_state = vault_service.snapshot()
+        vault_state = (
+            vault_service.snapshot()
+        )
 
 
         #
+        # --------------------------------------------------------------
         # AI STATE
+        # --------------------------------------------------------------
         #
 
-        #
-        # AI STATE
-        #
-
-        ai_state = ai_service.snapshot()
-
+        ai_state = (
+            ai_service.snapshot()
+        )
 
 
         #
+        # --------------------------------------------------------------
         # TELEMETRY STATE
+        # --------------------------------------------------------------
         #
 
+        telemetry_state = (
+            telemetry_service.snapshot()
+        )
+
+
         #
-        # TELEMETRY STATE
+        # --------------------------------------------------------------
+        # GLOBAL STATE
+        # --------------------------------------------------------------
         #
-
-        telemetry_state = telemetry_service.snapshot()
-
-
 
         return {
 
-            "account_state": account,
+            "account_state":
+                account,
 
-            "market_state": market,
+            "market_state":
+                market,
 
-            "position_state": positions,
+            "position_state":
+                positions,
 
             "order_state": {
 
-                "pending_orders": orders,
+                "pending_orders":
+                    orders,
 
-                "count": len(orders),
+                "count":
+                    len(orders),
 
-                "oms": oms_service.snapshot()
+                "oms":
+                    oms_service.snapshot()
 
             },
 
-            "terminal_state": terminal,
+            "terminal_state":
+                terminal,
 
-            "portfolio_state": portfolio,
+            "portfolio_state":
+                portfolio,
 
-            "execution_state": execution_state,
+            #
+            # Explicit canonical capital allocation state.
+            #
+            # Allocation policy is sourced from:
+            #     src/config/allocation_policy.py
+            #
+            "capital_allocation_state":
+                capital_allocation,
 
-            "risk_state": risk_state,
+            "execution_state":
+                execution_state,
 
-            "statistics_state": statistics_state,
+            "risk_state":
+                risk_state,
 
-            "vault_state": vault_state,
+            "statistics_state":
+                statistics_state,
 
-            "ai_state": ai_state,
+            "vault_state":
+                vault_state,
 
-            "telemetry_state": telemetry_state,
+            "ai_state":
+                ai_state,
 
-            "timestamp": time.time()
+            "telemetry_state":
+                telemetry_state,
+
+            "timestamp":
+                time.time()
 
         }
 
 
-global_state_orchestrator = GlobalStateOrchestrator()
+global_state_orchestrator = (
+    GlobalStateOrchestrator()
+)
+

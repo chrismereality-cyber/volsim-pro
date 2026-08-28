@@ -1,18 +1,14 @@
-'use client';
+﻿'use client';
 
 import React, {
     createContext,
     useContext,
     useEffect,
+    useState,
 } from "react";
 
-import {
-    tradingSocket,
-} from "../../lib/TradingSocketManager";
-
-import {
-    useTradingStore,
-} from "../../store/useTradingStore";
+import { tradingSocket } from "../../lib/TradingSocketManager";
+import { useTradingStore } from "../../store/useTradingStore";
 
 type GlobalStateContextValue = {
     connected: boolean;
@@ -28,65 +24,51 @@ export const GlobalStateProvider = ({
 }: {
     children: React.ReactNode;
 }) => {
+    const updateTradingState = useTradingStore(
+        state => state.updateTradingState
+    );
 
-    const updateTradingState =
-        useTradingStore(
-            state => state.updateTradingState
-        );
+    const [connected, setConnected] = useState(false);
 
     useEffect(() => {
-
         console.log(
-            "[GLOBAL STATE] Subscribing to shared TradingSocketManager"
+            "[GLOBAL STATE] Connecting to shared TradingSocketManager"
         );
 
-        tradingSocket.connect(
-            "/ws/trading-state"
-        );
-
-        const unsubscribe =
-            tradingSocket.subscribe(
-                (payload) => {
-
-                    try {
-
-                        updateTradingState(payload);
-
-                    } catch (error) {
-
-                        console.error(
-                            "[GLOBAL STATE] Payload update failed",
-                            error
-                        );
-
-                    }
-
+        const unsubscribe = tradingSocket.subscribe(
+            (payload) => {
+                try {
+                    updateTradingState(payload);
+                    setConnected(true);
+                } catch (error) {
+                    console.error(
+                        "[GLOBAL STATE] Payload update failed",
+                        error
+                    );
                 }
-            );
+            }
+        );
 
-        return () => {
-
+return () => {
             unsubscribe();
 
             console.log(
                 "[GLOBAL STATE] Shared socket subscription removed"
             );
-
         };
-
     }, [updateTradingState]);
 
     return (
         <GlobalStateContext.Provider
             value={{
-                connected: true,
+                connected,
             }}
         >
             {children}
         </GlobalStateContext.Provider>
     );
-
 };
 
 export const useGlobalState = () =>
     useContext(GlobalStateContext);
+

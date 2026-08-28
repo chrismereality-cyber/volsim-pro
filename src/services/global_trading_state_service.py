@@ -1,4 +1,4 @@
-import time
+﻿import time
 
 from src.services.mt5_service import mt5_service
 from src.services.position_service import position_service
@@ -7,6 +7,8 @@ from src.services.risk_service import risk_engine_service
 from src.services.execution_service import execution_service
 from src.services.oms_service import oms_service
 from src.services.statistics_service import statistics_service
+from src.services.vault_service import vault_service
+from src.services.capital_allocation_service import capital_allocation_service
 
 from src.services.market_feature_service import market_feature_service
 from src.services.market_regime_service import market_regime_service
@@ -83,6 +85,31 @@ class GlobalTradingStateService:
 
         portfolio_state = (
             portfolio_service.get_portfolio_state()
+        )
+ 
+ 
+        #
+        # PROFIT ALLOCATION
+        #
+        # 70% -> Trading Equity
+        # 30% -> Immutable Vault
+        #
+        # VaultService owns the realized-profit watermark.
+        # Repeated snapshots therefore cannot allocate the
+        # same realized profit more than once.
+        #
+
+        realized_pl = float(
+            portfolio_state.get(
+                "realized_pl",
+                0.0
+            )
+        )
+
+        vault_allocation = (
+            vault_service.register_profit(
+                realized_pl
+            )
         )
 
 
@@ -265,8 +292,21 @@ class GlobalTradingStateService:
 
 
         #
+
+
+        #
+        # VAULT
+        #
+
+        vault_state = (
+            vault_service.snapshot()
+        )
+
+
+        #
         # FINAL GLOBAL STATE
         #
+
 
         return {
 
@@ -309,6 +349,9 @@ class GlobalTradingStateService:
             "execution_queue":
                 execution_queue_state,
 
+            "vault":
+                vault_state,
+
             "portfolio":
                 portfolio_state,
 
@@ -331,3 +374,12 @@ class GlobalTradingStateService:
 
 
 global_trading_state_service = GlobalTradingStateService()
+
+
+
+
+
+
+
+
+

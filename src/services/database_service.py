@@ -5,6 +5,7 @@ import asyncpg
 import ssl
 import asyncio
 import logging
+from contextlib import asynccontextmanager
 
 logger = logging.getLogger("volsim.database")
 
@@ -55,6 +56,25 @@ class DatabaseService:
 
 
 
+    @asynccontextmanager
+    async def transaction(self):
+        """
+        Provide a PostgreSQL transaction using the shared pool.
+
+        Every operation performed through the yielded connection
+        participates in the same atomic transaction.
+        """
+
+        pool = await self.connect()
+
+        async with pool.acquire() as conn:
+
+            async with conn.transaction():
+
+                yield conn
+
+
+
     async def execute(
         self,
         query,
@@ -83,6 +103,22 @@ class DatabaseService:
         async with pool.acquire() as conn:
 
             return await conn.fetch(
+                query,
+                *args
+            )
+
+
+    async def fetchrow(
+        self,
+        query,
+        *args
+    ):
+
+        pool = await self.connect()
+
+        async with pool.acquire() as conn:
+
+            return await conn.fetchrow(
                 query,
                 *args
             )

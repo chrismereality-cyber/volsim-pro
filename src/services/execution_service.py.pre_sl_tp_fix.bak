@@ -1,0 +1,935 @@
+import time
+import json
+import asyncio
+import logging
+import MetaTrader5 as mt5
+
+from src.services.mt5_bridge_service import mt5_bridge_service
+from src.services.mt5_service import mt5_service
+from src.services.risk_service import risk_engine_service
+from src.services.oms_service import oms_service
+from src.services.position_service import position_service
+from src.services.database_service import database_service
+
+
+import os
+logger = logging.getLogger("volsim.execution_service")
+
+
+class ExecutionService:
+    """
+    Enterprise Execution Service.
+
+    Owns:
+    - execution health
+    - bridge connectivity
+    - broker connectivity
+    - order execution telemetry
+
+    Does NOT own:
+    - portfolio calculations
+    - risk calculations
+    - statistics
+    - AI decisions
+    - vault logic
+    """
+
+
+    def __init__(self):
+
+        self.started_at = time.time()
+
+        self.orders_sent = 0
+        self.orders_filled = 0
+        self.orders_rejected = 0
+
+        self.last_order_time = None
+        self.last_fill_time = None
+        self.last_error = None
+
+        self.execution_latency_ms = 0
+
+        # Execution safety mode
+        #
+        # PAPER is the mandatory safe default.
+        # LIVE must be explicitly enabled through the environment.
+        #
+        configured_mode = os.getenv(
+            "VOLSIM_EXECUTION_MODE",
+            "PAPER"
+        ).strip().upper()
+
+        if configured_mode not in {"PAPER", "LIVE"}:
+            logger.warning(
+                "Invalid VOLSIM_EXECUTION_MODE=%r; "
+                "falling back to PAPER.",
+                configured_mode,
+            )
+            configured_mode = "PAPER"
+
+        self.execution_mode = configured_mode
+
+        logger.info(
+            "Execution mode initialized: %s",
+            self.execution_mode,
+        )
+
+
+
+    async def record_trade_ledger(
+        self,
+        order_request: dict,
+        result: dict,
+        status: str
+    ):
+
+        try:
+
+            await database_service.execute(
+                """
+                INSERT INTO trade_ledger
+                (
+                    id,
+                    trade_id,
+                    symbol,
+                    side,
+                    quantity,
+                    price,
+                    status,
+                    event_type,
+                    timestamp,
+                    metadata
+                )
+                VALUES
+                (
+                    gen_random_uuid(),
+                    $1,$2,$3,$4,$5,$6,$7,NOW(),$8
+                )
+                """,
+                str(
+                    result.get(
+                        "ticket",
+                        "UNKNOWN"
+                    )
+                ),
+                order_request.get(
+                    "symbol"
+                ),
+                order_request.get(
+                    "type"
+                ),
+                order_request.get(
+                    "volume",
+                    0
+                ),
+                result.get(
+                    "price",
+                    order_request.get(
+                        "price",
+                        0
+                    )
+                ),
+                status,
+                "EXECUTION",
+                json.dumps(result)
+            )
+
+        except Exception as e:
+
+            print(
+                "TRADE LEDGER INSERT ERROR:",
+                repr(e)
+            )
+
+            logger.error(
+                "Trade ledger insert failed: %s",
+                e
+            )
+
+
+
+
+    async def send_order(self, order_request: dict):
+
+        start = time.time()
+
+
+        order = oms_service.create_order(
+            order_request
+        )
+
+        order_id = order["order_id"]
+
+
+        try:
+
+            risk_result = risk_engine_service.approve_order(
+                order_request
+            )
+
+
+            if not risk_result.get("approved"):
+
+                self.orders_rejected += 1
+
+                self.last_error = risk_result.get(
+                    "reason",
+                    "Risk rejected"
+                )
+
+
+                oms_service.update_status(
+                    order_id,
+                    "REJECTED",
+                    risk_result
+                )
+
+
+                return {
+
+                    "success": False,
+
+                    "order_id": order_id,
+
+                    "reason": self.last_error,
+
+                    "risk": risk_result
+
+                }
+
+
+            if self.execution_mode == "PAPER":
+
+                self.orders_sent += 1
+                self.orders_filled += 1
+
+                self.last_order_time = time.time()
+                self.last_fill_time = time.time()
+
+                self.execution_latency_ms = round(
+                    (time.time() - start) * 1000,
+                    2
+                )
+
+                result = {
+
+                    "success": True,
+
+                    "mode": "PAPER",
+
+                    "ticket": "SIMULATED",
+
+                    "retcode": "SIMULATED_FILL",
+
+                    "price": order_request.get(
+                        "price",
+                        3300.0
+                    )
+
+                }
+
+
+                oms_service.update_status(
+                    order_id,
+                    "FILLED",
+                    result
+                )
+
+
+                await self.record_trade_ledger(
+                    order_request,
+                    result,
+                    "FILLED"
+                )
+
+
+                position = await position_service.open_position(
+                    result.get(
+                        "ticket",
+                        "SIMULATED"
+                    ),
+                    order_request,
+                    result
+                )
+
+
+                await position_service.persist_snapshot(
+                    position
+                )
+
+
+                return {
+
+                    "order_id": order_id,
+
+                    **result
+
+                }
+
+
+            # ----------------------------------------------------------
+            # Live broker execution contract
+            # ----------------------------------------------------------
+            #
+            # MT5Service owns the broker-specific symbol contract.
+            # ExecutionService consumes that contract but does not
+            # duplicate broker discovery logic.
+            # ----------------------------------------------------------
+
+            symbol = order_request.get("symbol")
+
+            context = mt5_service.get_symbol_execution_context(
+                symbol
+            )
+
+            if not context:
+
+                self.orders_rejected += 1
+
+                self.last_error = (
+                    f"Unable to obtain live MT5 execution context "
+                    f"for {symbol}"
+                )
+
+                oms_service.update_status(
+                    order_id,
+                    "REJECTED",
+                    {
+                        "success": False,
+                        "reason": self.last_error,
+                    }
+                )
+
+                return {
+                    "success": False,
+                    "order_id": order_id,
+                    "ticket": None,
+                    "message": self.last_error,
+                }
+
+            # ----------------------------------------------------------
+            # Normalize execution side
+            # ----------------------------------------------------------
+
+            order_type = order_request.get(
+                "type"
+            )
+
+            if order_type == "BUY":
+
+                mt5_order_type = mt5.ORDER_TYPE_BUY
+                execution_price = context.get(
+                    "ask",
+                    0.0
+                )
+
+            elif order_type == "SELL":
+
+                mt5_order_type = mt5.ORDER_TYPE_SELL
+                execution_price = context.get(
+                    "bid",
+                    0.0
+                )
+
+            else:
+
+                self.orders_rejected += 1
+
+                self.last_error = (
+                    f"Unsupported execution side: {order_type}"
+                )
+
+                oms_service.update_status(
+                    order_id,
+                    "REJECTED",
+                    {
+                        "success": False,
+                        "reason": self.last_error,
+                    }
+                )
+
+                return {
+                    "success": False,
+                    "order_id": order_id,
+                    "ticket": None,
+                    "message": self.last_error,
+                }
+
+            # ----------------------------------------------------------
+            # Broker price normalization
+            # ----------------------------------------------------------
+
+            digits = int(
+                context.get(
+                    "digits",
+                    5
+                )
+            )
+
+            execution_price = round(
+                float(execution_price),
+                digits
+            )
+
+            if execution_price <= 0:
+
+                self.orders_rejected += 1
+
+                self.last_error = (
+                    f"Invalid live execution price for {symbol}: "
+                    f"{execution_price}"
+                )
+
+                oms_service.update_status(
+                    order_id,
+                    "REJECTED",
+                    {
+                        "success": False,
+                        "reason": self.last_error,
+                    }
+                )
+
+                return {
+                    "success": False,
+                    "order_id": order_id,
+                    "ticket": None,
+                    "message": self.last_error,
+                }
+
+            # ----------------------------------------------------------
+            # Broker-supported filling mode
+            # ----------------------------------------------------------
+            #
+            # MT5 symbol_info().filling_mode is a bit mask.
+            #
+            # Prefer FOK when supported, otherwise IOC.
+            # This prevents the execution layer from inventing an
+            # unsupported broker filling policy.
+            # ----------------------------------------------------------
+
+            filling_flags = int(
+                context.get(
+                    "filling_mode",
+                    0
+                )
+            )
+
+            if filling_flags & 1:
+
+                type_filling = mt5.ORDER_FILLING_FOK
+
+            elif filling_flags & 2:
+
+                type_filling = mt5.ORDER_FILLING_IOC
+
+            else:
+
+                type_filling = None
+
+            # ----------------------------------------------------------
+            # Construct broker execution request
+            # ----------------------------------------------------------
+
+            request = {
+
+                "action":
+                    mt5.TRADE_ACTION_DEAL,
+
+                "symbol":
+                    symbol,
+
+                "volume":
+                    order_request.get(
+                        "volume",
+                        0.01
+                    ),
+
+                "type":
+                    mt5_order_type,
+
+                "price":
+                    execution_price,
+
+                "sl":
+                    order_request.get(
+                        "stop_loss",
+                        0
+                    ),
+
+                "tp":
+                    order_request.get(
+                        "take_profit",
+                        0
+                    ),
+
+                "deviation":
+                    20,
+
+                "magic":
+                    order_request.get(
+                        "magic",
+                        202607
+                    ),
+
+                "comment":
+                    order_request.get(
+                        "comment",
+                        "VolSim-Pro"
+                    ),
+            }
+
+            if type_filling is not None:
+
+                request["type_filling"] = type_filling
+
+            logger.info(
+                "Submitting live MT5 order: "
+                "%s %s %.4f @ %.5f",
+                order_type,
+                symbol,
+                float(
+                    order_request.get(
+                        "volume",
+                        0.01
+                    )
+                ),
+                execution_price,
+            )
+
+            # ----------------------------------------------------------
+            # PRE-TRADE BROKER VALIDATION
+            # ----------------------------------------------------------
+            #
+            # Validate the exact request with the MT5 trade server.
+            # order_check() does NOT execute the order.
+            #
+            # Only a successful check is allowed to reach order_send().
+            # ----------------------------------------------------------
+
+            check_result = mt5.order_check(request)
+
+            if check_result is None:
+
+                self.orders_rejected += 1
+
+                self.last_error = (
+                    "MT5 order_check returned no response"
+                )
+
+                logger.error(
+                    "MT5 order_check returned no response: "
+                    "order_id=%s error=%s",
+                    order_id,
+                    mt5.last_error(),
+                )
+
+                oms_service.update_status(
+                    order_id,
+                    "REJECTED",
+                    {
+                        "success": False,
+                        "stage": "ORDER_CHECK",
+                        "reason": self.last_error,
+                        "mt5_error": mt5.last_error(),
+                    }
+                )
+
+                return {
+                    "success": False,
+                    "order_id": order_id,
+                    "ticket": None,
+                    "stage": "ORDER_CHECK",
+                    "message": self.last_error,
+                    "mt5_error": mt5.last_error(),
+                }
+
+            if check_result.retcode != 0:
+
+                self.orders_rejected += 1
+
+                self.last_error = (
+                    f"MT5 order_check rejected request: "
+                    f"{check_result.retcode}"
+                )
+
+                logger.warning(
+                    "MT5 order_check rejected order %s: "
+                    "retcode=%s comment=%s",
+                    order_id,
+                    check_result.retcode,
+                    getattr(
+                        check_result,
+                        "comment",
+                        ""
+                    ),
+                )
+
+                oms_service.update_status(
+                    order_id,
+                    "REJECTED",
+                    {
+                        "success": False,
+                        "stage": "ORDER_CHECK",
+                        "retcode": check_result.retcode,
+                        "comment": getattr(
+                            check_result,
+                            "comment",
+                            ""
+                        ),
+                    }
+                )
+
+                return {
+                    "success": False,
+                    "order_id": order_id,
+                    "ticket": None,
+                    "stage": "ORDER_CHECK",
+                    "retcode": check_result.retcode,
+                    "comment": getattr(
+                        check_result,
+                        "comment",
+                        ""
+                    ),
+                    "message": self.last_error,
+                }
+
+            logger.info(
+                "MT5 order_check passed: "
+                "order_id=%s retcode=%s comment=%s",
+                order_id,
+                check_result.retcode,
+                getattr(
+                    check_result,
+                    "comment",
+                    ""
+                ),
+            )
+
+            # ----------------------------------------------------------
+            # SUBMIT VALIDATED LIVE ORDER
+            # ----------------------------------------------------------
+
+            result = mt5.order_send(request)
+
+            self.orders_sent += 1
+
+            self.last_order_time = time.time()
+
+            self.execution_latency_ms = round(
+                (time.time() - start) * 1000,
+                2
+            )
+
+            # ----------------------------------------------------------
+            # MT5 NO-RESPONSE PATH
+            # ----------------------------------------------------------
+
+            if result is None:
+
+                self.orders_rejected += 1
+
+                self.last_error = "No response from MT5"
+
+                logger.error(
+                    "MT5 order_send returned no response: "
+                    "order_id=%s error=%s",
+                    order_id,
+                    mt5.last_error(),
+                )
+
+                oms_service.update_status(
+                    order_id,
+                    "REJECTED",
+                    {
+                        "success": False,
+                        "stage": "ORDER_SEND",
+                        "reason": self.last_error,
+                        "mt5_error": mt5.last_error(),
+                    }
+                )
+
+                return {
+                    "success": False,
+                    "order_id": order_id,
+                    "ticket": None,
+                    "stage": "ORDER_SEND",
+                    "message": self.last_error,
+                    "mt5_error": mt5.last_error(),
+                }
+
+            # ----------------------------------------------------------
+            # SUCCESSFUL LIVE FILL
+            # ----------------------------------------------------------
+
+            if result.retcode == mt5.TRADE_RETCODE_DONE:
+
+                self.orders_filled += 1
+
+                self.last_fill_time = time.time()
+
+                execution_result = {
+
+                    "success": True,
+
+                    # Backward-compatible ticket field.
+                    "ticket": result.order,
+
+                    # Explicit broker identities.
+                    "order_ticket": result.order,
+
+                    "deal_ticket": result.deal,
+
+                    "retcode": result.retcode,
+
+                    "comment": getattr(
+                        result,
+                        "comment",
+                        ""
+                    ),
+
+                    "symbol": symbol,
+
+                    "side": order_type,
+
+                    "volume": float(
+                        getattr(
+                            result,
+                            "volume",
+                            order_request.get(
+                                "volume",
+                                0.01
+                            )
+                        )
+                    ),
+
+                    "price": float(
+                        getattr(
+                            result,
+                            "price",
+                            execution_price
+                        )
+                    ),
+
+                }
+
+                oms_service.update_status(
+                    order_id,
+                    "FILLED",
+                    execution_result
+                )
+
+                await self.record_trade_ledger(
+                    order_request,
+                    execution_result,
+                    "FILLED"
+                )
+
+                return {
+                    "order_id": order_id,
+                    **execution_result
+                }
+
+            # ----------------------------------------------------------
+            # BROKER REJECTION / NON-DONE RESULT
+            # ----------------------------------------------------------
+
+            self.orders_rejected += 1
+
+            self.last_error = str(
+                result.retcode
+            )
+
+            logger.warning(
+                "MT5 order rejected: "
+                "order_id=%s retcode=%s comment=%s",
+                order_id,
+                result.retcode,
+                getattr(
+                    result,
+                    "comment",
+                    ""
+                ),
+            )
+
+            oms_service.update_status(
+                order_id,
+                "REJECTED",
+                {
+                    "success": False,
+                    "stage": "ORDER_SEND",
+                    "retcode": result.retcode,
+                    "comment": getattr(
+                        result,
+                        "comment",
+                        ""
+                    ),
+                }
+            )
+
+            return {
+
+                "success": False,
+
+                "order_id": order_id,
+
+                "ticket": None,
+
+                "retcode": result.retcode,
+
+                "comment": getattr(
+                    result,
+                    "comment",
+                    ""
+                ),
+
+                "message": self.last_error
+
+            }
+
+
+        except Exception as e:
+
+            self.orders_rejected += 1
+
+            self.last_error = str(e)
+
+            logger.error(
+                "Order execution failed: %s",
+                e
+            )
+
+            oms_service.update_status(
+                order_id,
+                "FAILED",
+                {
+                    "error": str(e)
+                }
+            )
+
+
+            return {
+
+                "success": False,
+
+                "order_id": order_id,
+
+                "ticket": None,
+
+                "message": str(e)
+
+            }
+
+
+    def snapshot(self):
+
+        try:
+
+            bridge = mt5_bridge_service.snapshot()
+
+            bridge_status = bridge.get(
+                "status",
+                "unknown"
+            )
+
+
+            terminal = {}
+
+            try:
+                terminal = bridge.get(
+                    "terminal",
+                    {}
+                )
+            except Exception:
+                terminal = {}
+
+
+            connected = (
+                "ONLINE"
+                if bridge_status == "connected"
+                else "OFFLINE"
+            )
+
+
+            return {
+
+                "status": "ONLINE",
+
+                "engine_status": "ACTIVE",
+
+                "bridge_connection_status": connected,
+
+                "broker_connection_status": connected,
+
+                "execution_latency_ms": self.execution_latency_ms,
+
+                "broker_latency_ms": 0,
+
+                "slippage_average": 0,
+
+                "orders_sent": self.orders_sent,
+
+                "orders_filled": self.orders_filled,
+
+                "orders_rejected": self.orders_rejected,
+
+                "orders_pending": len(
+                    bridge.get(
+                        "positions",
+                        []
+                    )
+                ),
+
+                "last_order_time": self.last_order_time,
+
+                "last_fill_time": self.last_fill_time,
+
+                "last_error": self.last_error,
+
+                "execution_mode": self.execution_mode,
+
+                "heartbeat": time.time(),
+
+                "health_score": (
+                    100
+                    if connected == "ONLINE"
+                    else 50
+                ),
+
+                "uptime":
+                    round(
+                        time.time()
+                        -
+                        self.started_at,
+                        2
+                    )
+
+            }
+
+
+        except Exception as e:
+
+            logger.error(
+                "Execution snapshot failure: %s",
+                e
+            )
+
+            return {
+
+                "status": "ERROR",
+
+                "engine_status": "DEGRADED",
+
+                "bridge_connection_status": "UNKNOWN",
+
+                "broker_connection_status": "UNKNOWN",
+
+                "last_error": str(e),
+
+                "heartbeat": time.time(),
+
+                "health_score": 0
+
+            }
+
+
+execution_service = ExecutionService()

@@ -1,0 +1,295 @@
+﻿from __future__ import annotations
+
+import time
+from typing import Optional
+
+
+class VaultService:
+    """
+    VolSim-Pro Immutable Vault Service.
+
+    Responsibilities:
+    - Maintain immutable-vault accounting state.
+    - Calculate the equity/vault allocation split.
+    - Track pending vault allocations.
+    - Track cumulative allocations and transfers.
+    - Expose synchronization state to the global trading state.
+
+    Does NOT own:
+    - execution
+    - portfolio
+    - risk
+    - statistics
+    - AI
+    - telemetry
+    - counter-trend execution
+
+    Allocation policy:
+        70% -> Trading Equity
+        30% -> Immutable Vault
+
+    The 30% vault allocation is intentionally separated from
+    trading equity so that vault capital cannot silently become
+    available margin or trading capital.
+    """
+
+    EQUITY_ALLOCATION_PERCENT = 70.0
+    VAULT_ALLOCATION_PERCENT = 30.0
+
+    def __init__(self):
+
+        self.vault_balance = 0.0
+
+        self.pending_allocation = 0.0
+
+        self.total_allocated = 0.0
+
+        self.total_transferred = 0.0
+
+        self.wallet_address: Optional[str] = None
+
+        self.last_tx_hash: Optional[str] = None
+
+        self.blockchain_network: Optional[str] = None
+
+        self.last_sync_time: Optional[float] = None
+
+        self.sync_status = "PENDING"
+
+        self.status = "ONLINE"
+
+    # ------------------------------------------------------------------
+    # Allocation policy
+    # ------------------------------------------------------------------
+
+    def allocation_policy(self) -> dict:
+
+        return {
+            "equity_percentage":
+                self.EQUITY_ALLOCATION_PERCENT,
+
+            "vault_percentage":
+                self.VAULT_ALLOCATION_PERCENT,
+        }
+
+    # ------------------------------------------------------------------
+    # Profit allocation
+    # ------------------------------------------------------------------
+
+    def calculate_allocation(
+        self,
+        realized_profit: float,
+    ) -> dict:
+        """
+        Split realized profit according to the 70/30 compounding policy.
+
+        70% remains available to trading equity.
+        30% becomes an immutable-vault allocation.
+
+        Negative P/L does not create a vault allocation.
+        """
+
+        profit = max(
+            float(realized_profit),
+            0.0
+        )
+
+        equity_amount = round(
+            profit
+            * (
+                self.EQUITY_ALLOCATION_PERCENT
+                / 100.0
+            ),
+            2,
+        )
+
+        vault_amount = round(
+            profit
+            * (
+                self.VAULT_ALLOCATION_PERCENT
+                / 100.0
+            ),
+            2,
+        )
+
+        return {
+
+            "realized_profit":
+                round(profit, 2),
+
+            "equity_amount":
+                equity_amount,
+
+            "vault_amount":
+                vault_amount,
+
+            "equity_percentage":
+                self.EQUITY_ALLOCATION_PERCENT,
+
+            "vault_percentage":
+                self.VAULT_ALLOCATION_PERCENT,
+
+        }
+
+    # ------------------------------------------------------------------
+    # Register realized profit
+    # ------------------------------------------------------------------
+
+    def register_profit(
+        self,
+        realized_profit: float,
+    ) -> dict:
+        """
+        Register a realized profit event.
+
+        The vault portion is accumulated as pending allocation.
+        It is NOT exposed as trading margin.
+        """
+
+        allocation = self.calculate_allocation(
+            realized_profit
+        )
+
+        vault_amount = allocation["vault_amount"]
+
+        if vault_amount > 0:
+
+            self.pending_allocation = round(
+                self.pending_allocation
+                + vault_amount,
+                2,
+            )
+
+            self.total_allocated = round(
+                self.total_allocated
+                + vault_amount,
+                2,
+            )
+
+            self.sync_status = "PENDING"
+
+        return allocation
+
+    # ------------------------------------------------------------------
+    # Mark vault transfer
+    # ------------------------------------------------------------------
+
+    def record_transfer(
+        self,
+        amount: float,
+        tx_hash: Optional[str] = None,
+        blockchain_network: Optional[str] = None,
+    ) -> dict:
+        """
+        Record a successful immutable-vault transfer.
+
+        This does not interact with a blockchain itself.
+        It records the result supplied by the blockchain adapter.
+        """
+
+        transfer_amount = max(
+            float(amount),
+            0.0
+        )
+
+        transfer_amount = min(
+            transfer_amount,
+            self.pending_allocation
+        )
+
+        self.pending_allocation = round(
+            self.pending_allocation
+            - transfer_amount,
+            2,
+        )
+
+        self.vault_balance = round(
+            self.vault_balance
+            + transfer_amount,
+            2,
+        )
+
+        self.total_transferred = round(
+            self.total_transferred
+            + transfer_amount,
+            2,
+        )
+
+        if tx_hash:
+            self.last_tx_hash = tx_hash
+
+        if blockchain_network:
+            self.blockchain_network = (
+                blockchain_network
+            )
+
+        self.last_sync_time = time.time()
+
+        self.sync_status = (
+            "SYNCED"
+            if self.pending_allocation <= 0
+            else "PENDING"
+        )
+
+        return self.snapshot()
+
+    # ------------------------------------------------------------------
+    # Snapshot
+    # ------------------------------------------------------------------
+
+    def snapshot(self) -> dict:
+
+        return {
+
+            "status":
+                self.status,
+
+            "vault_balance":
+                round(
+                    self.vault_balance,
+                    2
+                ),
+
+            "pending_allocation":
+                round(
+                    self.pending_allocation,
+                    2
+                ),
+
+            "total_allocated":
+                round(
+                    self.total_allocated,
+                    2
+                ),
+
+            "total_transferred":
+                round(
+                    self.total_transferred,
+                    2
+                ),
+
+            "equity_percentage":
+                self.EQUITY_ALLOCATION_PERCENT,
+
+            "vault_percentage":
+                self.VAULT_ALLOCATION_PERCENT,
+
+            "sync_status":
+                self.sync_status,
+
+            "wallet_address":
+                self.wallet_address,
+
+            "last_tx_hash":
+                self.last_tx_hash,
+
+            "blockchain_network":
+                self.blockchain_network,
+
+            "last_sync_time":
+                self.last_sync_time,
+
+        }
+
+
+vault_service = VaultService()
