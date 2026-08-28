@@ -1,0 +1,403 @@
+﻿from pathlib import Path
+import ast
+import sys
+
+TARGET = Path(r"src\services\execution_service.py")
+
+print("=" * 62)
+print("VOLSIM-PRO STEP 3J.9.21")
+print("POST-REBUILD EXECUTION INTEGRITY AUDIT")
+print("=" * 62)
+
+if not TARGET.exists():
+    print(f"FAIL - target not found: {TARGET}")
+    sys.exit(1)
+
+source = TARGET.read_text(encoding="utf-8")
+
+# ============================================================
+# AST PARSE
+# ============================================================
+
+try:
+    tree = ast.parse(source)
+except SyntaxError as e:
+    print(f"FAIL - execution_service.py syntax error: {e}")
+    sys.exit(1)
+
+print("PASS - execution_service.py parses successfully.")
+
+# ============================================================
+# FIND send_order()
+# ============================================================
+
+send_order = None
+
+for node in ast.walk(tree):
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        if node.name == "send_order":
+            send_order = node
+            break
+
+if send_order is None:
+    print("FAIL - send_order() not found.")
+    sys.exit(1)
+
+print(
+    f"PASS - send_order() found: "
+    f"lines {send_order.lineno}-{send_order.end_lineno}"
+)
+
+# ============================================================
+# SOURCE HELPERS
+# ============================================================
+
+def node_text(node):
+    return ast.get_source_segment(source, node) or ""
+
+def contains(text, *terms):
+    return all(term in text for term in terms)
+
+# ============================================================
+# COLLECT EXECUTABLE CALLS
+# ============================================================
+
+calls = {}
+
+for node in ast.walk(send_order):
+
+    if not isinstance(node, ast.Call):
+        continue
+
+    text = node_text(node)
+
+    if "oms_service.create_order(" in text:
+        calls.setdefault("oms_create", []).append(node.lineno)
+
+    if "risk_engine_service.approve_order(" in text:
+        calls.setdefault("risk", []).append(node.lineno)
+
+    if "execution_guard_service.evaluate(" in text:
+        calls.setdefault("market_guard", []).append(node.lineno)
+
+    if "mt5.order_check(" in text:
+        calls.setdefault("order_check", []).append(node.lineno)
+
+    if "mt5.order_send(" in text:
+        calls.setdefault("order_send", []).append(node.lineno)
+
+    if "position_service.open_position(" in text:
+        calls.setdefault("position_open", []).append(node.lineno)
+
+    if "position_service.persist_snapshot(" in text:
+        calls.setdefault("position_snapshot", []).append(node.lineno)
+
+    if "oms_service.update_status(" in text:
+        calls.setdefault("oms_update", []).append(node.lineno)
+
+    if "record_trade_ledger(" in text:
+        calls.setdefault("trade_ledger", []).append(node.lineno)
+
+    if "_finalize_execution_idempotency(" in text:
+        calls.setdefault("idempotency_finalize", []).append(node.lineno)
+
+    if "_release_execution_idempotency(" in text:
+        calls.setdefault("idempotency_release", []).append(node.lineno)
+
+print("")
+print("===== EXECUTABLE CALL INVENTORY =====")
+
+for key in [
+    "oms_create",
+    "risk",
+    "market_guard",
+    "order_check",
+    "order_send",
+    "position_open",
+    "position_snapshot",
+    "oms_update",
+    "trade_ledger",
+    "idempotency_finalize",
+    "idempotency_release",
+]:
+    values = calls.get(key, [])
+    print(f"{key:24}: {values}")
+
+# ============================================================
+# REQUIRED EXECUTION CALLS
+# ============================================================
+
+required = [
+    "oms_create",
+    "risk",
+    "market_guard",
+    "order_check",
+    "order_send",
+]
+
+for key in required:
+
+    if len(calls.get(key, [])) != 1:
+
+        print(
+            f"FAIL - expected exactly one executable "
+            f"{key} call, found {len(calls.get(key, []))}."
+        )
+
+        sys.exit(1)
+
+print("")
+print("PASS - required executable call count is correct.")
+
+# ============================================================
+# EXECUTION ORDER
+# ============================================================
+
+oms_line = calls["oms_create"][0]
+risk_line = calls["risk"][0]
+guard_line = calls["market_guard"][0]
+check_line = calls["order_check"][0]
+send_line = calls["order_send"][0]
+
+# Authorization is identified separately below.
+authorization_lines = []
+
+for node in ast.walk(send_order):
+
+    if isinstance(node, ast.Assign):
+
+        text = node_text(node)
+
+        if "live_transmission_authorized" in text:
+            authorization_lines.append(node.lineno)
+
+authorization_lines = sorted(set(authorization_lines))
+
+if len(authorization_lines) != 1:
+    print(
+        "FAIL - expected exactly one "
+        "live_transmission_authorized assignment."
+    )
+    sys.exit(1)
+
+authorization_line = authorization_lines[0]
+
+print("")
+print("===== EXECUTION ORDER =====")
+print(f"OMS create       : {oms_line}")
+print(f"authorization    : {authorization_line}")
+print(f"risk approval    : {risk_line}")
+print(f"market context   : {guard_line}")
+print(f"order_check()    : {check_line}")
+print(f"order_send()     : {send_line}")
+
+if not (
+    oms_line
+    < authorization_line
+    < risk_line
+    < guard_line
+    < check_line
+    < send_line
+):
+
+    print("FAIL - execution ordering is incorrect.")
+    sys.exit(1)
+
+print("PASS - complete execution ordering is correct.")
+
+# ============================================================
+# AUTHORIZATION SAFETY
+# ============================================================
+
+if "live_transmission_authorized" not in source:
+    print("FAIL - authorization field missing.")
+    sys.exit(1)
+
+if "is True" not in source:
+    print(
+        "FAIL - literal True authorization requirement missing."
+    )
+    sys.exit(1)
+
+print("PASS - explicit literal-True authorization remains present.")
+
+# ============================================================
+# PAPER MODE
+# ============================================================
+
+if 'self.execution_mode == "PAPER"' not in source:
+    print("FAIL - PAPER execution branch missing.")
+    sys.exit(1)
+
+print("PASS - PAPER execution branch remains present.")
+
+# ============================================================
+# MT5 REQUEST CONSTRUCTION
+# ============================================================
+
+request_assignments = []
+
+for node in ast.walk(send_order):
+
+    if isinstance(node, ast.Assign):
+
+        text = node_text(node)
+
+        if "mt5.TRADE_ACTION_DEAL" in text:
+            request_assignments.append(node)
+
+if len(request_assignments) != 1:
+    print(
+        "FAIL - expected exactly one MT5 trade request construction."
+    )
+    sys.exit(1)
+
+print("PASS - MT5 trade request construction remains present.")
+
+# ============================================================
+# ORDER_CHECK RESULT HANDLING
+# ============================================================
+
+if "order_check_result" not in source:
+    print("FAIL - order_check_result handling missing.")
+    sys.exit(1)
+
+if "order_check_retcode" not in source:
+    print("FAIL - order_check retcode validation missing.")
+    sys.exit(1)
+
+if "order_check_retcode != 0" not in source:
+    print("FAIL - order_check rejection condition missing.")
+    sys.exit(1)
+
+print("PASS - order_check result validation remains present.")
+
+# ============================================================
+# ORDER_SEND RESULT HANDLING
+# ============================================================
+
+if "result = mt5.order_send(request)" not in source:
+    print("FAIL - executable order_send assignment missing.")
+    sys.exit(1)
+
+if "result.retcode" not in source:
+    print("FAIL - broker result retcode handling missing.")
+    sys.exit(1)
+
+print("PASS - order_send result handling remains present.")
+
+# ============================================================
+# BROKER TRANSMISSION STATE
+# ============================================================
+
+if "broker_transmission_started" not in source:
+    print("FAIL - transmission state tracking missing.")
+    sys.exit(1)
+
+if "TRANSMISSION_UNKNOWN" not in source:
+    print("FAIL - TRANSMISSION_UNKNOWN handling missing.")
+    sys.exit(1)
+
+print("PASS - transmission uncertainty handling remains present.")
+
+# ============================================================
+# OMS LIFECYCLE
+# ============================================================
+
+if len(calls.get("oms_update", [])) == 0:
+    print("FAIL - OMS status updates are missing.")
+    sys.exit(1)
+
+print(
+    "PASS - OMS lifecycle status updates remain present."
+)
+
+# ============================================================
+# IDEMPOTENCY
+# ============================================================
+
+if len(calls.get("idempotency_finalize", [])) == 0:
+    print("FAIL - idempotency finalization missing.")
+    sys.exit(1)
+
+if len(calls.get("idempotency_release", [])) == 0:
+    print("FAIL - idempotency release missing.")
+    sys.exit(1)
+
+print("PASS - idempotency finalize/release paths remain present.")
+
+# ============================================================
+# POSITION LIFECYCLE
+# ============================================================
+
+if len(calls.get("position_open", [])) == 0:
+    print("FAIL - position opening lifecycle missing.")
+    sys.exit(1)
+
+print("PASS - position opening lifecycle remains present.")
+
+if len(calls.get("position_snapshot", [])) == 0:
+    print(
+        "WARNING - position snapshot persistence call not found."
+    )
+else:
+    print(
+        "PASS - position snapshot persistence remains present."
+    )
+
+# ============================================================
+# TRADE LEDGER
+# ============================================================
+
+if len(calls.get("trade_ledger", [])) == 0:
+    print(
+        "WARNING - durable trade ledger call not found."
+    )
+else:
+    print(
+        "PASS - durable trade ledger path remains present."
+    )
+
+# ============================================================
+# EXCEPTION HANDLING
+# ============================================================
+
+outer_try_found = False
+
+for node in send_order.body:
+
+    if isinstance(node, ast.Try):
+        outer_try_found = True
+        break
+
+if not outer_try_found:
+    print("FAIL - send_order() outer exception boundary missing.")
+    sys.exit(1)
+
+print("PASS - send_order() exception boundary remains present.")
+
+# ============================================================
+# NO SOURCE MODIFICATION
+# ============================================================
+
+print("")
+print("=" * 62)
+print("STEP 3J.9.21 INTEGRITY AUDIT PASSED")
+print("=" * 62)
+print("")
+print("Structural execution order is valid.")
+print("Authorization safety is present.")
+print("PAPER branch is present.")
+print("MT5 order_check() validation is present.")
+print("MT5 order_send() result handling is present.")
+print("Transmission uncertainty handling is present.")
+print("OMS lifecycle remains present.")
+print("Idempotency remains present.")
+print("Position lifecycle remains present.")
+print("")
+print("NO SOURCE WAS MODIFIED.")
+print("NO MT5 CONNECTION WAS OPENED.")
+print("NO BROKER ORDER WAS TRANSMITTED.")
+print("")
+print("NEXT: proceed to non-transmitting runtime tests only.")
+print("=" * 62)
