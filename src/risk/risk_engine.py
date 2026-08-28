@@ -1,7 +1,4 @@
-import asyncio
-import time
-
-from fastapi import (
+﻿from fastapi import (
     APIRouter,
     WebSocket,
     WebSocketDisconnect,
@@ -9,56 +6,142 @@ from fastapi import (
     Body,
 )
 
-from src.services.global_state_service import global_state_orchestrator
+from src.services.global_trading_state_service import (
+    global_trading_state_service,
+)
 
 router = APIRouter()
 
 
 @router.get("/telemetry")
 async def get_telemetry():
-    return global_state_orchestrator.snapshot()
+    return global_trading_state_service.snapshot()
 
 
 @router.get("/metrics")
 async def get_metrics():
-    return global_state_orchestrator.snapshot()
+    return global_trading_state_service.snapshot()
 
 
 @router.get("/analytics/performance")
 async def get_performance_analytics(
-    timeframe: str = Query("30D")
+    timeframe: str = Query("30D"),
 ):
 
-    state = global_state_orchestrator.snapshot()
+    state = global_trading_state_service.snapshot()
 
     return {
-
         "timeframe": timeframe,
-
         "performance_curve": [],
-
         "summary": state.get(
-            "statistics_state",
+            "statistics",
             {}
-        )
-
+        ),
     }
 
 
 @router.get("/risk/limits")
 async def risk_limits():
 
+    state = global_trading_state_service.snapshot()
+
+    account = state.get(
+        "account",
+        {}
+    )
+
+    portfolio = state.get(
+        "portfolio",
+        {}
+    )
+
+    equity = float(
+        account.get(
+            "equity",
+            portfolio.get(
+                "equity",
+                0.0
+            )
+        ) or 0.0
+    )
+
+    balance = float(
+        account.get(
+            "balance",
+            portfolio.get(
+                "balance",
+                0.0
+            )
+        ) or 0.0
+    )
+
+    max_daily_drawdown_percent = 5.0
+    risk_per_trade_percent = 1.0
+    max_position_size = 2.0
+
+    daily_loss_limit = round(
+        equity * (
+            max_daily_drawdown_percent / 100.0
+        ),
+        2
+    )
+
+    risk_per_trade_amount = round(
+        equity * (
+            risk_per_trade_percent / 100.0
+        ),
+        2
+    )
+
+    current_drawdown = float(
+        state.get(
+            "risk",
+            {}
+        ).get(
+            "current_drawdown",
+            0.0
+        ) or 0.0
+    )
+
+    circuit_breaker_active = (
+        current_drawdown >=
+        max_daily_drawdown_percent
+    )
+
     return {
 
-        "max_daily_drawdown": 5.0,
+        "balance":
+            balance,
 
-        "risk_per_trade": 1.0,
+        "equity":
+            equity,
 
-        "max_position_size": 2.0,
+        "max_daily_drawdown":
+            max_daily_drawdown_percent,
 
-        "daily_loss_limit": 500.0,
+        "risk_per_trade":
+            risk_per_trade_percent,
 
-        "circuit_breaker_active": False
+        "risk_per_trade_amount":
+            risk_per_trade_amount,
+
+        "max_position_size":
+            max_position_size,
+
+        "daily_loss_limit":
+            daily_loss_limit,
+
+        "daily_loss_limit_percent":
+            max_daily_drawdown_percent,
+
+        "current_drawdown":
+            current_drawdown,
+
+        "circuit_breaker_active":
+            circuit_breaker_active,
+
+        "status":
+            "ACTIVE"
 
     }
 
@@ -69,17 +152,14 @@ async def update_risk_config(
 ):
 
     return {
-
         "status": "success",
-
-        "updated_config": payload
-
+        "updated_config": payload,
     }
 
 
 @router.websocket("/trading-state")
 async def websocket_trading_state(
-    websocket: WebSocket
+    websocket: WebSocket,
 ):
 
     await websocket.accept()
@@ -88,16 +168,18 @@ async def websocket_trading_state(
 
         while True:
 
-            state = global_state_orchestrator.snapshot()
+            state = (
+                global_trading_state_service.snapshot()
+            )
 
-            await websocket.send_json(state)
+            await websocket.send_json(
+                state
+            )
+
+            import asyncio
 
             await asyncio.sleep(1)
 
     except WebSocketDisconnect:
 
         pass
-
-    except Exception as ex:
-
-        print(ex)

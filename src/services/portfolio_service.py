@@ -1,5 +1,6 @@
 from collections import defaultdict
 import logging
+import os
 
 from src.services.mt5_bridge_service import mt5_bridge_service
 from src.services.position_service import position_service
@@ -36,25 +37,64 @@ class PortfolioService:
         """
         return self.snapshot()
 
+    def _get_execution_mode(self) -> str:
+        """
+        Return the authoritative VolSim-Pro execution mode.
+
+        PAPER is the mandatory safe default.
+        LIVE must be explicitly enabled through the environment.
+        """
+
+        configured_mode = os.getenv(
+            "VOLSIM_EXECUTION_MODE",
+            "PAPER",
+        ).strip().upper()
+
+        if configured_mode not in {"PAPER", "LIVE"}:
+            logger.warning(
+                "Invalid VOLSIM_EXECUTION_MODE=%r; "
+                "falling back to PAPER.",
+                configured_mode,
+            )
+            return "PAPER"
+
+        return configured_mode
+
     def _get_positions(self) -> list:
         """
         Return positions from the authoritative PositionService.
 
-        PositionService tracks locally created PAPER positions and
-        synchronized LIVE MT5 positions.
+        PAPER mode:
+            PositionService is authoritative.
+            MT5 positions must never leak into PAPER state.
 
-        If no local positions exist, fall back to the MT5 bridge
-        snapshot so existing LIVE behaviour remains compatible.
+        LIVE mode:
+            PositionService remains authoritative when it contains
+            synchronized positions. If none exist, the MT5 bridge
+            remains the compatibility fallback.
         """
 
+        execution_mode = self._get_execution_mode()
+
         local_snapshot = position_service.snapshot()
-        local_positions = local_snapshot.get("open_positions", [])
+
+        local_positions = local_snapshot.get(
+            "open_positions",
+            [],
+        )
 
         if local_positions:
             return local_positions
 
+        if execution_mode == "PAPER":
+            return []
+
         mt5_snapshot = self.mt5_bridge.snapshot()
-        return mt5_snapshot.get("positions", [])
+
+        return mt5_snapshot.get(
+            "positions",
+            []
+        )
 
     def snapshot(self) -> dict:
         """
@@ -158,26 +198,55 @@ class PortfolioService:
                 in symbol_exposure.items()
             }
 
-        # For locally simulated PAPER positions, derive equity
-        # from account balance plus floating P/L.
+        # ----------------------------------------------------------
+        # Mode-aware account state
+        # ----------------------------------------------------------
         #
-        # For a LIVE account with no locally tracked positions,
-        # this remains compatible with the MT5 account equity.
-        if normalized_positions:
+        # PAPER mode:
+        #   - MT5 equity must never leak into PAPER risk state.
+        #   - Equity is derived from the PAPER balance plus local
+        #     floating P/L.
+        #   - MT5 margin/free-margin must never leak into PAPER state.
+        #
+        # LIVE mode:
+        #   - Preserve authoritative MT5 account equity/margin when
+        #     there are no locally synchronized positions.
+        #   - Preserve local position aggregation when positions exist.
+        #
+        execution_mode = self._get_execution_mode()
+
+        if execution_mode == "PAPER":
             equity = round(
                 balance + floating_pl,
                 2
             )
-        else:
-            equity = base_equity
 
-        calculated_free_margin = round(
-            equity - margin,
-            2
-        )
+            paper_margin = 0.0
 
-        if normalized_positions:
+            calculated_free_margin = round(
+                equity - paper_margin,
+                2
+            )
+
+            margin = paper_margin
             free_margin = calculated_free_margin
+
+        else:
+            if normalized_positions:
+                equity = round(
+                    balance + floating_pl,
+                    2
+                )
+
+                calculated_free_margin = round(
+                    equity - margin,
+                    2
+                )
+
+                free_margin = calculated_free_margin
+
+            else:
+                equity = base_equity
 
         return {
             "balance": balance,

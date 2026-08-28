@@ -1,0 +1,141 @@
+﻿"""
+VolSim-Pro Execution Guard
+--------------------------
+
+Central pre-execution safety gate.
+
+IMPORTANT:
+
+    This service does not call MT5 order_send().
+
+It only decides whether an execution request is permitted.
+
+Entry:
+    News filter can block.
+
+Exit:
+    Always permitted.
+
+Risk reduction:
+    Always permitted.
+
+Hedge:
+    Permitted when explicitly classified as risk reduction.
+
+Sentiment:
+    May modify an existing strategy signal.
+    Never independently creates an order.
+"""
+
+from __future__ import annotations
+
+from typing import Any, Dict, Optional
+
+from src.services.market_context_service import (
+    market_context_service,
+)
+
+
+class ExecutionGuardService:
+
+    ENTRY_ACTIONS = {
+        "ENTRY",
+        "OPEN",
+        "OPEN_LONG",
+        "OPEN_SHORT",
+        "BUY",
+        "SELL",
+    }
+
+    EXIT_ACTIONS = {
+        "EXIT",
+        "CLOSE",
+        "STOP",
+        "STOP_LOSS",
+        "TAKE_PROFIT",
+    }
+
+    RISK_ACTIONS = {
+        "HEDGE",
+        "REDUCE",
+        "RISK_REDUCTION",
+        "EMERGENCY",
+    }
+
+    def evaluate(
+        self,
+        symbol: str,
+        action: str,
+        strategy_signal: Optional[str] = None,
+    ) -> Dict[str, Any]:
+
+        normalized_action = (
+            str(
+                action
+            )
+            .upper()
+            .strip()
+        )
+
+        if normalized_action in (
+            self.EXIT_ACTIONS
+        ):
+
+            return {
+                "allowed": True,
+                "action": normalized_action,
+                "reason":
+                    "EXIT_ALWAYS_ALLOWED",
+            }
+
+        if normalized_action in (
+            self.RISK_ACTIONS
+        ):
+
+            return {
+                "allowed": True,
+                "action": normalized_action,
+                "reason":
+                    "RISK_REDUCTION_ALWAYS_ALLOWED",
+            }
+
+        if normalized_action in (
+            self.ENTRY_ACTIONS
+        ):
+
+            result = (
+                market_context_service.evaluate_entry(
+                    symbol=symbol,
+                    strategy_signal=(
+                        strategy_signal
+                        or normalized_action
+                    ),
+                )
+            )
+
+            result[
+                "action"
+            ] = normalized_action
+
+            return result
+
+        return {
+            "allowed": False,
+            "action": normalized_action,
+            "reason":
+                "UNKNOWN_EXECUTION_ACTION",
+        }
+
+    def status(self) -> Dict[str, Any]:
+
+        return {
+            "service":
+                "ExecutionGuardService",
+            "news_and_sentiment":
+                market_context_service.status(),
+        }
+
+
+execution_guard_service = (
+    ExecutionGuardService()
+)

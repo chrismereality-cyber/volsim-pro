@@ -1,11 +1,12 @@
-{
+﻿{
   "compilerOptions": {
+    "target": "ES2017",
     "lib": [
       "dom",
       "dom.iterable",
       "esnext"
     ],
-    "allowJs": true,
+    "allowJs": false,
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
@@ -24,13 +25,16 @@
   },
   "include": [
     "next-env.d.ts",
+    ".next/types/**/*.ts",
     "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts"
+    "**/*.tsx"
   ],
   "exclude": [
     "node_modules",
-    "**/*.backup.ts",
-    "backup_ws_migration"
+    ".next",
+    "backup_*",
+    "**/*.bak",
+    "**/*.backup",
+    "**/*.txt"
   ]
 }

@@ -1,89 +1,314 @@
-import React from 'react';
-import { TradingApiClient } from "../../lib/TradingApiClient";
+﻿'use client';
 
-async function getTelemetry() {
-    try {
-        const res = await TradingApiClient.get('/api/telemetry');
-        if (!res.ok) return null;
-        return await res.json();
-    } catch (e) {
-        return null;
-    }
-}
+import React from "react";
 
-export default async function Page() {
-    const data = await getTelemetry();
+import { useTradingStore } from "../../store/useTradingStore";
+import { useGlobalState } from "../context/GlobalStateContext";
 
-    const risk = data?.risk_state || {};
-    const pos = data?.position_state || {};
+export default function Page() {
+    const { connected } = useGlobalState();
 
-    const riskData = {
-        current_drawdown: Number(risk.current_drawdown ?? 0.0),
-        maximum_allowed_drawdown: Number(risk.maximum_allowed_drawdown ?? 5.0),
-        risk_exposure: Number(pos.total_exposure ?? 0.0),
-        risk_per_trade: Number(risk.risk_per_trade ?? 1.0),
-        hedge_status: risk.hedge_status ?? "INACTIVE",
-        margin_usage: Number(risk.margin_usage ?? 0.0),
-        liquidation_warning: Boolean(risk.liquidation_warning ?? false)
-    };
+    const balance = useTradingStore(
+    state => state.balance
+);
 
-    const isConnected = data !== null;
+const equity = useTradingStore(
+    state => state.equity
+);
 
-    return (
-        <main className="min-h-screen bg-slate-950 p-8 flex flex-col items-center justify-start font-mono text-slate-100">
-            <div className="w-full max-w-6xl space-y-8">
-                <header className="border-b border-slate-800 pb-4 flex justify-between items-center">
+const floatingPl = useTradingStore(
+    state => state.floatingPl
+);
+
+const currentDrawdown = useTradingStore(
+    state => state.currentDrawdown
+);
+
+const maxDrawdown = useTradingStore(
+    state => state.maxDrawdown
+);
+
+const winRate = useTradingStore(
+    state => state.winRate
+);
+
+const profitFactor = useTradingStore(
+    state => state.profitFactor
+);
+
+const expectancy = useTradingStore(
+    state => state.expectancy
+);
+
+const sharpeRatio = useTradingStore(
+    state => state.sharpeRatio
+);
+
+const totalTrades = useTradingStore(
+    state => state.totalTrades
+);
+
+const positions = useTradingStore(
+    state => state.positions
+);
+
+const riskPerTrade = useTradingStore(
+    state => state.riskPerTrade
+);
+
+const marginUsage = useTradingStore(
+    state => state.marginUsage
+);
+
+const liquidationWarning = useTradingStore(
+    state => state.liquidationWarning
+);
+
+const portfolioValue = useTradingStore(
+    state => state.portfolioValue
+);
+
+const netExposure = useTradingStore(
+    state => state.netExposure
+);
+
+const valueAtRisk = useTradingStore(
+    state => state.valueAtRisk
+);
+
+const riskStatus = useTradingStore(
+    state => state.riskStatus
+);
+
+const hedgingSignals = useTradingStore(
+    state => state.hedgingSignals
+);
+return (
+        <main className="min-h-screen bg-slate-950 p-8 text-slate-100 font-mono">
+            <div className="max-w-7xl mx-auto space-y-6">
+
+                <header className="border-b border-slate-800 pb-5 flex justify-between items-center">
                     <div>
-                        <h1 className="text-3xl font-black text-white tracking-wider">VOLSIM-PRO TERMINAL</h1>
-                        <p className="text-xs text-slate-400 mt-1">Live Algorithmic Bridge & Risk Telemetry (Server-Rendered)</p>
+                        <h1 className="text-3xl font-black tracking-wider text-white">
+                            VOLSIM-PRO TERMINAL
+                        </h1>
+
+                        <p className="text-xs text-slate-500 mt-1">
+                            GLOBAL TRADING STATE COMMAND CENTRE
+                        </p>
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <span className={`inline-block w-3 h-3 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></span>
-                        <span className="text-xs text-slate-400">{isConnected ? 'BACKEND CONNECTED' : 'BACKEND OFFLINE'}</span>
+
+                    <div className="flex items-center gap-2">
+                        <span
+                            className={`w-3 h-3 rounded-full ${
+                                connected
+                                    ? "bg-emerald-500 animate-pulse"
+                                    : "bg-red-500"
+                            }`}
+                        />
+
+                        <span className="text-xs text-slate-400">
+                            {connected
+                                ? "TRADING STATE ONLINE"
+                                : "CONNECTING"}
+                        </span>
                     </div>
                 </header>
 
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl w-full">
-                    <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
-                        <h3 className="text-xl font-bold tracking-wider text-amber-400">RISK MANAGEMENT</h3>
-                        <span className={`px-3 py-1 text-xs rounded-full font-semibold ${riskData.liquidation_warning ? 'bg-red-500/20 text-red-400 border border-red-500/50' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'}`}>
-                            {riskData.liquidation_warning ? 'LIQUIDATION WARNING' : 'SYSTEM SECURE'}
+                <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                        <p className="text-xs text-slate-500">
+                            BALANCE
+                        </p>
+
+                        <p className="text-2xl font-black mt-2">
+                            ${balance.toFixed(2)}
+                        </p>
+                    </div>
+
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                        <p className="text-xs text-slate-500">
+                            EQUITY
+                        </p>
+
+                        <p className="text-2xl font-black mt-2 text-emerald-400">
+                            ${equity.toFixed(2)}
+                        </p>
+                    </div>
+
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                        <p className="text-xs text-slate-500">
+                            XAUUSDm
+                        </p>
+
+                        <p className="text-2xl font-black mt-2 text-amber-400">
+                            {Number(0).toFixed(3)}
+                        </p>
+                    </div>
+
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                        <p className="text-xs text-slate-500">
+                            AI DECISION
+                        </p>
+
+                        <p className="text-2xl font-black mt-2">
+                            "WAIT"
+                        </p>
+                    </div>
+
+                </section>
+
+                <section className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-black tracking-wider text-amber-400">
+                            RISK MANAGEMENT
+                        </h2>
+
+                        <span
+                            className={`px-3 py-1 rounded-full text-xs ${
+                                liquidationWarning
+                                    ? "bg-red-500/20 text-red-400 border border-red-500/40"
+                                    : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                            }`}
+                        >
+                            {liquidationWarning
+                                ? "LIQUIDATION WARNING"
+                                : "SYSTEM SECURE"}
                         </span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                        <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
-                            <span className="text-xs text-slate-400 block mb-1">Current Drawdown</span>
-                            <span className="text-2xl font-black text-red-400">{riskData.current_drawdown.toFixed(2)}%</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+                        <div className="bg-slate-950 border border-slate-800 rounded-lg p-4">
+                            <p className="text-xs text-slate-500">
+                                CURRENT DRAWDOWN
+                            </p>
+
+                            <p className="text-xl font-bold text-red-400 mt-2">
+                                {Number(currentDrawdown).toFixed(2)}%
+                            </p>
                         </div>
 
-                        <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
-                            <span className="text-xs text-slate-400 block mb-1">Maximum Drawdown</span>
-                            <span className="text-2xl font-black text-slate-200">{riskData.maximum_allowed_drawdown.toFixed(2)}%</span>
+                        <div className="bg-slate-950 border border-slate-800 rounded-lg p-4">
+                            <p className="text-xs text-slate-500">
+                                MAXIMUM DRAWDOWN
+                            </p>
+
+                            <p className="text-xl font-bold mt-2">
+                                {maxDrawdown.toFixed(2)}%
+                            </p>
                         </div>
 
-                        <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
-                            <span className="text-xs text-slate-400 block mb-1">Risk Exposure</span>
-                            <span className="text-xl font-bold text-slate-200">${riskData.risk_exposure.toFixed(2)}</span>
+                        <div className="bg-slate-950 border border-slate-800 rounded-lg p-4">
+                            <p className="text-xs text-slate-500">
+                                EXPOSURE
+                            </p>
+
+                            <p className="text-xl font-bold text-sky-400 mt-2">
+                                ${Number(netExposure).toFixed(2)}
+                            </p>
                         </div>
 
-                        <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
-                            <span className="text-xs text-slate-400 block mb-1">Risk per Trade</span>
-                            <span className="text-xl font-bold text-sky-400">{riskData.risk_per_trade.toFixed(2)}%</span>
+                        <div className="bg-slate-950 border border-slate-800 rounded-lg p-4">
+                            <p className="text-xs text-slate-500">
+                                RISK / TRADE
+                            </p>
+
+                            <p className="text-xl font-bold text-indigo-400 mt-2">
+                                {riskPerTrade.toFixed(2)}%
+                            </p>
                         </div>
 
-                        <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
-                            <span className="text-xs text-slate-400 block mb-1">Hedge Status</span>
-                            <span className="text-lg font-bold text-indigo-400">{riskData.hedge_status}</span>
+                        <div className="bg-slate-950 border border-slate-800 rounded-lg p-4">
+                            <p className="text-xs text-slate-500">
+                                MARGIN USAGE
+                            </p>
+
+                            <p className="text-xl font-bold text-amber-300 mt-2">
+                                {marginUsage.toFixed(2)}%
+                            </p>
                         </div>
 
-                        <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
-                            <span className="text-xs text-slate-400 block mb-1">Margin Usage</span>
-                            <span className="text-xl font-bold text-amber-300">{riskData.margin_usage.toFixed(2)}%</span>
+                        <div className="bg-slate-950 border border-slate-800 rounded-lg p-4">
+                            <p className="text-xs text-slate-500">
+                                OPEN POSITIONS
+                            </p>
+
+                            <p className="text-xl font-bold mt-2">
+                                {Array.isArray(positions) ? positions.length : 0}
+                            </p>
                         </div>
+
+                        <div className="bg-slate-950 border border-slate-800 rounded-lg p-4">
+                            <p className="text-xs text-slate-500">
+                                EXECUTION
+                            </p>
+
+                            <p className="text-xl font-bold text-emerald-400 mt-2">
+                                {"UNIFIED ENGINE"}
+                            </p>
+                        </div>
+
+                        <div className="bg-slate-950 border border-slate-800 rounded-lg p-4">
+                            <p className="text-xs text-slate-500">
+                                MARKET REGIME
+                            </p>
+
+                            <p className="text-xl font-bold text-purple-400 mt-2">
+                                "WAITING"
+                            </p>
+                        </div>
+
                     </div>
-                </div>
+                </section>
+
+                <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                        <p className="text-xs text-slate-500">
+                            RSI
+                        </p>
+
+                        <p className="text-2xl font-black mt-2">
+                            0.00
+                        </p>
+                    </div>
+
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                        <p className="text-xs text-slate-500">
+                            ATR
+                        </p>
+
+                        <p className="text-2xl font-black mt-2">
+                            0.000
+                        </p>
+                    </div>
+
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                        <p className="text-xs text-slate-500">
+                            AI CONFIDENCE
+                        </p>
+
+                        <p className="text-2xl font-black mt-2 text-amber-400">
+                            "N/A"
+                        </p>
+                    </div>
+
+                </section>
+
             </div>
         </main>
     );
 }
+
+
+
+
+
+
+
+
+
+

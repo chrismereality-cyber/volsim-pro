@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 ﻿import { useTradingStore } from "../../store/useTradingStore";
 
 
@@ -36,45 +36,38 @@ export default function RegimeRobustnessView() {
 
 useEffect(() => {
 
-    tradingSocket.connect(
-        "/ws/trading-state",
-        (payload:any) => {
+const unsubscribe = tradingSocket.subscribe((payload: any) => {
 
-            if (!payload) {
-                return;
-            }
+        if (!payload) {
+            return;
+        }
 
-            setMetrics({
+        setMetrics({
+            regime_name:
+                payload.risk?.status || "ACTIVE",
 
-                regime_name:
-                    payload.risk?.status || "ACTIVE",
+            variance_sigma:
+                payload.risk?.value_at_risk || 0,
 
-                variance_sigma:
-                    payload.risk?.value_at_risk || 0,
+            var_1d_95:
+                payload.risk?.value_at_risk || 0,
 
-                var_1d_95:
-                    payload.risk?.value_at_risk || 0,
-
-                margin_viability:
-                    payload.risk?.margin_usage
+            margin_viability:
+                payload.risk?.margin_usage
                     ? 100 - payload.risk.margin_usage
                     : 100,
 
-                stress_liquidity_delta: 0,
+            stress_liquidity_delta: 0,
 
-                stress_black_swan_delta: 0
+            stress_black_swan_delta: 0
+        });
 
-            });
-
-            setConnected(true);
-
-        }
-    );
-
+        setConnected(true);
+    });
 
     return () => {
-};
-
+        unsubscribe();
+    };
 
 }, []);
 
@@ -149,3 +142,7 @@ return (
     </div>
   );
 }
+
+
+
+
