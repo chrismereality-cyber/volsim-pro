@@ -229,47 +229,7 @@ print("PASS - explicit literal-True authorization remains present.")
 # PAPER MODE
 # ============================================================
 
-# Detect PAPER execution structurally so either quote style is accepted:
-#     self.execution_mode == "PAPER"
-#     self.execution_mode == 'PAPER'
-paper_branch_found = False
-
-try:
-    production_tree = ast.parse(source)
-except SyntaxError:
-    production_tree = None
-
-if production_tree is not None:
-    for node in ast.walk(production_tree):
-        if not isinstance(node, ast.If):
-            continue
-
-        test = node.test
-
-        if not isinstance(test, ast.Compare):
-            continue
-
-        if len(test.ops) != 1 or not isinstance(test.ops[0], ast.Eq):
-            continue
-
-        if len(test.comparators) != 1:
-            continue
-
-        left = test.left
-        right = test.comparators[0]
-
-        if (
-            isinstance(left, ast.Attribute)
-            and isinstance(left.value, ast.Name)
-            and left.value.id == "self"
-            and left.attr == "execution_mode"
-            and isinstance(right, ast.Constant)
-            and right.value == "PAPER"
-        ):
-            paper_branch_found = True
-            break
-
-if not paper_branch_found:
+if 'self.execution_mode == "PAPER"' not in source:
     print("FAIL - PAPER execution branch missing.")
     sys.exit(1)
 

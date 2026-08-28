@@ -1,4 +1,4 @@
-﻿import time
+import time
 import uuid
 import json
 import asyncio
