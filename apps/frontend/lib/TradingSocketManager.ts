@@ -1,10 +1,13 @@
-﻿import { TradingApiClient } from "./TradingApiClient";
+import { TradingApiClient } from "./TradingApiClient";
 
 type Listener = (payload: any) => void;
 
+type SocketStatus =
+    | "CONNECTED"
+    | "DISCONNECTED";
+
 export class TradingSocketManager {
     private socket: WebSocket | null = null;
-
     private listeners: Listener[] = [];
 
     private endpoint = "/ws/trading-state";
@@ -12,16 +15,17 @@ export class TradingSocketManager {
     private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
     private reconnectDelay = 1000;
-
-    private maxReconnectDelay = 10000;
+    private readonly maxReconnectDelay = 10000;
 
     private manuallyClosed = false;
 
-    connect(
-        endpoint: string = "/ws/trading-state"
-    ) {
+    connect(endpoint: string = "/ws/trading-state") {
         this.endpoint = endpoint;
         this.manuallyClosed = false;
+
+        if (typeof window === "undefined") {
+            return;
+        }
 
         if (
             this.socket &&
@@ -33,53 +37,47 @@ export class TradingSocketManager {
             return;
         }
 
-        if (typeof window === "undefined") {
-            return;
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = null;
         }
 
+        const wsUrl = TradingApiClient.ws(this.endpoint);
+
         console.log(
-            `[VOLSIM] Connecting to ${TradingApiClient.ws(this.endpoint)}`
+            `[VOLSIM] Connecting to shared trading state: ${wsUrl}`
         );
 
-        this.socket = new WebSocket(
-            TradingApiClient.ws(this.endpoint)
-        );
+        const socket = new WebSocket(wsUrl);
 
-        this.socket.onopen = () => {
+        this.socket = socket;
+
+        socket.onopen = () => {
+            if (this.socket !== socket) {
+                socket.close();
+                return;
+            }
+
             console.log(
                 "[VOLSIM] Global Trading State Connected"
             );
 
             this.reconnectDelay = 1000;
 
-            this.listeners.forEach(listener => {
-                try {
-                    listener({
-                        __socket_status: "CONNECTED"
-                    });
-                } catch (error) {
-                    console.error(
-                        "[VOLSIM] Socket status listener error",
-                        error
-                    );
-                }
+            this.emit({
+                __socket_status: "CONNECTED" as SocketStatus
             });
         };
 
-        this.socket.onmessage = (event) => {
+        socket.onmessage = (event) => {
+            if (this.socket !== socket) {
+                return;
+            }
+
             try {
                 const payload = JSON.parse(event.data);
 
-                this.listeners.forEach(listener => {
-                    try {
-                        listener(payload);
-                    } catch (error) {
-                        console.error(
-                            "[VOLSIM] Listener error",
-                            error
-                        );
-                    }
-                });
+                this.emit(payload);
             } catch (error) {
                 console.error(
                     "[VOLSIM] Invalid WebSocket payload",
@@ -88,31 +86,24 @@ export class TradingSocketManager {
             }
         };
 
-        this.socket.onerror = (error) => {
+        socket.onerror = (error) => {
             console.error(
                 "[VOLSIM] WebSocket Error",
                 error
             );
         };
 
-        this.socket.onclose = () => {
+        socket.onclose = () => {
+            if (this.socket === socket) {
+                this.socket = null;
+            }
+
             console.log(
                 "[VOLSIM] Global Trading State Closed"
             );
 
-            this.socket = null;
-
-            this.listeners.forEach(listener => {
-                try {
-                    listener({
-                        __socket_status: "DISCONNECTED"
-                    });
-                } catch (error) {
-                    console.error(
-                        "[VOLSIM] Disconnect listener error",
-                        error
-                    );
-                }
+            this.emit({
+                __socket_status: "DISCONNECTED" as SocketStatus
             });
 
             if (!this.manuallyClosed) {
@@ -121,39 +112,56 @@ export class TradingSocketManager {
         };
     }
 
+    private emit(payload: any) {
+        this.listeners.forEach((listener) => {
+            try {
+                listener(payload);
+            } catch (error) {
+                console.error(
+                    "[VOLSIM] Trading state listener error",
+                    error
+                );
+            }
+        });
+    }
+
     private scheduleReconnect() {
-        if (this.reconnectTimer) {
+        if (
+            this.manuallyClosed ||
+            this.reconnectTimer
+        ) {
             return;
         }
 
+        const delay = this.reconnectDelay;
+
         console.log(
-            `[VOLSIM] Reconnecting in ${this.reconnectDelay}ms`
+            `[VOLSIM] Reconnecting in ${delay}ms`
         );
 
         this.reconnectTimer = setTimeout(() => {
             this.reconnectTimer = null;
 
-            this.connect(
-                this.endpoint
-            );
+            if (this.manuallyClosed) {
+                return;
+            }
+
+            this.connect(this.endpoint);
 
             this.reconnectDelay = Math.min(
                 this.reconnectDelay * 2,
                 this.maxReconnectDelay
             );
-        }, this.reconnectDelay);
+        }, delay);
     }
 
-    subscribe(
-        listener: Listener
-    ) {
+    subscribe(listener: Listener) {
         this.listeners.push(listener);
 
         return () => {
-            this.listeners =
-                this.listeners.filter(
-                    item => item !== listener
-                );
+            this.listeners = this.listeners.filter(
+                (item) => item !== listener
+            );
         };
     }
 
@@ -165,11 +173,17 @@ export class TradingSocketManager {
             this.reconnectTimer = null;
         }
 
-        if (this.socket) {
-            this.socket.close();
-        }
+        const socket = this.socket;
 
         this.socket = null;
+
+        if (socket) {
+            socket.close();
+        }
+
+        console.log(
+            "[VOLSIM] Global Trading State Manager Disconnected"
+        );
     }
 }
 

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, {
     createContext,
@@ -32,28 +32,52 @@ export const GlobalStateProvider = ({
 
     useEffect(() => {
         console.log(
-            "[GLOBAL STATE] Connecting to shared TradingSocketManager"
+            "[GLOBAL STATE] Starting shared TradingSocketManager"
         );
 
         const unsubscribe = tradingSocket.subscribe(
-            (payload) => {
+            (payload: any) => {
+                if (!payload) {
+                    return;
+                }
+
+                if (payload.__socket_status === "CONNECTED") {
+                    console.log(
+                        "[GLOBAL STATE] Trading WebSocket CONNECTED"
+                    );
+
+                    setConnected(true);
+                    return;
+                }
+
+                if (payload.__socket_status === "DISCONNECTED") {
+                    console.log(
+                        "[GLOBAL STATE] Trading WebSocket DISCONNECTED"
+                    );
+
+                    setConnected(false);
+                    return;
+                }
+
                 try {
                     updateTradingState(payload);
                     setConnected(true);
                 } catch (error) {
                     console.error(
-                        "[GLOBAL STATE] Payload update failed",
+                        "[GLOBAL STATE] Trading state update failed",
                         error
                     );
                 }
             }
         );
 
-return () => {
+        tradingSocket.connect("/ws/trading-state");
+
+        return () => {
             unsubscribe();
 
             console.log(
-                "[GLOBAL STATE] Shared socket subscription removed"
+                "[GLOBAL STATE] Shared TradingSocketManager subscription removed"
             );
         };
     }, [updateTradingState]);
@@ -71,4 +95,3 @@ return () => {
 
 export const useGlobalState = () =>
     useContext(GlobalStateContext);
-
