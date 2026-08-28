@@ -1,0 +1,503 @@
+﻿from __future__ import annotations
+
+import time
+from typing import Optional
+
+
+class VaultService:
+    """
+    VolSim-Pro Immutable Vault Service.
+
+    Responsibilities:
+    - Maintain immutable-vault accounting state.
+    - Calculate the 70/30 equity/vault allocation split.
+    - Track cumulative realized-profit processing.
+    - Track pending vault allocations.
+    - Track cumulative allocations and transfers.
+    - Expose synchronization state to global trading state.
+
+    Does NOT own:
+    - execution
+    - portfolio
+    - risk
+    - statistics
+    - AI
+    - telemetry
+    - counter-trend execution
+
+    Allocation policy:
+
+        70% -> Trading Equity
+        30% -> Immutable Vault
+
+    The vault portion is protected from becoming trading margin.
+    """
+
+    EQUITY_ALLOCATION_PERCENT = 70.0
+    VAULT_ALLOCATION_PERCENT = 30.0
+
+    def __init__(self):
+
+        # --------------------------------------------------------------
+        # Vault accounting
+        # --------------------------------------------------------------
+
+        self.vault_balance = 0.0
+
+        self.pending_allocation = 0.0
+
+        self.total_allocated = 0.0
+
+        self.total_transferred = 0.0
+
+        # --------------------------------------------------------------
+        # Profit processing watermark
+        # --------------------------------------------------------------
+        #
+        # PortfolioService supplies cumulative realized P/L.
+        #
+        # Example:
+        #
+        # previous = 100
+        # current  = 125
+        # delta    = 25
+        #
+        # Only the delta is allocated.
+        #
+        # This prevents repeated global-state snapshots from
+        # allocating the same realized profit more than once.
+        #
+
+        self.last_realized_profit = 0.0
+
+        # --------------------------------------------------------------
+        # Blockchain state
+        # --------------------------------------------------------------
+
+        self.wallet_address: Optional[str] = None
+
+        self.last_tx_hash: Optional[str] = None
+
+        self.blockchain_network: Optional[str] = None
+
+        self.last_sync_time: Optional[float] = None
+
+        self.sync_status = "PENDING"
+
+        self.status = "ONLINE"
+
+    # ------------------------------------------------------------------
+    # Allocation policy
+    # ------------------------------------------------------------------
+
+    def allocation_policy(self) -> dict:
+
+        return {
+
+            "equity_percentage":
+                self.EQUITY_ALLOCATION_PERCENT,
+
+            "vault_percentage":
+                self.VAULT_ALLOCATION_PERCENT,
+
+        }
+
+    # ------------------------------------------------------------------
+    # Profit allocation calculation
+    # ------------------------------------------------------------------
+
+    def calculate_allocation(
+        self,
+        realized_profit: float,
+    ) -> dict:
+        """
+        Calculate the 70/30 allocation for a profit amount.
+
+        Negative values do not generate a vault allocation.
+        """
+
+        profit = max(
+            float(realized_profit),
+            0.0
+        )
+
+        equity_amount = round(
+            profit
+            * (
+                self.EQUITY_ALLOCATION_PERCENT
+                / 100.0
+            ),
+            2,
+        )
+
+        vault_amount = round(
+            profit
+            * (
+                self.VAULT_ALLOCATION_PERCENT
+                / 100.0
+            ),
+            2,
+        )
+
+        return {
+
+            "realized_profit":
+                round(profit, 2),
+
+            "equity_amount":
+                equity_amount,
+
+            "vault_amount":
+                vault_amount,
+
+            "equity_percentage":
+                self.EQUITY_ALLOCATION_PERCENT,
+
+            "vault_percentage":
+                self.VAULT_ALLOCATION_PERCENT,
+
+        }
+
+    # ------------------------------------------------------------------
+    # Register cumulative realized profit
+    # ------------------------------------------------------------------
+
+    def register_profit(
+        self,
+        realized_profit: float,
+    ) -> dict:
+        """
+        Register cumulative realized P/L.
+
+        Only NEW positive realized profit is allocated.
+
+        Example:
+
+            register_profit(100)
+                -> allocate 100
+
+            register_profit(100)
+                -> allocate 0
+
+            register_profit(125)
+                -> allocate 25
+
+        This makes the operation safe for repeated global-state
+        snapshots.
+        """
+
+        current_realized_profit = max(
+            float(realized_profit),
+            0.0
+        )
+
+        previous_realized_profit = (
+            self.last_realized_profit
+        )
+
+        # --------------------------------------------------------------
+        # Detect a realized-profit reset.
+        #
+        # This can happen when the trading session/day/account context
+        # resets its cumulative realized P/L.
+        #
+        # We do not create a negative vault allocation.
+        # --------------------------------------------------------------
+
+        if current_realized_profit < previous_realized_profit:
+
+            self.last_realized_profit = (
+                current_realized_profit
+            )
+
+            return {
+
+                "realized_profit":
+                    round(
+                        current_realized_profit,
+                        2
+                    ),
+
+                "previous_realized_profit":
+                    round(
+                        previous_realized_profit,
+                        2
+                    ),
+
+                "new_profit":
+                    0.0,
+
+                "equity_amount":
+                    0.0,
+
+                "vault_amount":
+                    0.0,
+
+                "equity_percentage":
+                    self.EQUITY_ALLOCATION_PERCENT,
+
+                "vault_percentage":
+                    self.VAULT_ALLOCATION_PERCENT,
+
+                "status":
+                    "RESET_DETECTED",
+
+            }
+
+        # --------------------------------------------------------------
+        # Calculate NEW profit only.
+        # --------------------------------------------------------------
+
+        new_profit = round(
+            current_realized_profit
+            - previous_realized_profit,
+            2,
+        )
+
+        # Update watermark BEFORE returning.
+        #
+        # This makes repeated calls against the same cumulative
+        # realized P/L idempotent.
+        self.last_realized_profit = (
+            current_realized_profit
+        )
+
+        if new_profit <= 0:
+
+            return {
+
+                "realized_profit":
+                    round(
+                        current_realized_profit,
+                        2
+                    ),
+
+                "previous_realized_profit":
+                    round(
+                        previous_realized_profit,
+                        2
+                    ),
+
+                "new_profit":
+                    0.0,
+
+                "equity_amount":
+                    0.0,
+
+                "vault_amount":
+                    0.0,
+
+                "equity_percentage":
+                    self.EQUITY_ALLOCATION_PERCENT,
+
+                "vault_percentage":
+                    self.VAULT_ALLOCATION_PERCENT,
+
+                "status":
+                    "NO_NEW_PROFIT",
+
+            }
+
+        # --------------------------------------------------------------
+        # Apply 70/30 policy to NEW profit.
+        # --------------------------------------------------------------
+
+        allocation = self.calculate_allocation(
+            new_profit
+        )
+
+        equity_amount = allocation[
+            "equity_amount"
+        ]
+
+        vault_amount = allocation[
+            "vault_amount"
+        ]
+
+        # --------------------------------------------------------------
+        # Vault side.
+        #
+        # The 70% equity amount is deliberately NOT added to the vault.
+        # It remains part of the trading/equity accounting layer.
+        # --------------------------------------------------------------
+
+        if vault_amount > 0:
+
+            self.pending_allocation = round(
+                self.pending_allocation
+                + vault_amount,
+                2,
+            )
+
+            self.total_allocated = round(
+                self.total_allocated
+                + vault_amount,
+                2,
+            )
+
+            self.sync_status = "PENDING"
+
+        return {
+
+            "realized_profit":
+                round(
+                    current_realized_profit,
+                    2
+                ),
+
+            "previous_realized_profit":
+                round(
+                    previous_realized_profit,
+                    2
+                ),
+
+            "new_profit":
+                new_profit,
+
+            "equity_amount":
+                equity_amount,
+
+            "vault_amount":
+                vault_amount,
+
+            "equity_percentage":
+                self.EQUITY_ALLOCATION_PERCENT,
+
+            "vault_percentage":
+                self.VAULT_ALLOCATION_PERCENT,
+
+            "status":
+                "ALLOCATED",
+
+        }
+
+    # ------------------------------------------------------------------
+    # Mark vault transfer
+    # ------------------------------------------------------------------
+
+    def record_transfer(
+        self,
+        amount: float,
+        tx_hash: Optional[str] = None,
+        blockchain_network: Optional[str] = None,
+    ) -> dict:
+        """
+        Record a successful immutable-vault transfer.
+
+        Blockchain interaction remains outside this service.
+        """
+
+        transfer_amount = max(
+            float(amount),
+            0.0
+        )
+
+        transfer_amount = min(
+            transfer_amount,
+            self.pending_allocation
+        )
+
+        self.pending_allocation = round(
+            self.pending_allocation
+            - transfer_amount,
+            2,
+        )
+
+        self.vault_balance = round(
+            self.vault_balance
+            + transfer_amount,
+            2,
+        )
+
+        self.total_transferred = round(
+            self.total_transferred
+            + transfer_amount,
+            2,
+        )
+
+        if tx_hash:
+
+            self.last_tx_hash = tx_hash
+
+        if blockchain_network:
+
+            self.blockchain_network = (
+                blockchain_network
+            )
+
+        self.last_sync_time = time.time()
+
+        self.sync_status = (
+            "SYNCED"
+            if self.pending_allocation <= 0
+            else "PENDING"
+        )
+
+        return self.snapshot()
+
+    # ------------------------------------------------------------------
+    # Snapshot
+    # ------------------------------------------------------------------
+
+    def snapshot(self) -> dict:
+
+        return {
+
+            "status":
+                self.status,
+
+            "vault_balance":
+                round(
+                    self.vault_balance,
+                    2
+                ),
+
+            "pending_allocation":
+                round(
+                    self.pending_allocation,
+                    2
+                ),
+
+            "total_allocated":
+                round(
+                    self.total_allocated,
+                    2
+                ),
+
+            "total_transferred":
+                round(
+                    self.total_transferred,
+                    2
+                ),
+
+            "last_realized_profit":
+                round(
+                    self.last_realized_profit,
+                    2
+                ),
+
+            "equity_percentage":
+                self.EQUITY_ALLOCATION_PERCENT,
+
+            "vault_percentage":
+                self.VAULT_ALLOCATION_PERCENT,
+
+            "sync_status":
+                self.sync_status,
+
+            "wallet_address":
+                self.wallet_address,
+
+            "last_tx_hash":
+                self.last_tx_hash,
+
+            "blockchain_network":
+                self.blockchain_network,
+
+            "last_sync_time":
+                self.last_sync_time,
+
+        }
+
+
+vault_service = VaultService()

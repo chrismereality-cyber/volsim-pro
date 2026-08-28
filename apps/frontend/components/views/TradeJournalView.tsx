@@ -17,7 +17,6 @@ export default function TradeJournalView() {
 
   useEffect(() => {
     TradingApiClient.get('/api/analytics/performance')
-      .then((res: Response) => res.json())
       .then((data: any) => {
         if (data.status === 'success' && data.assetMetrics) {
           setMetrics(data.assetMetrics);

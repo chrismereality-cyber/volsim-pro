@@ -1,0 +1,695 @@
+import logging
+import time
+
+from src.services.database_service import database_service
+from src.services.mt5_service import mt5_service
+
+logger = logging.getLogger("volsim.position")
+
+
+class PositionService:
+    """
+    Enterprise Position Lifecycle Service.
+
+    Owns:
+    - open positions
+    - position snapshots
+    - market-price synchronization
+    - floating P/L tracking
+    - close lifecycle preparation
+
+    Does NOT own:
+    - execution
+    - risk decisions
+    - portfolio calculations
+    """
+
+    def __init__(self):
+        self.positions = {}
+
+    async def open_position(
+        self,
+        trade_id: str,
+        order: dict,
+        execution: dict
+    ):
+        """
+        Create and register a new open position.
+
+        Identity model:
+
+            oms_order_id
+                |
+                +-- broker order ticket
+                +-- broker deal ticket
+                +-- broker position ticket
+                |
+                +-- local trade_id
+
+        The local trade_id MUST remain unique even in PAPER mode.
+        """
+
+        # --------------------------------------------------------------
+        # Local position identity
+        # --------------------------------------------------------------
+        #
+        # The caller normally supplies a broker position ticket in LIVE
+        # mode. PAPER mode must never use a constant value such as
+        # "SIMULATED", otherwise subsequent PAPER trades overwrite the
+        # previous position in self.positions.
+        #
+        if not trade_id or str(trade_id).upper() == "SIMULATED":
+            import uuid
+            trade_id = str(uuid.uuid4())
+
+        trade_id = str(trade_id)
+
+        position = {
+            # ----------------------------------------------------------
+            # OMS identity
+            # ----------------------------------------------------------
+
+            "oms_order_id": execution.get(
+                "oms_order_id"
+            ),
+
+            # ----------------------------------------------------------
+            # Local position identity
+            # ----------------------------------------------------------
+
+            "trade_id": trade_id,
+
+            # ----------------------------------------------------------
+            # Broker identities
+            # ----------------------------------------------------------
+
+            "broker_order_ticket": execution.get(
+                "order_ticket"
+            ),
+
+            "broker_deal_ticket": execution.get(
+                "deal_ticket"
+            ),
+
+            "broker_position_ticket": execution.get(
+                "position_ticket"
+            ),
+
+            # ----------------------------------------------------------
+            # Original trade intent
+            # ----------------------------------------------------------
+
+            "symbol": order.get("symbol"),
+
+            "side": order.get("type"),
+
+            "volume": float(
+                order.get(
+                    "volume",
+                    0
+                ) or 0
+            ),
+
+            # ----------------------------------------------------------
+            # Pricing
+            # ----------------------------------------------------------
+
+            "open_price": float(
+                execution.get(
+                    "price",
+                    order.get(
+                        "price",
+                        0
+                    )
+                ) or 0
+            ),
+
+            "current_price": float(
+                execution.get(
+                    "price",
+                    order.get(
+                        "price",
+                        0
+                    )
+                ) or 0
+            ),
+
+            # ----------------------------------------------------------
+            # P/L
+            # ----------------------------------------------------------
+
+            "floating_pl": 0.0,
+
+            "realized_pl": 0.0,
+
+            # ----------------------------------------------------------
+            # Lifecycle
+            # ----------------------------------------------------------
+
+            "status": "OPEN",
+
+            "opened_at": time.time(),
+
+            "closed_at": None,
+
+            "close_price": None,
+        }
+
+        self.positions[trade_id] = position
+
+        await self.persist_snapshot(position)
+
+        logger.info(
+            "Position opened: "
+            "trade_id=%s "
+            "oms_order_id=%s "
+            "symbol=%s "
+            "side=%s "
+            "volume=%s "
+            "position_ticket=%s",
+            trade_id,
+            position.get("oms_order_id"),
+            position.get("symbol"),
+            position.get("side"),
+            position.get("volume"),
+            position.get("broker_position_ticket"),
+        )
+
+        return position
+
+    async def persist_snapshot(self, position: dict):
+        """
+        Persist the current position state into PostgreSQL.
+
+        PositionService remains authoritative for the live in-memory
+        PAPER position state, while PostgreSQL stores durable snapshots.
+
+        The snapshot is intentionally append-only: every persistence call
+        represents a point-in-time observation of the position.
+        """
+
+        from src.services.database_service import database_service
+
+        position_id = str(
+            position.get(
+                "trade_id",
+                "UNKNOWN"
+            )
+        )
+
+        price = float(
+            position.get(
+                "current_price",
+                position.get(
+                    "open_price",
+                    0
+                )
+            )
+        )
+
+        pnl = float(
+            position.get(
+                "floating_pl",
+                0.0
+            )
+        )
+
+        await database_service.execute(
+            """
+            INSERT INTO position_snapshots
+            (
+                id,
+                position_id,
+                price,
+                pnl,
+                created_at
+            )
+            VALUES
+            (
+                gen_random_uuid(),
+                $1,
+                $2,
+                $3,
+                NOW()
+            )
+            """,
+            position_id,
+            price,
+            pnl
+        )
+
+        logger.info(
+            "Position snapshot persisted: "
+            "position_id=%s price=%s pnl=%s",
+            position_id,
+            price,
+            pnl
+        )
+
+        return position
+
+    def update_price(
+        self,
+        trade_id: str,
+        price: float
+    ):
+        position = self.positions.get(trade_id)
+
+        if not position:
+            return None
+
+        price = float(price)
+
+        position["current_price"] = price
+
+        direction = 1.0
+
+        if position["side"] == "SELL":
+            direction = -1.0
+
+        position["floating_pl"] = round(
+            (
+                price
+                - position["open_price"]
+            )
+            * position["volume"]
+            * direction,
+            2
+        )
+
+        return position
+
+    def update_symbol_price(
+        self,
+        symbol: str,
+        price: float
+    ):
+        """
+        Update every open position for a symbol.
+        """
+
+        updated = []
+
+        for trade_id, position in self.positions.items():
+
+            if position.get("status") != "OPEN":
+                continue
+
+            if position.get("symbol") != symbol:
+                continue
+
+            result = self.update_price(
+                trade_id,
+                price
+            )
+
+            if result:
+                updated.append(result)
+
+        return updated
+
+    def sync_market_prices(
+        self,
+        market: dict
+    ):
+        """
+        Synchronize PositionService with a market snapshot.
+
+        Expected market format:
+
+        {
+            "XAUUSDm": {
+                "bid": ...,
+                "ask": ...,
+                "last": ...
+            }
+        }
+        """
+
+        updated = []
+
+        for symbol, quote in market.items():
+
+            if not quote:
+                continue
+
+            bid = float(
+                quote.get("bid", 0.0)
+            )
+
+            ask = float(
+                quote.get("ask", 0.0)
+            )
+
+            last = float(
+                quote.get("last", 0.0)
+            )
+
+            for trade_id, position in self.positions.items():
+
+                if position.get("status") != "OPEN":
+                    continue
+
+                if position.get("symbol") != symbol:
+                    continue
+
+                if position.get("side") == "BUY":
+
+                    price = (
+                        bid
+                        if bid > 0
+                        else last
+                    )
+
+                else:
+
+                    price = (
+                        ask
+                        if ask > 0
+                        else last
+                    )
+
+                if price <= 0:
+                    continue
+
+                result = self.update_price(
+                    trade_id,
+                    price
+                )
+
+                if result:
+                    updated.append(result)
+
+        return updated
+
+    async def sync_from_mt5(self):
+        """
+        Reconcile broker-open MT5 positions into local PositionService state.
+
+        This method is READ-ONLY with respect to MT5 trading operations.
+
+        It may:
+            - read mt5.positions_get()
+            - create/update local position records
+            - persist position snapshots
+
+        It MUST NOT:
+            - call mt5.order_send()
+            - call mt5.order_check()
+            - open broker positions
+            - close broker positions
+        """
+
+        try:
+            import MetaTrader5 as mt5
+
+            broker_positions = mt5.positions_get()
+
+            if broker_positions is None:
+                logger.warning(
+                    "MT5 position reconciliation returned no position data"
+                )
+                return []
+
+            synchronized = []
+            broker_trade_ids = set()
+
+            for broker_position in broker_positions:
+
+                broker_position_ticket = getattr(
+                    broker_position,
+                    "ticket",
+                    None
+                )
+
+                if broker_position_ticket is None:
+                    logger.warning(
+                        "Skipping MT5 position without ticket"
+                    )
+                    continue
+
+                trade_id = str(
+                    broker_position_ticket
+                )
+
+                broker_trade_ids.add(trade_id)
+
+                symbol = getattr(
+                    broker_position,
+                    "symbol",
+                    ""
+                )
+
+                volume = float(
+                    getattr(
+                        broker_position,
+                        "volume",
+                        0.0
+                    ) or 0.0
+                )
+
+                price_open = float(
+                    getattr(
+                        broker_position,
+                        "price_open",
+                        0.0
+                    ) or 0.0
+                )
+
+                price_current = float(
+                    getattr(
+                        broker_position,
+                        "price_current",
+                        price_open
+                    ) or price_open
+                )
+
+                profit = float(
+                    getattr(
+                        broker_position,
+                        "profit",
+                        0.0
+                    ) or 0.0
+                )
+
+                mt5_type = getattr(
+                    broker_position,
+                    "type",
+                    None
+                )
+
+                if mt5_type == mt5.POSITION_TYPE_BUY:
+                    side = "BUY"
+                elif mt5_type == mt5.POSITION_TYPE_SELL:
+                    side = "SELL"
+                else:
+                    side = str(mt5_type)
+
+                existing = self.positions.get(
+                    trade_id
+                )
+
+                if existing is None:
+
+                    position = {
+                        "oms_order_id": None,
+                        "trade_id": trade_id,
+
+                        "broker_order_ticket": None,
+
+                        "broker_deal_ticket": None,
+
+                        "broker_position_ticket":
+                            broker_position_ticket,
+
+                        "symbol": symbol,
+                        "side": side,
+                        "volume": volume,
+
+                        "open_price": price_open,
+                        "current_price": price_current,
+
+                        "floating_pl": profit,
+                        "realized_pl": 0.0,
+
+                        "status": "OPEN",
+
+                        "opened_at": time.time(),
+                        "closed_at": None,
+                        "close_price": None,
+                    }
+
+                    self.positions[trade_id] = position
+
+                else:
+
+                    position = existing
+
+                    position["broker_position_ticket"] = (
+                        broker_position_ticket
+                    )
+
+                    position["symbol"] = symbol
+                    position["side"] = side
+                    position["volume"] = volume
+
+                    position["open_price"] = price_open
+                    position["current_price"] = price_current
+
+                    position["floating_pl"] = profit
+                    position["status"] = "OPEN"
+
+                await self.persist_snapshot(
+                    position
+                )
+
+                synchronized.append(position)
+
+                logger.info(
+                    "MT5 position synchronized: "
+                    "trade_id=%s "
+                    "symbol=%s "
+                    "side=%s "
+                    "volume=%s "
+                    "position_ticket=%s "
+                    "price=%s "
+                    "profit=%s",
+                    trade_id,
+                    symbol,
+                    side,
+                    volume,
+                    broker_position_ticket,
+                    price_current,
+                    profit,
+                )
+
+            return synchronized
+
+        except Exception as e:
+
+            logger.exception(
+                "MT5 position reconciliation failed: %s",
+                e
+            )
+
+            return []
+
+    async def close_position(
+        self,
+        trade_id: str,
+        close_price: float
+    ):
+        """
+        Close an open position and convert floating P/L
+        into realized P/L.
+
+        Position lifecycle:
+
+            OPEN
+              ?
+            PRICE UPDATE
+              ?
+            FLOATING P/L
+              ?
+            CLOSE
+              ?
+            REALIZED P/L
+              ?
+            CLOSED
+
+        The final position state is persisted through the
+        existing snapshot persistence boundary.
+        """
+
+        position = self.positions.get(trade_id)
+
+        if not position:
+            logger.warning(
+                "Cannot close unknown position: %s",
+                trade_id
+            )
+            return None
+
+        if position.get("status") != "OPEN":
+            logger.warning(
+                "Cannot close non-open position: "
+                "trade_id=%s status=%s",
+                trade_id,
+                position.get("status")
+            )
+            return position
+
+        close_price = float(close_price)
+
+        if close_price <= 0:
+            logger.warning(
+                "Invalid close price: "
+                "trade_id=%s price=%s",
+                trade_id,
+                close_price
+            )
+            return None
+
+        # Recalculate floating P/L at the exact close price.
+        position = self.update_price(
+            trade_id,
+            close_price
+        )
+
+        if not position:
+            return None
+
+        # Convert the final floating P/L into realized P/L.
+        realized_pl = float(
+            position.get(
+                "floating_pl",
+                0.0
+            )
+        )
+
+        position["close_price"] = close_price
+        position["realized_pl"] = realized_pl
+        position["floating_pl"] = 0.0
+        position["status"] = "CLOSED"
+        position["closed_at"] = time.time()
+
+        # Persist the terminal position state.
+        await self.persist_snapshot(position)
+
+        logger.info(
+            "Position closed: "
+            "trade_id=%s "
+            "symbol=%s "
+            "side=%s "
+            "volume=%s "
+            "close_price=%s "
+            "realized_pl=%s",
+            trade_id,
+            position.get("symbol"),
+            position.get("side"),
+            position.get("volume"),
+            close_price,
+            realized_pl
+        )
+
+        return position
+
+    def snapshot(self):
+
+        return {
+            "open_positions": [
+                position
+                for position
+                in self.positions.values()
+                if position.get("status") == "OPEN"
+            ],
+            "count": sum(
+                1
+                for position
+                in self.positions.values()
+                if position.get("status") == "OPEN"
+            )
+        }
+
+
+position_service = PositionService()

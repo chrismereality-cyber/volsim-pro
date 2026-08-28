@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import {
@@ -20,7 +20,7 @@ import RiskManagementView from '../components/views/RiskManagementView';
 import TradeJournalView from '../components/views/TradeJournalView';
 import RegimeRobustnessView from '../components/views/RegimeRobustnessView';
 import CostAnalysisView from '../components/views/CostAnalysisView';
-import ImmutableVault from '../src/pages/ImmutableVault';
+import ImmutableVaultView from '../components/views/ImmutableVaultView';
 import SystemTelemetryView from '../components/views/SystemTelemetryView';
 import SystemSettingsView from '../components/views/SystemSettingsView';
 
@@ -115,10 +115,11 @@ export default function EnterpriseShell() {
         {activeTab === "journal" && <TradeJournalView />}
         {activeTab === "regime-robustness" && <RegimeRobustnessView />}
         {activeTab === "cost-analysis" && <CostAnalysisView />}
-        {activeTab === "vault" && <ImmutableVault />}
+        {activeTab === "vault" && <ImmutableVaultView />}
         {activeTab === "telemetry" && <SystemTelemetryView />}
         {activeTab === "settings" && <SystemSettingsView />}
       </main>
     </div>
   );
 }
+

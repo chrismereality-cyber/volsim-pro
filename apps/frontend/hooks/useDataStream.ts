@@ -1,36 +1,56 @@
+﻿"use client";
+
 import { useEffect } from "react";
 import { tradingSocket } from "../lib/TradingSocketManager";
 import { useTradingStore } from "../store/useTradingStore";
 
 export function useDataStream() {
 
-    const updateTradingState =
-        useTradingStore(
-            (state) => state.updateTradingState
-        );
+    const updateTradingState = useTradingStore(
+        state => state.updateTradingState
+    );
 
     useEffect(() => {
 
-        tradingSocket.connect(
+        console.log(
+            "[DATA STREAM] Connecting to shared TradingSocketManager"
+        );
 
-            "/ws/trading-state",
+        tradingSocket.connect("/ws/trading-state");
 
-            (payload) => {
+        const unsubscribe = tradingSocket.subscribe(
+            (payload: any) => {
 
-                console.log(
-                    "[LIVE PAYLOAD]",
-                    payload
-                );
+                if (!payload) {
+                    return;
+                }
 
-                updateTradingState(payload);
+                try {
+
+                    updateTradingState(payload);
+
+                } catch (error) {
+
+                    console.error(
+                        "[DATA STREAM] Trading state update failed",
+                        error
+                    );
+
+                }
 
             }
-
         );
 
         return () => {
-};
+
+            unsubscribe();
+
+            console.log(
+                "[DATA STREAM] Shared socket subscription removed"
+            );
+
+        };
 
     }, [updateTradingState]);
-
 }
+
