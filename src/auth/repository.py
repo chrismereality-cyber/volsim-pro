@@ -1,4 +1,4 @@
-﻿from sqlalchemy import select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from auth_models import User, Role, UserRole
