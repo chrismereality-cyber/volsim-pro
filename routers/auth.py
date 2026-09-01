@@ -4,8 +4,9 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from src.auth.authentication import AuthenticationService
+from src.auth.dependencies import get_authorization_context
+from src.auth.models import AuthorizationContext
 from src.auth.repository import AuthRepository
-from src.auth.tokens import create_access_token
 
 
 router = APIRouter()
@@ -38,6 +39,14 @@ class TokenResponse(BaseModel):
     refresh_token: str
     token_type: str
     user: UserResponse
+
+
+class IdentityResponse(BaseModel):
+    user_id: str
+    username: str | None
+    roles: list[str]
+    permissions: list[str]
+    is_active: bool
 
 
 # ---------------------------------------------------------------------------
@@ -107,18 +116,18 @@ def login(
 
     user, identity = result
 
-    access_token = create_access_token(
-        user_id=identity.user_id,
-        username=identity.username,
-        roles=sorted(identity.roles),
-    )
-
     refresh_token, _session = AuthenticationService.create_session(
         db,
         user_id=user.id,
     )
 
-    roles = sorted(identity.roles)
+    from src.auth.tokens import create_access_token
+
+    access_token = create_access_token(
+        user_id=str(user.id),
+        username=user.email,
+        roles=sorted(identity.roles),
+    )
 
     return TokenResponse(
         access_token=access_token,
@@ -129,6 +138,30 @@ def login(
             email=user.email,
             is_active=user.is_active,
             is_verified=user.is_verified,
-            roles=roles,
+            roles=sorted(identity.roles),
         ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Current Authenticated Identity
+# ---------------------------------------------------------------------------
+
+@router.get(
+    "/me",
+    response_model=IdentityResponse,
+)
+def me(
+    context: AuthorizationContext = Depends(
+        get_authorization_context
+    ),
+):
+    identity = context.identity
+
+    return IdentityResponse(
+        user_id=identity.user_id,
+        username=identity.username,
+        roles=sorted(identity.roles),
+        permissions=sorted(identity.permissions),
+        is_active=identity.is_active,
     )
