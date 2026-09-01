@@ -10,8 +10,8 @@ from routers.analytics import router as analytics_router
 from src.risk.risk_engine import router as risk_router
 
 from src.services.global_trading_state_service import global_trading_state_service
+from src.contracts.trading_state_adapter import build_trading_state_contract
 from src.services.position_service import position_service
-from src.services.global_state_service import global_state_orchestrator
 
 
 
@@ -110,13 +110,21 @@ app.include_router(
 
 @app.get("/api/trading-state")
 async def trading_state():
-    return global_trading_state_service.snapshot()
+    state = global_trading_state_service.snapshot()
+
+    return build_trading_state_contract(
+        state
+    ).model_dump()
 
 
 @app.get("/api/telemetry")
 async def telemetry():
+    state = global_trading_state_service.snapshot()
+
     return JSONResponse(
-        global_trading_state_service.snapshot()
+        build_trading_state_contract(
+            state
+        ).model_dump()
     )
 
 
@@ -132,8 +140,14 @@ async def trading_state_socket(
 
     try:
         while True:
+            state = global_trading_state_service.snapshot()
+
+            payload = build_trading_state_contract(
+                state
+            ).model_dump()
+
             await websocket.send_json(
-                global_trading_state_service.snapshot()
+                payload
             )
 
             await asyncio.sleep(1)
@@ -148,5 +162,9 @@ async def trading_state_socket(
             await websocket.close()
         except Exception:
             pass
+
+
+
+
 
 
