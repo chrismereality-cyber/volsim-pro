@@ -1,9 +1,10 @@
-﻿from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session
 
 from auth_models import AuthSession
 from .models import Identity
 from .password import hash_password, verify_password
 from .repository import AuthRepository
+from .service import IdentityService
 from .tokens import (
     create_refresh_token,
     hash_refresh_token,
@@ -115,6 +116,3 @@ class AuthenticationService:
         db.refresh(session)
 
         return raw_token, session
-
-
-from .service import IdentityService
