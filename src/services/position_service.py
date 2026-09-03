@@ -812,49 +812,115 @@ class PositionService:
 
     async def sync_from_mt5(self):
         """
-        Reconcile broker-open MT5 positions into local PositionService state.
+        Reconcile authoritative LIVE broker positions into local state.
 
         This method is READ-ONLY with respect to MT5 trading operations.
 
-        It may:
-            - read mt5.positions_get()
-            - create/update local position records
-            - persist position snapshots
+        Reconciliation rules:
+            - Broker OPEN + local missing:
+                import and persist the broker position.
+            - Broker OPEN + local OPEN:
+                synchronize broker-authoritative values.
+            - Local OPEN + broker missing:
+                flag a reconciliation discrepancy; do NOT fabricate a close.
+            - Successful broker query with zero positions:
+                valid zero-position snapshot.
+            - Broker query failure:
+                abort reconciliation without changing local positions.
+            - Malformed broker position:
+                abort reconciliation rather than treating it as absent.
 
-        It MUST NOT:
+        This method MUST NOT:
             - call mt5.order_send()
             - call mt5.order_check()
             - open broker positions
             - close broker positions
+            - fabricate realized P/L
         """
 
         try:
-            import MetaTrader5 as mt5
+            broker_result = (
+                mt5_service.get_positions_for_reconciliation()
+            )
 
-            broker_positions = mt5.positions_get()
+            if not broker_result.get("success"):
+                error = broker_result.get(
+                    "error",
+                    "Unknown MT5 position query failure",
+                )
+
+                logger.error(
+                    "MT5 position reconciliation aborted: %s",
+                    error,
+                )
+
+                return {
+                    "status": "BROKER_QUERY_FAILED",
+                    "synchronized": [],
+                    "discrepancies": [],
+                    "error": error,
+                }
+
+            broker_positions = broker_result.get(
+                "positions",
+                [],
+            )
 
             if broker_positions is None:
-                logger.warning(
-                    "MT5 position reconciliation returned no position data"
+                error = (
+                    "MT5 reconciliation returned "
+                    "no position collection"
                 )
-                return []
+
+                logger.error(error)
+
+                return {
+                    "status": "BROKER_QUERY_FAILED",
+                    "synchronized": [],
+                    "discrepancies": [],
+                    "error": error,
+                }
 
             synchronized = []
+            discrepancies = []
             broker_trade_ids = set()
 
             for broker_position in broker_positions:
 
-                broker_position_ticket = getattr(
-                    broker_position,
-                    "ticket",
-                    None
+                if not isinstance(broker_position, dict):
+                    error = (
+                        "Malformed MT5 broker position: "
+                        f"expected dict, got "
+                        f"{type(broker_position).__name__}"
+                    )
+
+                    logger.error(error)
+
+                    return {
+                        "status": "RECONCILIATION_FAILED",
+                        "synchronized": [],
+                        "discrepancies": [],
+                        "error": error,
+                    }
+
+                broker_position_ticket = broker_position.get(
+                    "ticket"
                 )
 
                 if broker_position_ticket is None:
-                    logger.warning(
-                        "Skipping MT5 position without ticket"
+                    error = (
+                        "Malformed MT5 broker position: "
+                        "missing position ticket"
                     )
-                    continue
+
+                    logger.error(error)
+
+                    return {
+                        "status": "RECONCILIATION_FAILED",
+                        "synchronized": [],
+                        "discrepancies": [],
+                        "error": error,
+                    }
 
                 trade_id = str(
                     broker_position_ticket
@@ -862,87 +928,124 @@ class PositionService:
 
                 broker_trade_ids.add(trade_id)
 
-                symbol = getattr(
-                    broker_position,
-                    "symbol",
-                    ""
+                symbol = str(
+                    broker_position.get(
+                        "symbol",
+                        "",
+                    )
+                    or ""
                 )
 
+                if not symbol:
+                    error = (
+                        "Malformed MT5 broker position: "
+                        f"ticket={trade_id} missing symbol"
+                    )
+
+                    logger.error(error)
+
+                    return {
+                        "status": "RECONCILIATION_FAILED",
+                        "synchronized": [],
+                        "discrepancies": [],
+                        "error": error,
+                    }
+
                 volume = float(
-                    getattr(
-                        broker_position,
+                    broker_position.get(
                         "volume",
-                        0.0
-                    ) or 0.0
+                        0.0,
+                    )
+                    or 0.0
                 )
 
                 price_open = float(
-                    getattr(
-                        broker_position,
+                    broker_position.get(
                         "price_open",
-                        0.0
-                    ) or 0.0
+                        0.0,
+                    )
+                    or 0.0
                 )
 
                 price_current = float(
-                    getattr(
-                        broker_position,
+                    broker_position.get(
                         "price_current",
-                        price_open
-                    ) or price_open
+                        price_open,
+                    )
+                    or price_open
                 )
 
                 profit = float(
-                    getattr(
-                        broker_position,
+                    broker_position.get(
                         "profit",
-                        0.0
-                    ) or 0.0
+                        0.0,
+                    )
+                    or 0.0
                 )
 
-                mt5_type = getattr(
-                    broker_position,
-                    "type",
-                    None
+                side = str(
+                    broker_position.get(
+                        "type",
+                        "",
+                    )
+                    or ""
                 )
 
-                if mt5_type == mt5.POSITION_TYPE_BUY:
-                    side = "BUY"
-                elif mt5_type == mt5.POSITION_TYPE_SELL:
-                    side = "SELL"
-                else:
-                    side = str(mt5_type)
+                if side not in {"BUY", "SELL"}:
+                    error = (
+                        "Malformed MT5 broker position: "
+                        f"ticket={trade_id} invalid side={side!r}"
+                    )
+
+                    logger.error(error)
+
+                    return {
+                        "status": "RECONCILIATION_FAILED",
+                        "synchronized": [],
+                        "discrepancies": [],
+                        "error": error,
+                    }
+
+                if volume <= 0.0:
+                    error = (
+                        "Malformed MT5 broker position: "
+                        f"ticket={trade_id} invalid volume={volume}"
+                    )
+
+                    logger.error(error)
+
+                    return {
+                        "status": "RECONCILIATION_FAILED",
+                        "synchronized": [],
+                        "discrepancies": [],
+                        "error": error,
+                    }
 
                 existing = self.positions.get(
                     trade_id
                 )
 
                 if existing is None:
-
                     position = {
                         "oms_order_id": None,
                         "trade_id": trade_id,
-
                         "broker_order_ticket": None,
-
                         "broker_deal_ticket": None,
-
-                        "broker_position_ticket":
-                            broker_position_ticket,
-
+                        "broker_position_ticket": (
+                            broker_position_ticket
+                        ),
                         "symbol": symbol,
                         "side": side,
                         "volume": volume,
-
                         "open_price": price_open,
                         "current_price": price_current,
-
                         "floating_pl": profit,
                         "realized_pl": 0.0,
-
                         "status": "OPEN",
-
-                        "opened_at": time.time(),
+                        "opened_at": (
+                            broker_position.get("time")
+                            or time.time()
+                        ),
                         "closed_at": None,
                         "close_price": None,
                     }
@@ -950,57 +1053,92 @@ class PositionService:
                     self.positions[trade_id] = position
 
                 else:
+                    existing.update(
+                        {
+                            "broker_position_ticket": (
+                                broker_position_ticket
+                            ),
+                            "symbol": symbol,
+                            "side": side,
+                            "volume": volume,
+                            "open_price": price_open,
+                            "current_price": price_current,
+                            "floating_pl": profit,
+                            "status": "OPEN",
+                        }
+                    )
 
                     position = existing
 
-                    position["broker_position_ticket"] = (
-                        broker_position_ticket
-                    )
-
-                    position["symbol"] = symbol
-                    position["side"] = side
-                    position["volume"] = volume
-
-                    position["open_price"] = price_open
-                    position["current_price"] = price_current
-
-                    position["floating_pl"] = profit
-                    position["status"] = "OPEN"
-
-                await self.persist_snapshot(
+                await self.persist_position(
                     position
                 )
 
-                synchronized.append(position)
-
-                logger.info(
-                    "MT5 position synchronized: "
-                    "trade_id=%s "
-                    "symbol=%s "
-                    "side=%s "
-                    "volume=%s "
-                    "position_ticket=%s "
-                    "price=%s "
-                    "profit=%s",
-                    trade_id,
-                    symbol,
-                    side,
-                    volume,
-                    broker_position_ticket,
-                    price_current,
+                await self.persist_snapshot(
+                    position,
                     profit,
                 )
 
-            return synchronized
+                synchronized.append(
+                    position.copy()
+                )
 
-        except Exception as e:
+            for trade_id, position in list(
+                self.positions.items()
+            ):
 
+                if position.get("status") != "OPEN":
+                    continue
+
+                if str(trade_id) in broker_trade_ids:
+                    continue
+
+                discrepancy = {
+                    "trade_id": str(trade_id),
+                    "symbol": position.get("symbol"),
+                    "status": "LOCAL_OPEN_BROKER_MISSING",
+                    "broker_position_ticket": (
+                        position.get(
+                            "broker_position_ticket"
+                        )
+                    ),
+                }
+
+                discrepancies.append(
+                    discrepancy
+                )
+
+                logger.error(
+                    "MT5 reconciliation discrepancy: "
+                    "local position remains OPEN but broker "
+                    "position is missing: trade_id=%s symbol=%s",
+                    trade_id,
+                    position.get("symbol"),
+                )
+
+            return {
+                "status": (
+                    "RECONCILED"
+                    if not discrepancies
+                    else "RECONCILED_WITH_DISCREPANCIES"
+                ),
+                "synchronized": synchronized,
+                "discrepancies": discrepancies,
+                "error": None,
+            }
+
+        except Exception as exc:
             logger.exception(
                 "MT5 position reconciliation failed: %s",
-                e
+                exc,
             )
 
-            return []
+            return {
+                "status": "RECONCILIATION_FAILED",
+                "synchronized": [],
+                "discrepancies": [],
+                "error": str(exc),
+            }
 
     async def close_position(
         self,
