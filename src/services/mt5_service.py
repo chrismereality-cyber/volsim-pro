@@ -111,6 +111,158 @@ class MT5Service:
         return market
 
 
+    def get_positions_for_reconciliation(self):
+        """
+        Return the authoritative MT5 open-position snapshot for LIVE
+        reconciliation.
+
+        Distinguishes:
+            successful query with positions
+            successful query with zero positions
+            MT5 query/connection failure
+
+        A broker query failure must never be interpreted as zero positions.
+        """
+        if not self.connect():
+            error = mt5.last_error()
+            return {
+                "success": False,
+                "positions": [],
+                "error": f"MT5 initialization failed: {error}",
+            }
+
+        try:
+            positions = mt5.positions_get()
+        except Exception as exc:
+            return {
+                "success": False,
+                "positions": [],
+                "error": f"MT5 positions_get exception: {exc}",
+            }
+
+        if positions is None:
+            error = mt5.last_error()
+            return {
+                "success": False,
+                "positions": [],
+                "error": f"MT5 positions_get returned None: {error}",
+            }
+
+        result = []
+
+        for position in positions:
+            result.append({
+                "ticket": getattr(position, "ticket", None),
+                "symbol": getattr(position, "symbol", ""),
+                "type": (
+                    "BUY"
+                    if getattr(position, "type", None) == mt5.POSITION_TYPE_BUY
+                    else "SELL"
+                    if getattr(position, "type", None) == mt5.POSITION_TYPE_SELL
+                    else str(getattr(position, "type", None))
+                ),
+                "volume": float(getattr(position, "volume", 0.0) or 0.0),
+                "price_open": float(getattr(position, "price_open", 0.0) or 0.0),
+                "price_current": float(
+                    getattr(position, "price_current", 0.0) or 0.0
+                ),
+                "profit": float(getattr(position, "profit", 0.0) or 0.0),
+                "swap": float(getattr(position, "swap", 0.0) or 0.0),
+                "magic": getattr(position, "magic", None),
+                "comment": getattr(position, "comment", ""),
+                "time": getattr(position, "time", None),
+            })
+
+        return {
+            "success": True,
+            "positions": result,
+            "error": None,
+        }
+
+
+    def resolve_broker_position_sources(self, symbol=None, deal_ticket=None):
+        """
+        Provide raw MT5 broker sources required to resolve an executed
+        position ticket.
+
+        ExecutionService owns retry/fallback policy. MT5Service owns
+        direct MT5 API access.
+
+        Returns:
+            {
+                "success": bool,
+                "deals": list,
+                "positions": list,
+                "error": str | None,
+            }
+        """
+        if not self.connect():
+            error = mt5.last_error()
+            return {
+                "success": False,
+                "deals": [],
+                "positions": [],
+                "error": f"MT5 initialization failed: {error}",
+            }
+
+        deals = []
+        positions = []
+
+        if deal_ticket is not None:
+            try:
+                deal_history = mt5.history_deals_get(
+                    ticket=deal_ticket
+                )
+            except Exception as exc:
+                return {
+                    "success": False,
+                    "deals": [],
+                    "positions": [],
+                    "error": f"MT5 history_deals_get exception: {exc}",
+                }
+
+            if deal_history is None:
+                error = mt5.last_error()
+                return {
+                    "success": False,
+                    "deals": [],
+                    "positions": [],
+                    "error": f"MT5 history_deals_get returned None: {error}",
+                }
+
+            deals = list(deal_history)
+
+        if symbol:
+            try:
+                broker_positions = mt5.positions_get(
+                    symbol=symbol
+                )
+            except Exception as exc:
+                return {
+                    "success": False,
+                    "deals": deals,
+                    "positions": [],
+                    "error": f"MT5 positions_get exception: {exc}",
+                }
+
+            if broker_positions is None:
+                error = mt5.last_error()
+                return {
+                    "success": False,
+                    "deals": deals,
+                    "positions": [],
+                    "error": f"MT5 positions_get returned None: {error}",
+                }
+
+            positions = list(broker_positions)
+
+        return {
+            "success": True,
+            "deals": deals,
+            "positions": positions,
+            "error": None,
+        }
+
     def get_positions(self):
 
         if not self.connect():
@@ -871,6 +1023,4 @@ class MT5Service:
             }
 
 mt5_service = MT5Service()
-
-
 

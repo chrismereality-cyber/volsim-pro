@@ -1,4 +1,4 @@
-import time
+﻿import time
 import uuid
 import json
 import asyncio
@@ -205,14 +205,36 @@ class ExecutionService:
         order_id = order['order_id']
         try:
             live_transmission_authorized = order_request.get('live_transmission_authorized') is True
-            if not live_transmission_authorized:
+
+            # PAPER mode must never require live broker authorization.
+            # LIVE mode requires explicit boolean authorization.
+            if self.execution_mode == 'LIVE' and not live_transmission_authorized:
                 self.orders_rejected += 1
                 self.last_error = 'LIVE_TRANSMISSION_NOT_AUTHORIZED'
-                authorization_result = {'success': False, 'order_id': order_id, 'ticket': None, 'retcode': 'LIVE_TRANSMISSION_NOT_AUTHORIZED', 'message': 'Live broker transmission requires explicit authorization.', 'client_order_id': client_order_id, 'execution_mode': self.execution_mode, 'live_transmission_authorized': False}
-                logger.warning('LIVE TRANSMISSION DENIED: explicit authorization was not provided. oms_order_id=%s client_order_id=%s', order_id, client_order_id)
+                authorization_result = {
+                    'success': False,
+                    'order_id': order_id,
+                    'ticket': None,
+                    'retcode': 'LIVE_TRANSMISSION_NOT_AUTHORIZED',
+                    'message': 'Live broker transmission requires explicit authorization.',
+                    'client_order_id': client_order_id,
+                    'execution_mode': self.execution_mode,
+                    'live_transmission_authorized': False
+                }
+                logger.warning(
+                    'LIVE TRANSMISSION DENIED: explicit authorization was not provided. '
+                    'oms_order_id=%s client_order_id=%s',
+                    order_id,
+                    client_order_id
+                )
                 oms_service.update_status(order_id, 'REJECTED', authorization_result)
-                await self._finalize_execution_idempotency(client_order_id, authorization_result, order_id)
+                await self._finalize_execution_idempotency(
+                    client_order_id,
+                    authorization_result,
+                    order_id
+                )
                 return authorization_result
+
             risk_result = risk_engine_service.approve_order(order_request)
             if not risk_result.get('approved'):
                 self.orders_rejected += 1
@@ -360,6 +382,9 @@ class ExecutionService:
         """
         Resolve the authoritative MT5 broker position ticket.
 
+        MT5Service owns direct broker API access. This method owns the
+        retry and identity-resolution policy.
+
         Identity hierarchy:
 
             MT5 position.ticket
@@ -390,72 +415,176 @@ class ExecutionService:
                 magic = int(magic)
             except (TypeError, ValueError):
                 magic = 202607
+
             retries = max(int(retries), 1)
             retry_delay = max(float(retry_delay), 0.05)
+
             try:
                 order_ticket = int(order_ticket) if order_ticket is not None else None
             except (TypeError, ValueError):
                 order_ticket = None
+
             try:
                 deal_ticket = int(deal_ticket) if deal_ticket is not None else None
             except (TypeError, ValueError):
                 deal_ticket = None
-            logger.info('Resolving MT5 broker position: symbol=%s magic=%s order_ticket=%s deal_ticket=%s', symbol, magic, order_ticket, deal_ticket)
+
+            logger.info(
+                'Resolving MT5 broker position: symbol=%s magic=%s '
+                'order_ticket=%s deal_ticket=%s',
+                symbol,
+                magic,
+                order_ticket,
+                deal_ticket,
+            )
+
             for attempt in range(1, retries + 1):
-                if deal_ticket is not None:
-                    try:
-                        deal_history = mt5.history_deals_get(ticket=deal_ticket)
-                        if deal_history:
-                            for deal in deal_history:
-                                position_id = getattr(deal, 'position_id', None)
-                                deal_symbol = getattr(deal, 'symbol', None)
-                                if position_id is not None and str(deal_symbol) == symbol and (int(position_id) > 0):
-                                    logger.info('Broker position resolved directly from deal: symbol=%s deal_ticket=%s position_ticket=%s attempt=%s', symbol, deal_ticket, position_id, attempt)
-                                    return int(position_id)
-                    except Exception as exc:
-                        logger.debug('Deal-to-position resolution unavailable: symbol=%s deal_ticket=%s attempt=%s/%s error=%s', symbol, deal_ticket, attempt, retries, exc)
-                try:
-                    positions = mt5.positions_get(symbol=symbol)
-                except Exception as exc:
-                    logger.warning('MT5 position lookup exception: symbol=%s attempt=%s/%s error=%s', symbol, attempt, retries, exc)
-                    positions = None
-                if positions is not None:
-                    positions = list(positions)
+                sources = mt5_service.resolve_broker_position_sources(
+                    symbol=symbol,
+                    deal_ticket=deal_ticket,
+                )
+
+                if not sources.get('success'):
+                    logger.warning(
+                        'MT5 broker position source lookup failed: '
+                        'symbol=%s attempt=%s/%s error=%s',
+                        symbol,
+                        attempt,
+                        retries,
+                        sources.get('error'),
+                    )
+                else:
+                    deal_history = sources.get('deals', [])
+
+                    if deal_ticket is not None:
+                        for deal in deal_history:
+                            position_id = getattr(deal, 'position_id', None)
+                            deal_symbol = getattr(deal, 'symbol', None)
+
+                            if (
+                                position_id is not None
+                                and str(deal_symbol) == symbol
+                                and int(position_id) > 0
+                            ):
+                                logger.info(
+                                    'Broker position resolved directly from deal: '
+                                    'symbol=%s deal_ticket=%s position_ticket=%s '
+                                    'attempt=%s',
+                                    symbol,
+                                    deal_ticket,
+                                    position_id,
+                                    attempt,
+                                )
+                                return int(position_id)
+
+                    positions = sources.get('positions', [])
+
                     if positions:
                         exact_matches = []
+
                         for position in positions:
                             position_symbol = getattr(position, 'symbol', None)
                             position_magic = getattr(position, 'magic', None)
-                            if str(position_symbol) == symbol and position_magic is not None and (int(position_magic) == magic):
+
+                            if (
+                                str(position_symbol) == symbol
+                                and position_magic is not None
+                                and int(position_magic) == magic
+                            ):
                                 exact_matches.append(position)
+
                         if exact_matches:
-                            exact_matches.sort(key=lambda p: getattr(p, 'time_msc', getattr(p, 'time', 0)), reverse=True)
-                            ticket = getattr(exact_matches[0], 'ticket', None)
+                            exact_matches.sort(
+                                key=lambda p: getattr(
+                                    p,
+                                    'time_msc',
+                                    getattr(p, 'time', 0),
+                                ),
+                                reverse=True,
+                            )
+
+                            ticket = getattr(
+                                exact_matches[0],
+                                'ticket',
+                                None,
+                            )
+
                             if ticket is not None:
-                                logger.info('Broker position resolved by symbol + magic: symbol=%s magic=%s ticket=%s attempt=%s', symbol, magic, ticket, attempt)
+                                logger.info(
+                                    'Broker position resolved by symbol + magic: '
+                                    'symbol=%s magic=%s ticket=%s attempt=%s',
+                                    symbol,
+                                    magic,
+                                    ticket,
+                                    attempt,
+                                )
                                 return int(ticket)
-                        symbol_matches = [p for p in positions if str(getattr(p, 'symbol', '')) == symbol]
+
+                        symbol_matches = [
+                            p
+                            for p in positions
+                            if str(getattr(p, 'symbol', '')) == symbol
+                        ]
+
                         if len(symbol_matches) == 1:
-                            ticket = getattr(symbol_matches[0], 'ticket', None)
+                            ticket = getattr(
+                                symbol_matches[0],
+                                'ticket',
+                                None,
+                            )
+
                             if ticket is not None:
-                                logger.info('Broker position resolved by single-symbol fallback: symbol=%s ticket=%s attempt=%s', symbol, ticket, attempt)
+                                logger.info(
+                                    'Broker position resolved by single-symbol '
+                                    'fallback: symbol=%s ticket=%s attempt=%s',
+                                    symbol,
+                                    ticket,
+                                    attempt,
+                                )
                                 return int(ticket)
+
                         if symbol_matches:
-                            symbol_matches.sort(key=lambda p: getattr(p, 'time_msc', getattr(p, 'time', 0)), reverse=True)
-                            ticket = getattr(symbol_matches[0], 'ticket', None)
+                            symbol_matches.sort(
+                                key=lambda p: getattr(
+                                    p,
+                                    'time_msc',
+                                    getattr(p, 'time', 0),
+                                ),
+                                reverse=True,
+                            )
+
+                            ticket = getattr(
+                                symbol_matches[0],
+                                'ticket',
+                                None,
+                            )
+
                             if ticket is not None:
-                                logger.info('Broker position resolved by latest-symbol fallback: symbol=%s ticket=%s attempt=%s', symbol, ticket, attempt)
+                                logger.info(
+                                    'Broker position resolved by latest-symbol '
+                                    'fallback: symbol=%s ticket=%s attempt=%s',
+                                    symbol,
+                                    ticket,
+                                    attempt,
+                                )
                                 return int(ticket)
-                else:
-                    logger.warning('MT5 positions_get returned None: symbol=%s attempt=%s/%s error=%s', symbol, attempt, retries, mt5.last_error())
+
                 if attempt < retries:
                     time.sleep(retry_delay)
-            logger.error('Unable to resolve authoritative MT5 position: symbol=%s magic=%s order_ticket=%s deal_ticket=%s', symbol, magic, order_ticket, deal_ticket)
+
+            logger.error(
+                'Unable to resolve authoritative MT5 position: '
+                'symbol=%s magic=%s order_ticket=%s deal_ticket=%s',
+                symbol,
+                magic,
+                order_ticket,
+                deal_ticket,
+            )
             return None
+
         except Exception as exc:
             logger.exception('Broker position resolver failed: %s', exc)
             return None
-
     def snapshot(self):
         try:
             bridge = mt5_bridge_service.snapshot()
@@ -471,7 +600,4 @@ class ExecutionService:
             logger.error('Execution snapshot failure: %s', e)
             return {'status': 'ERROR', 'engine_status': 'DEGRADED', 'bridge_connection_status': 'UNKNOWN', 'broker_connection_status': 'UNKNOWN', 'last_error': str(e), 'heartbeat': time.time(), 'health_score': 0}
 execution_service = ExecutionService()
-
-
-
 
