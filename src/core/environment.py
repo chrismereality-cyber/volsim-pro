@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 import os
 
 from dotenv import load_dotenv
@@ -34,7 +34,7 @@ def load_environment() -> None:
     if ENV_LOCAL_FILE.exists():
         load_dotenv(
             dotenv_path=ENV_LOCAL_FILE,
-            override=False,
+            override=True,
         )
 
 
