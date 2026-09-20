@@ -1,113 +1,43 @@
-'use client';
+﻿'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Activity, Radio, ArrowUpRight, ArrowDownRight, Terminal } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Activity, Radio, Terminal } from 'lucide-react';
+import { useTradingStore, type MarketQuote } from '../../store/useTradingStore';
 
-interface MarketSnapshot {
-  symbol: string;
-  name: string;
-  depthType: string;
-  basePrice: number;
-  decimals: number;
-  spread: number;
-  volatility: number;
-  change24h: number;
-  bid: number;
-  ask: number;
-}
+const MARKET_ORDER = ['XAUUSDm', 'EURUSD', 'GBPUSD'];
 
-const INITIAL_MARKETS: MarketSnapshot[] = [
-  {
-    symbol: 'XAUUSDm',
-    name: 'Gold Spot (m)',
-    depthType: 'DEEP DEPTH',
-    basePrice: 4165.50,
-    decimals: 2,
-    spread: 0.12,
-    volatility: 0.25,
-    change24h: 1.45,
-    bid: 4165.50,
-    ask: 4165.62
-  },
-  {
-    symbol: '1HZ100V',
-    name: 'Volatility 100 (1s) Index',
-    depthType: 'OPTIMAL DEPTH',
-    basePrice: 4181.44,
-    decimals: 2,
-    spread: 0.35,
-    volatility: 0.45,
-    change24h: -0.62,
-    bid: 4181.44,
-    ask: 4181.79
-  },
-  {
-    symbol: '1HZ75V',
-    name: 'Volatility 75 Index',
-    depthType: 'HIGH DEPTH',
-    basePrice: 172450.00,
-    decimals: 2,
-    spread: 4.80,
-    volatility: 12.5,
-    change24h: 2.11,
-    bid: 172450.00,
-    ask: 172454.80
-  }
-];
+const MARKET_NAMES: Record<string, string> = {
+  XAUUSDm: 'Gold Spot (m)',
+  EURUSD: 'Euro / US Dollar',
+  GBPUSD: 'British Pound / US Dollar',
+};
 
 export default function MarketOverviewView() {
-  const [markets, setMarkets] = useState<MarketSnapshot[]>(INITIAL_MARKETS);
-  const [currentTimeStr, setCurrentTimeStr] = useState<string>('17:30:10');
-  const [logs, setLogs] = useState<string[]>([
-    'Initialized full-duplex WebSocket connection to trading router.',
-    'XAUUSDm liquidity pool handshake validated (Depth Tier 1).',
-    'Synthetic indices feed mapping verified via active gateway session.',
-    'Streaming microsecond tick aggregates... Status stable.'
-  ]);
+  const market = useTradingStore((state) => state.market);
+  const isFastApiConnected = useTradingStore(
+    (state) => state.isFastApiConnected
+  );
+
+  const [currentTimeStr, setCurrentTimeStr] = useState<string>('--:--:--');
 
   useEffect(() => {
-    const tickInterval = setInterval(() => {
-      // 1. Update live prices and percentages across all layout matrices
-      setMarkets(prevMarkets =>
-        prevMarkets.map(market => {
-          const tickDrift = (Math.random() - 0.5) * market.volatility;
-          const nextBid = Math.max(market.basePrice * 0.5, market.bid + tickDrift);
-          const nextAsk = nextBid + market.spread + (Math.random() - 0.5) * (market.spread * 0.05);
+    const updateClock = () => {
+      setCurrentTimeStr(new Date().toTimeString().split(' ')[0]);
+    };
 
-          // Micro-fluctuate 24h percentage change based on trend direction
-          const pctDrift = (Math.random() - 0.5) * 0.005;
-          const nextChange = market.change24h + pctDrift;
+    updateClock();
 
-          return {
-            ...market,
-            bid: nextBid,
-            ask: nextAsk,
-            change24h: nextChange
-          };
-        })
-      );
+    const clockInterval = setInterval(updateClock, 1000);
 
-      // 2. Roll forward standard execution timing clocks
-      const now = new Date();
-      setCurrentTimeStr(now.toTimeString().split(' ')[0]);
-
-      // 3. Occasionally cycle high-velocity log tracks to match UI outputs in image_07466c.png
-      if (Math.random() > 0.85) {
-        setLogs(prev => {
-          const timeLabel = `[${new Date().toTimeString().split(' ')[0]}]`;
-          const activeSymbols = ['XAUUSDm', '1HZ75V', '1HZ100V'];
-          const randomSymbol = activeSymbols[Math.floor(Math.random() * activeSymbols.length)];
-          const newLog = `${timeLabel} Inbound quote processed for ${randomSymbol} -> Delta: ${(Math.random() - 0.5).toFixed(4)} pts`;
-
-          const expanded = [...prev, newLog];
-          if (expanded.length > 5) expanded.shift(); // Keep visual structure locked
-          return expanded;
-        });
-      }
-    }, 400);
-
-    return () => clearInterval(tickInterval);
+    return () => clearInterval(clockInterval);
   }, []);
+
+  const markets: MarketQuote[] = MARKET_ORDER
+    .map((symbol) => market[symbol])
+    .filter((quote): quote is MarketQuote => Boolean(quote));
+
+  const connectionStatus =
+    isFastApiConnected && markets.length > 0 ? 'RUNNING' : 'WAITING';
 
   return (
     <div className="space-y-6 font-mono text-xs">
@@ -116,55 +46,89 @@ export default function MarketOverviewView() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border border-zinc-800 bg-zinc-950/40 p-4 rounded-sm tracking-wider gap-3">
         <div className="space-y-1">
           <div className="text-emerald-400 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span
+              className={`w-2 h-2 rounded-full ${
+                connectionStatus === 'RUNNING'
+                  ? 'bg-emerald-500 animate-pulse'
+                  : 'bg-zinc-600'
+              }`}
+            ></span>
             // MARKET OVERVIEW CONTROL STREAM ACTIVE...
           </div>
-          <p className="text-zinc-500">Sub-second liquidity tracking engine linked via MT5 router bridge gateway.</p>
+          <p className="text-zinc-500">
+            Canonical MT5 market quotes received through the centralized trading-state stream.
+          </p>
         </div>
+
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-zinc-900 border border-zinc-850 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-          BRIDGE: <span className="text-emerald-400">RUNNING</span>
+          BRIDGE:{' '}
+          <span
+            className={
+              connectionStatus === 'RUNNING'
+                ? 'text-emerald-400'
+                : 'text-zinc-500'
+            }
+          >
+            {connectionStatus}
+          </span>
         </div>
       </div>
 
-      {/* Grid Cluster Layout mapping the 3 critical core indices */}
+      {/* Grid Cluster Layout */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {markets.map((market) => {
-          const isPositive = market.change24h >= 0;
-          const spreadValue = market.ask - market.bid;
+        {markets.map((quote) => {
+          const decimals = Math.max(0, Math.trunc(quote.digits));
+          const spreadValue = quote.spread;
 
           return (
-            <div key={market.symbol} className="border border-zinc-800 bg-zinc-950/20 rounded-sm p-4 space-y-4 shadow-xl">
+            <div
+              key={quote.symbol}
+              className="border border-zinc-800 bg-zinc-950/20 rounded-sm p-4 space-y-4 shadow-xl"
+            >
 
               {/* Card Meta Row */}
               <div className="flex items-start justify-between">
                 <div className="space-y-0.5">
-                  <h3 className="text-zinc-200 font-bold text-[13px] tracking-wide">{market.symbol}</h3>
-                  <div className="text-[9px] text-zinc-500 uppercase tracking-widest font-semibold">{market.depthType}</div>
+                  <h3 className="text-zinc-200 font-bold text-[13px] tracking-wide">
+                    {quote.symbol}
+                  </h3>
+
+                  <div className="text-[9px] text-zinc-500 uppercase tracking-widest font-semibold">
+                    {MARKET_NAMES[quote.symbol] ?? 'MT5 MARKET'}
+                  </div>
                 </div>
 
-                <div className={`flex items-center gap-1 px-2 py-0.5 rounded-sm font-bold text-[10px] border ${
-                  isPositive
-                    ? 'border-emerald-950 bg-emerald-950/30 text-emerald-400'
-                    : 'border-rose-950 bg-rose-950/30 text-rose-400'
-                }`}>
-                  {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                  {isPositive ? '+' : ''}{market.change24h.toFixed(2)}%
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-sm font-bold text-[10px] border border-emerald-950 bg-emerald-950/30 text-emerald-400">
+                  <Radio className="w-3 h-3" />
+                  LIVE
                 </div>
               </div>
 
               {/* Core Liquidity Bid / Ask Spread Boxes */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="border border-zinc-850 bg-zinc-900/40 p-2.5 rounded-sm relative">
-                  <div className="text-[9px] text-zinc-500 uppercase font-bold tracking-widest mb-1">BID</div>
+                  <div className="text-[9px] text-zinc-500 uppercase font-bold tracking-widest mb-1">
+                    BID
+                  </div>
+
                   <div className="text-zinc-100 font-bold text-[14px]">
-                    {market.bid.toLocaleString(undefined, { minimumFractionDigits: market.decimals, maximumFractionDigits: market.decimals })}
+                    {quote.bid.toLocaleString(undefined, {
+                      minimumFractionDigits: decimals,
+                      maximumFractionDigits: decimals,
+                    })}
                   </div>
                 </div>
 
                 <div className="border border-zinc-850 bg-zinc-900/40 p-2.5 rounded-sm relative">
-                  <div className="text-[9px] text-zinc-500 uppercase font-bold tracking-widest mb-1">ASK</div>
+                  <div className="text-[9px] text-zinc-500 uppercase font-bold tracking-widest mb-1">
+                    ASK
+                  </div>
+
                   <div className="text-zinc-100 font-bold text-[14px]">
-                    {market.ask.toLocaleString(undefined, { minimumFractionDigits: market.decimals, maximumFractionDigits: market.decimals })}
+                    {quote.ask.toLocaleString(undefined, {
+                      minimumFractionDigits: decimals,
+                      maximumFractionDigits: decimals,
+                    })}
                   </div>
                 </div>
               </div>
@@ -172,16 +136,40 @@ export default function MarketOverviewView() {
               {/* Dynamic Bottom Metric Row */}
               <div className="flex items-center justify-between pt-2 border-t border-zinc-900 text-[10px] font-semibold text-zinc-500">
                 <div className="flex items-center gap-1.5">
-                  SPREAD: <span className="text-zinc-300 font-bold">{spreadValue.toFixed(2)}</span>
+                  SPREAD:{' '}
+                  <span className="text-zinc-300 font-bold">
+                    {spreadValue.toFixed(decimals)}
+                  </span>
                 </div>
+
                 <div className="text-zinc-600 flex items-center gap-1">
-                  ISO: <span className="text-zinc-400 font-bold">{currentTimeStr}</span>
+                  LAST:{' '}
+                  <span className="text-zinc-400 font-bold">
+                    {quote.last.toLocaleString(undefined, {
+                      minimumFractionDigits: decimals,
+                      maximumFractionDigits: decimals,
+                    })}
+                  </span>
                 </div>
               </div>
 
             </div>
           );
         })}
+
+        {markets.length === 0 && (
+          <div className="md:col-span-3 border border-zinc-800 bg-zinc-950/30 rounded-sm p-8 text-center">
+            <Activity className="w-5 h-5 text-zinc-600 mx-auto mb-3" />
+
+            <div className="text-zinc-500 text-[10px] uppercase tracking-widest">
+              Awaiting canonical MT5 market state...
+            </div>
+
+            <div className="text-zinc-700 text-[9px] mt-2">
+              No market quotes are currently available in the centralized trading-state store.
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Live Feed Terminal Log Display */}
@@ -190,12 +178,28 @@ export default function MarketOverviewView() {
           <Terminal className="w-3.5 h-3.5 text-emerald-500" />
           LIVE FEED LOG
         </div>
+
         <div className="p-4 space-y-1.5 text-[11px] text-zinc-500 bg-zinc-950/10 min-h-[120px]">
-          {logs.map((log, idx) => (
-            <div key={idx} className={`leading-relaxed whitespace-pre-wrap ${idx === logs.length - 1 ? 'text-zinc-400 font-medium' : ''}`}>
-              {log}
+          <div className="leading-relaxed text-zinc-400 font-medium">
+            [{currentTimeStr}] Centralized trading-state stream active.
+          </div>
+
+          {markets.map((quote) => (
+            <div
+              key={quote.symbol}
+              className="leading-relaxed whitespace-pre-wrap"
+            >
+              [{currentTimeStr}] MT5 quote synchronized: {quote.symbol} | BID{' '}
+              {quote.bid.toFixed(Math.max(0, Math.trunc(quote.digits)))} | ASK{' '}
+              {quote.ask.toFixed(Math.max(0, Math.trunc(quote.digits)))}
             </div>
           ))}
+
+          {markets.length === 0 && (
+            <div className="leading-relaxed text-zinc-600">
+              [{currentTimeStr}] Awaiting market-state payload...
+            </div>
+          )}
         </div>
       </div>
 
