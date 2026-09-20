@@ -1,4 +1,4 @@
-import { API_BASE, WS_BASE } from "./config";
+﻿import { API_BASE, WS_BASE } from "./config";
 
 export class TradingApiClient {
 
@@ -54,5 +54,67 @@ export class TradingApiClient {
         }
 
         return response.json();
+    }
+
+    static async patch(
+        path: string,
+        body: unknown,
+        headers?: Record<string, string>,
+    ) {
+        const response = await fetch(this.api(path), {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                ...headers,
+            },
+            body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+            throw new Error(`PATCH ${path} failed (${response.status})`);
+        }
+
+        return response.json();
+    }
+
+    static async put(
+        path: string,
+        body: unknown,
+        headers?: Record<string, string>,
+    ) {
+        const response = await fetch(this.api(path), {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                ...headers,
+            },
+            body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+            throw new Error(`PUT ${path} failed (${response.status})`);
+        }
+
+        return response.json();
+    }
+
+    static async patchAuthenticated(
+        path: string,
+        accessToken: string,
+        body: unknown,
+    ) {
+        return this.patch(path, body, {
+            Authorization: `Bearer ${accessToken}`,
+        });
+    }
+
+    static async putAuthenticated(
+        path: string,
+        accessToken: string,
+        body: unknown,
+    ) {
+        return this.put(path, body, {
+            Authorization: `Bearer ${accessToken}`,
+        });
     }
 }
