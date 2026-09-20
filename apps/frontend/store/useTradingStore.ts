@@ -1,4 +1,4 @@
-import { create } from "zustand";
+﻿import { create } from "zustand";
 
 export type ThemeType = "dark" | "light" | "hacker";
 
@@ -12,6 +12,41 @@ export interface HedgingSignal {
 
 export interface TradingPosition {
     [key: string]: any;
+}
+
+export interface MarketQuote {
+    symbol: string;
+    bid: number;
+    ask: number;
+    last: number;
+    spread: number;
+    point: number;
+    digits: number;
+    timestamp: number;
+}
+
+export type MarketState = Record<string, MarketQuote>;
+
+export interface VaultState {
+    status: string;
+    allocation_profile: string;
+    trading_equity_balance: number;
+    vault_balance: number;
+    pending_allocation: number;
+    total_allocated: number;
+    total_transferred: number;
+    last_realized_profit: number;
+    equity_percentage: number;
+    vault_percentage: number;
+    sync_status: string;
+    wallet_address: string | null;
+    last_tx_hash: string | null;
+    blockchain_network: string | null;
+    last_sync_time: number | null;
+    database_state_id: number | null;
+    last_persist_time: number | null;
+    last_persist_error: string | null;
+    persistence_enabled: boolean;
 }
 
 export interface TradingState {
@@ -50,6 +85,9 @@ export interface TradingState {
     totalNetProfit: number;
     cagr: number;
 
+    // MARKET
+    market: MarketState;
+
     // POSITIONS / PORTFOLIO
     positions: TradingPosition[];
     portfolioValue: number;
@@ -62,13 +100,14 @@ export interface TradingState {
     valueAtRisk: number;
     riskStatus: string;
 
-    // ALLOCATION / HEDGING
+    // ALLOCATION / VAULT / HEDGING
     allocations: Record<string, number>;
+    vault: VaultState;
     hedgingSignals: HedgingSignal[];
 
     // RAW STATE VERSION
     stateVersion: number | null;
-    lastStateTimestamp: string | null;
+    lastStateTimestamp: string | number | null;
 
     // CENTRAL STATE INGESTION
     updateTradingState: (payload: any) => void;
@@ -113,6 +152,106 @@ const objectValue = (
         : {};
 };
 
+const normalizeVault = (
+    value: any
+): VaultState => {
+
+    const vault = objectValue(value);
+
+    return {
+        status: String(
+            vault.status ?? "UNKNOWN"
+        ),
+
+        allocation_profile: String(
+            vault.allocation_profile ??
+            "CORE_SATELLITE_70_30"
+        ),
+
+        trading_equity_balance:
+            numberOrZero(
+                vault.trading_equity_balance
+            ),
+
+        vault_balance:
+            numberOrZero(
+                vault.vault_balance
+            ),
+
+        pending_allocation:
+            numberOrZero(
+                vault.pending_allocation
+            ),
+
+        total_allocated:
+            numberOrZero(
+                vault.total_allocated
+            ),
+
+        total_transferred:
+            numberOrZero(
+                vault.total_transferred
+            ),
+
+        last_realized_profit:
+            numberOrZero(
+                vault.last_realized_profit
+            ),
+
+        equity_percentage:
+            numberOrZero(
+                vault.equity_percentage
+            ),
+
+        vault_percentage:
+            numberOrZero(
+                vault.vault_percentage
+            ),
+
+        sync_status: String(
+            vault.sync_status ?? "UNKNOWN"
+        ),
+
+        wallet_address:
+            vault.wallet_address ?? null,
+
+        last_tx_hash:
+            vault.last_tx_hash ?? null,
+
+        blockchain_network:
+            vault.blockchain_network ?? null,
+
+        last_sync_time:
+            vault.last_sync_time == null
+                ? null
+                : numberOrZero(
+                    vault.last_sync_time
+                ),
+
+        database_state_id:
+            vault.database_state_id == null
+                ? null
+                : numberOrZero(
+                    vault.database_state_id
+                ),
+
+        last_persist_time:
+            vault.last_persist_time == null
+                ? null
+                : numberOrZero(
+                    vault.last_persist_time
+                ),
+
+        last_persist_error:
+            vault.last_persist_error ?? null,
+
+        persistence_enabled:
+            booleanValue(
+                vault.persistence_enabled
+            ),
+    };
+};
+
 export const useTradingStore = create<TradingState>(
     (set) => ({
 
@@ -154,6 +293,9 @@ export const useTradingStore = create<TradingState>(
         totalNetProfit: 0,
         cagr: 0,
 
+        // MARKET
+        market: {},
+
         // POSITIONS / PORTFOLIO
         positions: [],
         portfolioValue: 0,
@@ -166,8 +308,13 @@ export const useTradingStore = create<TradingState>(
         valueAtRisk: 0,
         riskStatus: "UNKNOWN",
 
-        // ALLOCATION / HEDGING
+        // ALLOCATION
         allocations: {},
+
+        // VAULT
+        vault: normalizeVault(null),
+
+        // HEDGING
         hedgingSignals: [],
 
         // STATE METADATA
@@ -195,6 +342,9 @@ export const useTradingStore = create<TradingState>(
             const positions =
                 objectValue(payload.positions);
 
+            const market =
+                objectValue(payload.market);
+
             const risk =
                 objectValue(payload.risk);
 
@@ -210,6 +360,11 @@ export const useTradingStore = create<TradingState>(
                     payload.allocation
                 );
 
+            const vault =
+                normalizeVault(
+                    payload.vault
+                );
+
             const hedging =
                 payload.hedging_signals ??
                 payload.hedgingSignals ??
@@ -220,10 +375,34 @@ export const useTradingStore = create<TradingState>(
                     payload.metadata
                 );
 
+            const normalizedMarket: MarketState = {};
+
+            for (const [symbol, quote] of Object.entries(market)) {
+                if (!quote || typeof quote !== "object") {
+                    continue;
+                }
+
+                const raw = quote as Record<string, any>;
+
+                normalizedMarket[symbol] = {
+                    symbol: String(raw.symbol ?? symbol),
+                    bid: numberOrZero(raw.bid),
+                    ask: numberOrZero(raw.ask),
+                    last: numberOrZero(raw.last),
+                    spread: numberOrZero(raw.spread),
+                    point: numberOrZero(raw.point),
+                    digits: numberOrZero(raw.digits),
+                    timestamp: numberOrZero(raw.timestamp),
+                };
+            }
+
             set({
 
                 // CONNECTION
                 isFastApiConnected: true,
+
+                // MARKET
+                market: normalizedMarket,
 
                 // ACCOUNT
                 balance: numberOrZero(
@@ -363,6 +542,9 @@ export const useTradingStore = create<TradingState>(
                 allocations:
                     objectValue(allocation),
 
+                // VAULT
+                vault,
+
                 // HEDGING
                 hedgingSignals:
                     arrayValue<HedgingSignal>(
@@ -384,3 +566,4 @@ export const useTradingStore = create<TradingState>(
         },
     })
 );
+

@@ -1,8 +1,8 @@
 'use client';
 
-
-
 import React, { useState, useEffect } from 'react';
+import { TradingApiClient } from '../../lib/TradingApiClient';
+import { useAuth } from '../../src/auth/AuthProvider';
 import {
   TrendingUp,
   Activity,
@@ -58,34 +58,49 @@ interface AnalyticsPayload {
 }
 
 export default function PerformanceAnalyticsView() {
+  const { accessToken, isAuthenticated, isLoading: authLoading } = useAuth();
+
   const [timeframe, setTimeframe] = useState<'30D' | '90D' | 'ALL'>('30D');
   const [data, setData] = useState<AnalyticsPayload | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authLoading || !isAuthenticated || !accessToken) {
+      return;
+    }
+
+    const authenticatedAccessToken = accessToken;
+
     async function fetchLiveAnalytics() {
       setLoading(true);
       setError(null);
+
       try {
-        const response = await fetch(
-  `http://127.0.0.1:10000/api/analytics/performance?timeframe=${timeframe}`
-);
+        const result = await TradingApiClient.getAuthenticated(
+          `/api/analytics/performance?timeframe=${timeframe}`,
+          authenticatedAccessToken,
+        );
 
-if (!response.ok) {
-  throw new Error(`HTTP ${response.status}`);
-}
-
-const result = await response.json();
-setData(result);
+        setData(result);
       } catch (err: any) {
         setError(err.message || 'Failed to retrieve metrics from MT5 kernel.');
       } finally {
         setLoading(false);
       }
     }
+
     fetchLiveAnalytics();
-  }, [timeframe]);
+  }, [timeframe, accessToken, isAuthenticated, authLoading]);
+
+  if (authLoading || !isAuthenticated || !accessToken) {
+    return (
+      <div className="h-[400px] flex flex-col items-center justify-center gap-3 font-mono text-xs text-zinc-400">
+        <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+        <span>AUTHENTICATING ANALYTICS SESSION...</span>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -101,12 +116,13 @@ setData(result);
       <div className="h-[400px] border border-red-900/30 bg-red-950/10 rounded-sm flex flex-col items-center justify-center gap-2 font-mono text-xs text-red-400 p-6 text-center">
         <AlertCircle className="w-6 h-6 text-red-500" />
         <span className="font-bold uppercase tracking-wider">FastAPI Pipeline Disconnected</span>
-        <p className="text-zinc-500 max-w-sm text-[11px] mt-1">{error || 'Verify port 8080 execution context status.'}</p>
+        <p className="text-zinc-500 max-w-sm text-[11px] mt-1">
+          {error || 'Verify the FastAPI execution context on port 10000.'}
+        </p>
       </div>
     );
   }
 
-  // Fallback structural safety values to explicitly guard against undefined properties
   const sharpe = data.sharpeRatio ?? 0.0;
   const pFactor = data.profitFactor ?? 1.0;
   const sortino = data.sortinoRatio ?? 0.0;
@@ -170,7 +186,10 @@ setData(result);
                 <span className="text-rose-400">-{maxDD.toFixed(2)}%</span>
               </div>
               <div className="w-full bg-zinc-900 h-2 rounded-sm overflow-hidden border border-zinc-800/40">
-                <div className="bg-rose-500/80 h-full rounded-sm" style={{ width: `${document ? Math.min(100, (maxDD / 7.50) * 100) : 0}%` }} />
+                <div
+                  className="bg-rose-500/80 h-full rounded-sm"
+                  style={{ width: `${Math.min(100, (maxDD / 7.50) * 100)}%` }}
+                />
               </div>
             </div>
           </div>
@@ -222,3 +241,4 @@ setData(result);
     </div>
   );
 }
+

@@ -1,12 +1,14 @@
-'use client';
+﻿'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   TrendingUp, Wallet, Cpu, Activity, Settings as SettingsIcon,
   BarChart3, BookOpen, LineChart, History, Coins, ShieldCheck
 } from 'lucide-react';
 
 import { useTradingStore } from '../store/useTradingStore';
+import { useAuth } from '../src/auth/AuthProvider';
+import { hasPermission } from '../src/auth/permissions';
 
 // Standalone views
 import PortfolioOverviewView from '../components/views/PortfolioOverviewView';
@@ -26,6 +28,8 @@ import SystemSettingsView from '../components/views/SystemSettingsView';
 export default function EnterpriseShell() {
   const [activeTab, setActiveTab] = useState('overview');
 
+  const { identity } = useAuth();
+
   const isFastApiConnected = useTradingStore(
     (state) => state.isFastApiConnected
   );
@@ -35,20 +39,109 @@ export default function EnterpriseShell() {
   );
 
   const navigationItems = [
-    { id: "overview", name: "Overview Console", icon: TrendingUp },
-    { id: "market", name: "Market Overview", icon: BarChart3 },
-    { id: "orderbook", name: "Order Book", icon: BookOpen },
-    { id: "positions", name: "Live Positions", icon: Activity },
-    { id: "charts", name: "TradingView Chart", icon: LineChart },
-    { id: "analytics", name: "Performance Analytics", icon: LineChart },
-    { id: "risk-management", name: "Risk Management", icon: ShieldCheck },
-    { id: "journal", name: "Trade Journal / History", icon: History },
-    { id: "regime-robustness", name: "Regime & Robustness", icon: Cpu },
-    { id: "cost-analysis", name: "Cost Analysis", icon: Coins },
-    { id: "vault", name: "Immutable Vault", icon: Wallet },
-    { id: "telemetry", name: "System Telemetry", icon: Activity },
-    { id: "settings", name: "System Settings", icon: SettingsIcon }
+    {
+      id: "overview",
+      name: "Overview Console",
+      icon: TrendingUp,
+      permission: "dashboard.read",
+    },
+    {
+      id: "market",
+      name: "Market Overview",
+      icon: BarChart3,
+      permission: "portfolio.read",
+    },
+    {
+      id: "orderbook",
+      name: "Order Book",
+      icon: BookOpen,
+      permission: "orders.read",
+    },
+    {
+      id: "positions",
+      name: "Live Positions",
+      icon: Activity,
+      permission: "positions.read",
+    },
+    {
+      id: "charts",
+      name: "TradingView Chart",
+      icon: LineChart,
+      permission: "portfolio.read",
+    },
+    {
+      id: "analytics",
+      name: "Performance Analytics",
+      icon: LineChart,
+      permission: "analytics.read",
+    },
+    {
+      id: "risk-management",
+      name: "Risk Management",
+      icon: ShieldCheck,
+      permission: "risk.read",
+    },
+    {
+      id: "journal",
+      name: "Trade Journal / History",
+      icon: History,
+      permission: "analytics.read",
+    },
+    {
+      id: "regime-robustness",
+      name: "Regime & Robustness",
+      icon: Cpu,
+      permission: "risk.read",
+    },
+    {
+      id: "cost-analysis",
+      name: "Cost Analysis",
+      icon: Coins,
+      permission: "analytics.read",
+    },
+    {
+      id: "vault",
+      name: "Immutable Vault",
+      icon: Wallet,
+      permission: "vault.read",
+    },
+    {
+      id: "telemetry",
+      name: "System Telemetry",
+      icon: Activity,
+      permission: "dashboard.read",
+    },
+    {
+      id: "settings",
+      name: "System Settings",
+      icon: SettingsIcon,
+      permission: "system.manage",
+    },
   ];
+
+  const visibleNavigationItems = navigationItems.filter((item) =>
+    hasPermission(identity, item.permission)
+  );
+
+  useEffect(() => {
+    const activeItem = navigationItems.find(
+      (item) => item.id === activeTab
+    );
+
+    if (
+      activeItem &&
+      !hasPermission(identity, activeItem.permission)
+    ) {
+      const firstVisibleItem = visibleNavigationItems[0];
+
+      if (firstVisibleItem) {
+        setActiveTab(firstVisibleItem.id);
+      }
+    }
+  }, [identity, activeTab, visibleNavigationItems]);
+
+  const canView = (permission: string) =>
+    hasPermission(identity, permission);
 
   const getShellBg = () => {
     if (theme === 'light') return 'bg-zinc-100 text-zinc-900';
@@ -87,7 +180,7 @@ export default function EnterpriseShell() {
           </div>
 
           <nav className="flex flex-col gap-1 overflow-y-auto max-h-[calc(100vh-140px)] primitive-scroll space-y-0.5">
-            {navigationItems.map((item) => {
+            {visibleNavigationItems.map((item) => {
               const Icon = item.icon;
               const isSelected = activeTab === item.id;
 
@@ -152,19 +245,57 @@ export default function EnterpriseShell() {
       </aside>
 
       <main className="flex-1 h-full overflow-y-auto p-6">
-        {activeTab === "overview" && <PortfolioOverviewView />}
-        {activeTab === "market" && <MarketOverviewView />}
-        {activeTab === "orderbook" && <OrderBookView />}
-        {activeTab === "positions" && <LivePositionsView />}
-        {activeTab === "charts" && <MainChartView />}
-        {activeTab === "analytics" && <PerformanceAnalyticsView />}
-        {activeTab === "risk-management" && <RiskManagementView />}
-        {activeTab === "journal" && <TradeJournalView />}
-        {activeTab === "regime-robustness" && <RegimeRobustnessView />}
-        {activeTab === "cost-analysis" && <CostAnalysisView />}
-        {activeTab === "vault" && <ImmutableVaultView />}
-        {activeTab === "telemetry" && <SystemTelemetryView />}
-        {activeTab === "settings" && <SystemSettingsView />}
+        {activeTab === "overview" &&
+          canView("dashboard.read") &&
+          <PortfolioOverviewView />}
+
+        {activeTab === "market" &&
+          canView("portfolio.read") &&
+          <MarketOverviewView />}
+
+        {activeTab === "orderbook" &&
+          canView("orders.read") &&
+          <OrderBookView />}
+
+        {activeTab === "positions" &&
+          canView("positions.read") &&
+          <LivePositionsView />}
+
+        {activeTab === "charts" &&
+          canView("portfolio.read") &&
+          <MainChartView />}
+
+        {activeTab === "analytics" &&
+          canView("analytics.read") &&
+          <PerformanceAnalyticsView />}
+
+        {activeTab === "risk-management" &&
+          canView("risk.read") &&
+          <RiskManagementView />}
+
+        {activeTab === "journal" &&
+          canView("analytics.read") &&
+          <TradeJournalView />}
+
+        {activeTab === "regime-robustness" &&
+          canView("risk.read") &&
+          <RegimeRobustnessView />}
+
+        {activeTab === "cost-analysis" &&
+          canView("analytics.read") &&
+          <CostAnalysisView />}
+
+        {activeTab === "vault" &&
+          canView("vault.read") &&
+          <ImmutableVaultView />}
+
+        {activeTab === "telemetry" &&
+          canView("dashboard.read") &&
+          <SystemTelemetryView />}
+
+        {activeTab === "settings" &&
+          canView("system.manage") &&
+          <SystemSettingsView />}
       </main>
     </div>
   );

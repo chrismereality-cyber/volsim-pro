@@ -1,97 +1,100 @@
 'use client';
 
-import React, {
-    createContext,
-    useContext,
-    useEffect,
-    useState,
-} from "react";
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
-import { tradingSocket } from "../../lib/TradingSocketManager";
-import { useTradingStore } from "../../store/useTradingStore";
+import { tradingSocket } from '../../lib/TradingSocketManager';
+import { useTradingStore } from '../../store/useTradingStore';
+import { useAuth } from '../auth/AuthProvider';
 
-type GlobalStateContextValue = {
+interface GlobalStateContextValue {
     connected: boolean;
-};
+}
 
-const GlobalStateContext =
-    createContext<GlobalStateContextValue>({
-        connected: false,
-    });
+const GlobalStateContext = createContext<GlobalStateContextValue>({
+    connected: false,
+});
+
+interface GlobalStateProviderProps {
+    children: React.ReactNode;
+}
 
 export const GlobalStateProvider = ({
     children,
-}: {
-    children: React.ReactNode;
-}) => {
+}: GlobalStateProviderProps) => {
     const updateTradingState = useTradingStore(
-        state => state.updateTradingState
+        (state) => state.updateTradingState
     );
+
+    const { isAuthenticated, isLoading } = useAuth();
 
     const [connected, setConnected] = useState(false);
 
     useEffect(() => {
+        if (isLoading || !isAuthenticated) {
+            tradingSocket.disconnect();
+            setConnected(false);
+            return;
+        }
+
         console.log(
-            "[GLOBAL STATE] Starting shared TradingSocketManager"
+            '[GLOBAL STATE] Starting centralized TradingSocketManager'
         );
 
-        const unsubscribe = tradingSocket.subscribe(
-            (payload: any) => {
-                if (!payload) {
-                    return;
-                }
+        const unsubscribe = tradingSocket.subscribe((payload: any) => {
+            if (!payload) return;
 
-                if (payload.__socket_status === "CONNECTED") {
-                    console.log(
-                        "[GLOBAL STATE] Trading WebSocket CONNECTED"
-                    );
-
-                    setConnected(true);
-                    return;
-                }
-
-                if (payload.__socket_status === "DISCONNECTED") {
-                    console.log(
-                        "[GLOBAL STATE] Trading WebSocket DISCONNECTED"
-                    );
-
-                    setConnected(false);
-                    return;
-                }
-
-                try {
-                    updateTradingState(payload);
-                    setConnected(true);
-                } catch (error) {
-                    console.error(
-                        "[GLOBAL STATE] Trading state update failed",
-                        error
-                    );
-                }
+            if (payload.__socket_status === 'CONNECTED') {
+                setConnected(true);
+                return;
             }
-        );
 
-        tradingSocket.connect("/ws/trading-state");
+            if (payload.__socket_status === 'DISCONNECTED') {
+                setConnected(false);
+                return;
+            }
+
+            const data = payload?.data ?? payload?.state ?? payload;
+
+            if (!data || typeof data !== 'object') {
+                console.warn(
+                    '[GLOBAL STATE] Ignoring invalid trading-state payload',
+                    payload
+                );
+                return;
+            }
+
+            try {
+                updateTradingState(data);
+            } catch (error) {
+                console.error(
+                    '[GLOBAL STATE] Trading state update failed',
+                    error
+                );
+            }
+        });
+
+        tradingSocket.connect('/ws/trading-state');
 
         return () => {
             unsubscribe();
+            tradingSocket.disconnect();
+            setConnected(false);
 
             console.log(
-                "[GLOBAL STATE] Shared TradingSocketManager subscription removed"
+                '[GLOBAL STATE] TradingSocketManager subscription removed'
             );
         };
-    }, [updateTradingState]);
+    }, [
+        isAuthenticated,
+        isLoading,
+        updateTradingState,
+    ]);
 
     return (
-        <GlobalStateContext.Provider
-            value={{
-                connected,
-            }}
-        >
+        <GlobalStateContext.Provider value={{ connected }}>
             {children}
         </GlobalStateContext.Provider>
     );
 };
 
-export const useGlobalState = () =>
-    useContext(GlobalStateContext);
+export const useGlobalState = () => useContext(GlobalStateContext);
