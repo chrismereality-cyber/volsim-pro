@@ -10,26 +10,43 @@ export class TradingApiClient {
         return `${WS_BASE}${path}`;
     }
 
-    static async get(path: string) {
-
-        const response = await fetch(this.api(path));
+    static async get(
+        path: string,
+        headers?: Record<string, string>,
+    ) {
+        const response = await fetch(this.api(path), {
+            method: "GET",
+            headers,
+        });
 
         if (!response.ok) {
             throw new Error(`GET ${path} failed (${response.status})`);
         }
 
         return response.json();
-
     }
 
-    static async post(path: string, body: unknown) {
+    static async getAuthenticated(
+        path: string,
+        accessToken: string,
+    ) {
+        return this.get(path, {
+            Authorization: `Bearer ${accessToken}`,
+        });
+    }
 
+    static async post(
+        path: string,
+        body: unknown,
+        headers?: Record<string, string>,
+    ) {
         const response = await fetch(this.api(path), {
             method: "POST",
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                ...headers,
             },
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
         });
 
         if (!response.ok) {
@@ -37,7 +54,5 @@ export class TradingApiClient {
         }
 
         return response.json();
-
     }
-
 }

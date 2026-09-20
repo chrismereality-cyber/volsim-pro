@@ -1,7 +1,7 @@
-
-import { TradingApiClient } from "../../lib/TradingApiClient";
+﻿import { TradingApiClient } from "../../lib/TradingApiClient";
 
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../../src/auth/AuthProvider';
 
 interface AssetMetric {
   symbol: string;
@@ -15,19 +15,63 @@ export default function TradeJournalView() {
   const [metrics, setMetrics] = useState<AssetMetric[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const {
+    accessToken,
+    isAuthenticated,
+    isLoading: authLoading,
+  } = useAuth();
+
   useEffect(() => {
-    TradingApiClient.get('/api/analytics/performance')
-      .then((data: any) => {
-        if (data.status === 'success' && data.assetMetrics) {
-          setMetrics(data.assetMetrics);
+    if (
+      authLoading ||
+      !isAuthenticated ||
+      !accessToken
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+
+    setLoading(true);
+
+    TradingApiClient.getAuthenticated(
+      '/api/analytics/performance',
+      accessToken,
+    )
+      .then((response: any) => {
+        if (cancelled) return;
+
+        const assetMetrics = response?.data?.assetMetrics;
+
+        if (
+          response?.status === 'success' &&
+          Array.isArray(assetMetrics)
+        ) {
+          setMetrics(assetMetrics);
+        } else {
+          setMetrics([]);
         }
-        setLoading(false);
       })
       .catch((err: any) => {
+        if (cancelled) return;
+
         console.error("Failed fetching ledger data:", err);
-        setLoading(false);
+        setMetrics([]);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
       });
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    accessToken,
+    isAuthenticated,
+    authLoading,
+  ]);
 
   return (
     <div className="space-y-6 p-6 font-mono text-zinc-100">

@@ -1,5 +1,7 @@
-import "./globals.css";
+﻿import "./globals.css";
 
+import { AuthProvider } from "../src/auth/AuthProvider";
+import AuthGate from "../src/components/AuthGate";
 import { GlobalStateProvider } from "../src/context/GlobalStateContext";
 
 export default function RootLayout({
@@ -10,10 +12,15 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body>
-                <GlobalStateProvider>
-                    {children}
-                </GlobalStateProvider>
+                <AuthProvider>
+                    <AuthGate>
+                        <GlobalStateProvider>
+                            {children}
+                        </GlobalStateProvider>
+                    </AuthGate>
+                </AuthProvider>
             </body>
         </html>
     );
 }
+
