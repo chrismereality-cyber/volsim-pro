@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Iterable
 
 from .models import AuthorizationContext
@@ -12,6 +11,7 @@ ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
         "orders.read",
         "vault.read",
         "analytics.read",
+        "risk.read",
     }),
 
     "trader": frozenset({
@@ -23,6 +23,7 @@ ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
         "orders.cancel",
         "vault.read",
         "analytics.read",
+        "risk.read",
     }),
 
     "admin": frozenset({
@@ -35,11 +36,19 @@ ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
         "vault.read",
         "vault.manage",
         "analytics.read",
+        "risk.read",
+        "risk.manage",
         "users.read",
         "users.manage",
         "rbac.read",
         "rbac.manage",
         "system.manage",
+        "capital.read",
+        "capital.request",
+        "capital.manage",
+        "capital.approve",
+        "capital.execute",
+        "capital.reconcile",
     }),
 
     "superadmin": frozenset({
@@ -56,7 +65,9 @@ def permissions_for_roles(roles: Iterable[str]) -> frozenset[str]:
     permissions: set[str] = set()
 
     for role in roles:
-        permissions.update(ROLE_PERMISSIONS.get(role, frozenset()))
+        permissions.update(
+            ROLE_PERMISSIONS.get(role, frozenset())
+        )
 
     return frozenset(permissions)
 
@@ -73,7 +84,17 @@ def has_permission(
     if "*" in identity.permissions:
         return True
 
-    return permission in identity.permissions
+    role_permissions = permissions_for_roles(
+        identity.roles
+    )
+
+    if "*" in role_permissions:
+        return True
+
+    return (
+        permission in identity.permissions
+        or permission in role_permissions
+    )
 
 
 def require_permission(
