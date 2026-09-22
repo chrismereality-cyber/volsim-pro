@@ -1,7 +1,9 @@
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from auth_models import User, Role, UserRole
+from auth_models import AuthSession, User, Role, UserRole
 
 
 class AuthRepository:
@@ -91,3 +93,25 @@ class AuthRepository:
         ).scalars().all()
 
         return list(rows)
+
+    @staticmethod
+    def get_session_by_refresh_token_hash(
+        db: Session,
+        refresh_token_hash: str,
+    ) -> AuthSession | None:
+        return db.execute(
+            select(AuthSession).where(
+                AuthSession.refresh_token_hash == refresh_token_hash
+            )
+        ).scalar_one_or_none()
+
+    @staticmethod
+    def revoke_session(
+        db: Session,
+        session: AuthSession,
+        *,
+        revoked_at: datetime | None = None,
+    ) -> AuthSession:
+        session.revoked_at = revoked_at or datetime.utcnow()
+        db.flush()
+        return session

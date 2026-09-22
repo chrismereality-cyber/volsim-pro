@@ -1,6 +1,6 @@
-﻿import logging
+import logging
 
-from src.services.portfolio_service import portfolio_service
+from src.services.portfolio_service import portfolio_service
 from src.services.mt5_service import mt5_service
 
 
@@ -96,8 +96,8 @@ class RiskEngineService:
                 symbol,
                 exc,
             )
-            return {}
-
+            return {}
+
     def snapshot(self):
         """
         Return the authoritative risk calculation inputs.
@@ -513,11 +513,11 @@ class RiskEngineService:
         }
 
 
-risk_engine_service = RiskEngineService()
-
-
-
-
-
-
-
+risk_engine_service = RiskEngineService()
+
+
+
+
+
+
+

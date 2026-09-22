@@ -1,10 +1,13 @@
 ﻿from fastapi import (
     APIRouter,
-    WebSocket,
-    WebSocketDisconnect,
     Query,
     Body,
+    Depends,
 )
+
+from src.auth.dependencies import permission_guard
+
+
 
 from src.services.global_trading_state_service import (
     global_trading_state_service,
@@ -13,35 +16,22 @@ from src.services.global_trading_state_service import (
 router = APIRouter()
 
 
-@router.get("/telemetry")
-async def get_telemetry():
-    return global_trading_state_service.snapshot()
-
-
 @router.get("/metrics")
-async def get_metrics():
-    return global_trading_state_service.snapshot()
-
-
-@router.get("/analytics/performance")
-async def get_performance_analytics(
-    timeframe: str = Query("30D"),
+async def get_metrics(
+    context = Depends(
+        permission_guard("dashboard.read")
+    ),
 ):
 
-    state = global_trading_state_service.snapshot()
-
-    return {
-        "timeframe": timeframe,
-        "performance_curve": [],
-        "summary": state.get(
-            "statistics",
-            {}
-        ),
-    }
+    return global_trading_state_service.snapshot()
 
 
 @router.get("/risk/limits")
-async def risk_limits():
+async def risk_limits(
+    context = Depends(
+        permission_guard("risk.read")
+    ),
+):
 
     state = global_trading_state_service.snapshot()
 
@@ -109,7 +99,6 @@ async def risk_limits():
     )
 
     return {
-
         "balance":
             balance,
 
@@ -141,45 +130,19 @@ async def risk_limits():
             circuit_breaker_active,
 
         "status":
-            "ACTIVE"
-
+            "ACTIVE",
     }
 
 
 @router.post("/risk/config")
 async def update_risk_config(
-    payload: dict = Body(...)
+    payload: dict = Body(...),
+    context = Depends(
+        permission_guard("risk.manage")
+    ),
 ):
 
     return {
         "status": "success",
         "updated_config": payload,
     }
-
-
-@router.websocket("/trading-state")
-async def websocket_trading_state(
-    websocket: WebSocket,
-):
-
-    await websocket.accept()
-
-    try:
-
-        while True:
-
-            state = (
-                global_trading_state_service.snapshot()
-            )
-
-            await websocket.send_json(
-                state
-            )
-
-            import asyncio
-
-            await asyncio.sleep(1)
-
-    except WebSocketDisconnect:
-
-        pass
