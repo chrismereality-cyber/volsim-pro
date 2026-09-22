@@ -1,11 +1,10 @@
-.venv/
+﻿.venv/
 .env
 __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
 .DS_Store
-alembic/versions/*.py
 node_modules/
 # Build & Compiled
 cpp_core/build/
@@ -71,3 +70,6 @@ audit-network.ps1
 # Local diagnostic output
 balances.txt
 metrics.txt
+
+alembic/versions/__pycache__/
+

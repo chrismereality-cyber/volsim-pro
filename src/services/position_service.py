@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 import time
 
 from src.services.database_service import database_service
@@ -1075,8 +1075,7 @@ class PositionService:
                 )
 
                 await self.persist_snapshot(
-                    position,
-                    profit,
+                    position
                 )
 
                 synchronized.append(
@@ -1093,27 +1092,220 @@ class PositionService:
                 if str(trade_id) in broker_trade_ids:
                     continue
 
-                discrepancy = {
-                    "trade_id": str(trade_id),
-                    "symbol": position.get("symbol"),
-                    "status": "LOCAL_OPEN_BROKER_MISSING",
-                    "broker_position_ticket": (
-                        position.get(
-                            "broker_position_ticket"
-                        )
-                    ),
-                }
-
-                discrepancies.append(
-                    discrepancy
+                broker_position_ticket = position.get(
+                    "broker_position_ticket"
                 )
 
-                logger.error(
-                    "MT5 reconciliation discrepancy: "
-                    "local position remains OPEN but broker "
-                    "position is missing: trade_id=%s symbol=%s",
+                if broker_position_ticket is None:
+                    discrepancy = {
+                        "trade_id": str(trade_id),
+                        "symbol": position.get("symbol"),
+                        "status": "LOCAL_OPEN_BROKER_MISSING",
+                        "broker_position_ticket": None,
+                        "close_history_status": "NO_POSITION_TICKET",
+                    }
+
+                    discrepancies.append(
+                        discrepancy
+                    )
+
+                    logger.error(
+                        "MT5 reconciliation discrepancy: "
+                        "local OPEN position has no broker "
+                        "position ticket: trade_id=%s symbol=%s",
+                        trade_id,
+                        position.get("symbol"),
+                    )
+
+                    continue
+
+                close_history = (
+                    mt5_service.get_position_close_deals(
+                        broker_position_ticket
+                    )
+                )
+
+                if not close_history.get("success"):
+                    discrepancy = {
+                        "trade_id": str(trade_id),
+                        "symbol": position.get("symbol"),
+                        "status": "LOCAL_OPEN_BROKER_MISSING",
+                        "broker_position_ticket": (
+                            broker_position_ticket
+                        ),
+                        "close_history_status": "QUERY_FAILED",
+                        "close_history_error": (
+                            close_history.get("error")
+                        ),
+                    }
+
+                    discrepancies.append(
+                        discrepancy
+                    )
+
+                    logger.error(
+                        "MT5 close-history query failed: "
+                        "trade_id=%s symbol=%s ticket=%s error=%s",
+                        trade_id,
+                        position.get("symbol"),
+                        broker_position_ticket,
+                        close_history.get("error"),
+                    )
+
+                    continue
+
+                closing_deals = (
+                    close_history.get("deals") or []
+                )
+
+                if not closing_deals:
+                    discrepancy = {
+                        "trade_id": str(trade_id),
+                        "symbol": position.get("symbol"),
+                        "status": "LOCAL_OPEN_BROKER_MISSING",
+                        "broker_position_ticket": (
+                            broker_position_ticket
+                        ),
+                        "close_history_status": "NO_CLOSING_DEAL",
+                    }
+
+                    discrepancies.append(
+                        discrepancy
+                    )
+
+                    logger.error(
+                        "MT5 reconciliation discrepancy: "
+                        "broker position missing but no closing "
+                        "deal found: trade_id=%s symbol=%s ticket=%s",
+                        trade_id,
+                        position.get("symbol"),
+                        broker_position_ticket,
+                    )
+
+                    continue
+
+                valid_closing_deals = []
+
+                for deal in closing_deals:
+                    deal_position_id = deal.get(
+                        "position_id"
+                    )
+
+                    deal_price = float(
+                        deal.get("price", 0.0) or 0.0
+                    )
+
+                    if (
+                        deal_position_id is not None
+                        and str(deal_position_id)
+                        == str(broker_position_ticket)
+                        and deal_price > 0
+                    ):
+                        valid_closing_deals.append(
+                            deal
+                        )
+
+                if not valid_closing_deals:
+                    discrepancy = {
+                        "trade_id": str(trade_id),
+                        "symbol": position.get("symbol"),
+                        "status": "LOCAL_OPEN_BROKER_MISSING",
+                        "broker_position_ticket": (
+                            broker_position_ticket
+                        ),
+                        "close_history_status": (
+                            "INVALID_CLOSING_DEAL"
+                        ),
+                    }
+
+                    discrepancies.append(
+                        discrepancy
+                    )
+
+                    logger.error(
+                        "MT5 reconciliation discrepancy: "
+                        "closing history contained no valid "
+                        "position-matched closing deal: "
+                        "trade_id=%s symbol=%s ticket=%s",
+                        trade_id,
+                        position.get("symbol"),
+                        broker_position_ticket,
+                    )
+
+                    continue
+
+                realized_pl = sum(
+                    float(deal.get("profit", 0.0) or 0.0)
+                    + float(deal.get("swap", 0.0) or 0.0)
+                    + float(deal.get("commission", 0.0) or 0.0)
+                    for deal in valid_closing_deals
+                )
+
+                latest_close_deal = max(
+                    valid_closing_deals,
+                    key=lambda deal: float(
+                        deal.get("time", 0) or 0
+                    ),
+                )
+
+                close_price = float(
+                    latest_close_deal.get("price", 0.0)
+                )
+
+                closed_at = float(
+                    latest_close_deal.get("time", 0)
+                    or time.time()
+                )
+
+                broker_deal_ticket = (
+                    latest_close_deal.get("ticket")
+                )
+
+                broker_order_ticket = (
+                    latest_close_deal.get("order")
+                )
+
+                position["broker_position_ticket"] = (
+                    broker_position_ticket
+                )
+
+                position["broker_deal_ticket"] = (
+                    broker_deal_ticket
+                )
+
+                if broker_order_ticket is not None:
+                    position["broker_order_ticket"] = (
+                        broker_order_ticket
+                    )
+
+                position["close_price"] = close_price
+                position["realized_pl"] = realized_pl
+                position["floating_pl"] = 0.0
+                position["current_price"] = close_price
+                position["status"] = "CLOSED"
+                position["closed_at"] = closed_at
+
+                await self.persist_position(
+                    position
+                )
+
+                await self.persist_snapshot(
+                    position
+                )
+
+                synchronized.append(
+                    position.copy()
+                )
+
+                logger.info(
+                    "MT5 broker close reconciled: "
+                    "trade_id=%s symbol=%s ticket=%s "
+                    "realized_pl=%.2f close_price=%.5f",
                     trade_id,
                     position.get("symbol"),
+                    broker_position_ticket,
+                    realized_pl,
+                    close_price,
                 )
 
             return {
@@ -1257,3 +1449,4 @@ class PositionService:
 
 
 position_service = PositionService()
+

@@ -7,6 +7,7 @@ from src.auth.authentication import AuthenticationService
 from src.auth.dependencies import get_authorization_context
 from src.auth.models import AuthorizationContext
 from src.auth.repository import AuthRepository
+from src.auth.tokens import create_access_token
 
 
 router = APIRouter()
@@ -24,6 +25,10 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
 
 
 class UserResponse(BaseModel):
@@ -102,11 +107,17 @@ def login(
     payload: LoginRequest,
     db: Session = Depends(get_db),
 ):
+    import time
+    _login_start = time.perf_counter()
+    _login_db = time.perf_counter()
+    _before_auth = time.perf_counter()
     result = AuthenticationService.authenticate(
         db,
         email=payload.email,
         password=payload.password,
     )
+    print(f"LOGIN TIMING: DB acquired -> authenticate start = {_before_auth - _login_db:.3f}s")
+    print(f"LOGIN TIMING: authenticate = {time.perf_counter() - _before_auth:.3f}s")
 
     if result is None:
         raise HTTPException(
@@ -116,18 +127,21 @@ def login(
 
     user, identity = result
 
+    _before_session = time.perf_counter()
     refresh_token, _session = AuthenticationService.create_session(
         db,
         user_id=user.id,
     )
+    print(f"LOGIN TIMING: create_session = {time.perf_counter() - _before_session:.3f}s")
 
-    from src.auth.tokens import create_access_token
-
+    _before_token = time.perf_counter()
     access_token = create_access_token(
         user_id=str(user.id),
         username=user.email,
         roles=sorted(identity.roles),
     )
+    print(f"LOGIN TIMING: create_access_token = {time.perf_counter() - _before_token:.3f}s")
+    print(f"LOGIN TIMING: TOTAL = {time.perf_counter() - _login_start:.3f}s")
 
     return TokenResponse(
         access_token=access_token,
@@ -141,6 +155,55 @@ def login(
             roles=sorted(identity.roles),
         ),
     )
+
+
+# ---------------------------------------------------------------------------
+# Refresh Access + Refresh Tokens
+# ---------------------------------------------------------------------------
+
+@router.post(
+    "/refresh",
+    response_model=TokenResponse,
+)
+def refresh(
+    payload: RefreshRequest,
+    db: Session = Depends(get_db),
+):
+    try:
+        (
+            user,
+            identity,
+            refresh_token,
+            _session,
+        ) = AuthenticationService.refresh_session(
+            db,
+            refresh_token=payload.refresh_token,
+        )
+
+        access_token = create_access_token(
+            user_id=str(user.id),
+            username=user.email,
+            roles=sorted(identity.roles),
+        )
+
+        return TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+            user=UserResponse(
+                id=user.id,
+                email=user.email,
+                is_active=user.is_active,
+                is_verified=user.is_verified,
+                roles=sorted(identity.roles),
+            ),
+        )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(exc),
+        ) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -165,3 +228,4 @@ def me(
         permissions=sorted(identity.permissions),
         is_active=identity.is_active,
     )
+

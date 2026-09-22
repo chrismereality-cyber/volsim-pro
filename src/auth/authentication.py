@@ -1,3 +1,5 @@
+﻿import time
+
 from sqlalchemy.orm import Session
 
 from auth_models import AuthSession
@@ -8,12 +10,13 @@ from .service import IdentityService
 from .tokens import (
     create_refresh_token,
     hash_refresh_token,
+    is_refresh_token_expired,
     refresh_token_expiry,
 )
 
 
 class AuthenticationService:
-    """Registration and login service."""
+    """Registration, login, and refresh-token session service."""
 
     @staticmethod
     def register(
@@ -69,9 +72,14 @@ class AuthenticationService:
         email: str,
         password: str,
     ):
+        import time
+        _auth_start = time.perf_counter()
+
         email = email.strip().lower()
 
+        _t = time.perf_counter()
         user = AuthRepository.get_user_by_email(db, email)
+        print(f"AUTH TIMING: user lookup = {time.perf_counter() - _t:.3f}s")
 
         if user is None:
             return None
@@ -79,20 +87,27 @@ class AuthenticationService:
         if not user.is_active:
             return None
 
+        _t = time.perf_counter()
         if not verify_password(password, user.password_hash):
             return None
+        print(f"AUTH TIMING: password verify = {time.perf_counter() - _t:.3f}s")
 
+        _t = time.perf_counter()
         roles = AuthRepository.get_user_roles(
             db,
             user.id,
         )
+        print(f"AUTH TIMING: role lookup = {time.perf_counter() - _t:.3f}s")
 
+        _t = time.perf_counter()
         identity = IdentityService.build_identity(
             user_id=str(user.id),
             username=user.email,
             roles=roles,
             is_active=user.is_active,
         )
+        print(f"AUTH TIMING: identity build = {time.perf_counter() - _t:.3f}s")
+        print(f"AUTH TIMING: authenticate total = {time.perf_counter() - _auth_start:.3f}s")
 
         return user, identity
 
@@ -111,8 +126,92 @@ class AuthenticationService:
             expires_at=refresh_token_expiry(),
         )
 
+        _session_start = time.perf_counter()
+
+        _t = time.perf_counter()
         db.add(session)
+        print(f"SESSION TIMING: db.add = {time.perf_counter() - _t:.3f}s")
+
+        _t = time.perf_counter()
         db.commit()
-        db.refresh(session)
+        print(f"SESSION TIMING: db.commit = {time.perf_counter() - _t:.3f}s")
+
+        print("SESSION TIMING: db.refresh = SKIPPED (not required for login response)")
+
+        print(f"SESSION TIMING: create_session total = {time.perf_counter() - _session_start:.3f}s")
 
         return raw_token, session
+
+    @staticmethod
+    def refresh_session(
+        db: Session,
+        *,
+        refresh_token: str,
+    ):
+        if not refresh_token or not refresh_token.strip():
+            raise ValueError("Refresh token is required.")
+
+        token_hash = hash_refresh_token(refresh_token)
+
+        session = AuthRepository.get_session_by_refresh_token_hash(
+            db,
+            token_hash,
+        )
+
+        if session is None:
+            raise ValueError("Invalid refresh token.")
+
+        if session.revoked_at is not None:
+            raise ValueError("Refresh token has been revoked.")
+
+        if is_refresh_token_expired(session.expires_at):
+            raise ValueError("Refresh token has expired.")
+
+        user = AuthRepository.get_user_by_id(
+            db,
+            session.user_id,
+        )
+
+        if user is None or not user.is_active:
+            raise ValueError(
+                "User account is inactive or unavailable."
+            )
+
+        _t = time.perf_counter()
+        roles = AuthRepository.get_user_roles(
+            db,
+            user.id,
+        )
+        print(f"AUTH TIMING: role lookup = {time.perf_counter() - _t:.3f}s")
+
+        identity = IdentityService.build_identity(
+            user_id=str(user.id),
+            username=user.email,
+            roles=roles,
+            is_active=user.is_active,
+        )
+
+        AuthRepository.revoke_session(
+            db,
+            session,
+        )
+
+        new_refresh_token = create_refresh_token()
+        new_token_hash = hash_refresh_token(new_refresh_token)
+
+        new_session = AuthSession(
+            user_id=user.id,
+            refresh_token_hash=new_token_hash,
+            expires_at=refresh_token_expiry(),
+        )
+
+        db.add(new_session)
+        db.commit()
+        db.refresh(new_session)
+
+        return user, identity, new_refresh_token, new_session
+
+
+
+
+

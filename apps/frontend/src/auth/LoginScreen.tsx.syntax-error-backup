@@ -1,0 +1,1485 @@
+﻿import React, { FormEvent, useMemo, useState } from 'react';
+import { useAuth } from './AuthProvider';
+import {
+  Mail,
+  LockKeyhole,
+  Fingerprint,
+  Shield,
+} from 'lucide-react';
+
+/*
+ * VOLSIM-PRO AUTH GATE
+ * Visual-only replacement for the existing LoginScreen.
+ *
+ * Preserved:
+ * - useAuth()
+ * - login(email, password)
+ * - register(email, password)
+ * - isLoading
+ * - login/signup flow
+ * - existing error handling
+ * - biometric handler
+ * - forgot-password handler
+ * - admin-portal handler
+ *
+ * No WebSocket, trading, market-data, Zustand, or backend architecture
+ * is introduced here.
+ */
+
+type AuthTab = 'login' | 'signup';
+
+type Candle = {
+  x: number;
+  top: number;
+  height: number;
+  width: number;
+  bullish: boolean;
+  opacity: number;
+};
+
+const LEFT_CANDLES: Candle[] = [
+  { x: 30,  top: 470, height: 27, width: 6, bullish: true,  opacity: 0.42 },
+  { x: 45,  top: 447, height: 36, width: 6, bullish: false, opacity: 0.48 },
+  { x: 61,  top: 421, height: 31, width: 6, bullish: true,  opacity: 0.51 },
+  { x: 77,  top: 438, height: 47, width: 6, bullish: false, opacity: 0.46 },
+  { x: 94,  top: 397, height: 39, width: 6, bullish: true,  opacity: 0.55 },
+  { x: 111, top: 371, height: 54, width: 6, bullish: true,  opacity: 0.59 },
+  { x: 128, top: 389, height: 29, width: 6, bullish: false, opacity: 0.51 },
+  { x: 145, top: 345, height: 58, width: 6, bullish: true,  opacity: 0.63 },
+  { x: 162, top: 327, height: 42, width: 6, bullish: false, opacity: 0.55 },
+  { x: 179, top: 302, height: 64, width: 6, bullish: true,  opacity: 0.62 },
+  { x: 196, top: 281, height: 46, width: 6, bullish: true,  opacity: 0.57 },
+  { x: 213, top: 267, height: 67, width: 6, bullish: false, opacity: 0.53 },
+];
+
+const RIGHT_CANDLES: Candle[] = [
+  { x: 690, top: 468, height: 32, width: 6, bullish: false, opacity: 0.42 },
+  { x: 674, top: 442, height: 43, width: 6, bullish: true,  opacity: 0.48 },
+  { x: 658, top: 457, height: 28, width: 6, bullish: false, opacity: 0.45 },
+  { x: 642, top: 416, height: 51, width: 6, bullish: true,  opacity: 0.54 },
+  { x: 626, top: 392, height: 36, width: 6, bullish: false, opacity: 0.49 },
+  { x: 610, top: 365, height: 58, width: 6, bullish: true,  opacity: 0.58 },
+  { x: 594, top: 343, height: 44, width: 6, bullish: true,  opacity: 0.55 },
+  { x: 578, top: 319, height: 62, width: 6, bullish: false, opacity: 0.51 },
+  { x: 562, top: 294, height: 47, width: 6, bullish: true,  opacity: 0.59 },
+  { x: 546, top: 273, height: 69, width: 6, bullish: true,  opacity: 0.61 },
+  { x: 530, top: 251, height: 44, width: 6, bullish: false, opacity: 0.52 },
+  { x: 514, top: 229, height: 65, width: 6, bullish: true,  opacity: 0.58 },
+];
+
+const PARTICLES = Array.from({ length: 230 }, (_, index) => {
+  const column = index % 23;
+  const row = Math.floor(index / 23);
+
+  return {
+    id: index,
+    x: -20 + column * 34 + ((row * 19) % 25),
+    y: 70 + row * 39 + ((column * 23) % 27),
+    r:
+      index % 19 === 0
+        ? 1.5
+        : index % 7 === 0
+          ? 1
+          : 0.55,
+    opacity:
+      index % 17 === 0
+        ? 0.52
+        : index % 5 === 0
+          ? 0.29
+          : 0.14,
+  };
+});
+
+type ForexCandle = {
+  open: number;
+  close: number;
+  high: number;
+  low: number;
+};
+
+const FOREX_CANDLES: ForexCandle[] = [
+  { open: 108.4, high: 111.8, low: 106.7, close: 110.9 },
+  { open: 110.9, high: 113.7, low: 109.2, close: 112.8 },
+  { open: 112.8, high: 115.4, low: 111.1, close: 114.6 },
+  { open: 114.6, high: 116.8, low: 112.4, close: 113.2 },
+  { open: 113.2, high: 115.1, low: 110.3, close: 111.1 },
+  { open: 111.1, high: 113.6, low: 109.8, close: 112.9 },
+  { open: 112.9, high: 117.1, low: 112.0, close: 116.4 },
+  { open: 116.4, high: 119.5, low: 115.1, close: 118.8 },
+  { open: 118.8, high: 121.3, low: 117.2, close: 120.4 },
+  { open: 120.4, high: 122.0, low: 117.9, close: 118.3 },
+  { open: 118.3, high: 119.9, low: 114.7, close: 115.6 },
+  { open: 115.6, high: 118.1, low: 113.9, close: 117.2 },
+  { open: 117.2, high: 120.6, low: 116.0, close: 119.8 },
+  { open: 119.8, high: 123.7, low: 118.4, close: 122.9 },
+  { open: 122.9, high: 126.8, low: 121.6, close: 125.7 },
+  { open: 125.7, high: 128.1, low: 123.2, close: 124.1 },
+  { open: 124.1, high: 126.0, low: 120.8, close: 121.7 },
+  { open: 121.7, high: 124.9, low: 119.8, close: 123.6 },
+  { open: 123.6, high: 127.4, low: 122.1, close: 126.8 },
+  { open: 126.8, high: 130.9, low: 125.4, close: 129.7 },
+
+  { open: 129.7, high: 132.0, low: 127.1, close: 128.3 },
+  { open: 128.3, high: 131.7, low: 126.8, close: 130.8 },
+  { open: 130.8, high: 134.5, low: 129.6, close: 133.7 },
+  { open: 133.7, high: 136.1, low: 131.4, close: 132.1 },
+  { open: 132.1, high: 134.0, low: 128.6, close: 129.4 },
+  { open: 129.4, high: 132.8, low: 127.9, close: 131.7 },
+  { open: 131.7, high: 136.4, low: 130.2, close: 135.8 },
+  { open: 135.8, high: 140.2, low: 134.6, close: 138.9 },
+  { open: 138.9, high: 142.7, low: 137.1, close: 141.8 },
+  { open: 141.8, high: 143.9, low: 138.0, close: 139.1 },
+  { open: 139.1, high: 141.2, low: 135.7, close: 137.0 },
+  { open: 137.0, high: 140.6, low: 135.1, close: 139.8 },
+  { open: 139.8, high: 144.3, low: 138.4, close: 143.6 },
+  { open: 143.6, high: 148.0, low: 142.5, close: 146.9 },
+  { open: 146.9, high: 150.7, low: 145.2, close: 149.4 },
+  { open: 149.4, high: 151.2, low: 145.6, close: 147.0 },
+  { open: 147.0, high: 149.8, low: 142.9, close: 144.1 },
+  { open: 144.1, high: 147.7, low: 141.8, close: 146.8 },
+  { open: 146.8, high: 151.5, low: 145.9, close: 150.7 },
+  { open: 150.7, high: 155.9, low: 149.2, close: 154.8 },
+
+  { open: 154.8, high: 158.0, low: 152.9, close: 156.4 },
+  { open: 156.4, high: 159.1, low: 153.6, close: 154.2 },
+  { open: 154.2, high: 156.8, low: 149.7, close: 151.1 },
+  { open: 151.1, high: 154.7, low: 148.9, close: 153.9 },
+  { open: 153.9, high: 157.5, low: 152.6, close: 156.8 },
+  { open: 156.8, high: 160.4, low: 155.1, close: 158.9 },
+  { open: 158.9, high: 162.7, low: 157.6, close: 161.5 },
+  { open: 161.5, high: 164.8, low: 158.7, close: 159.8 },
+  { open: 159.8, high: 162.3, low: 155.4, close: 156.2 },
+  { open: 156.2, high: 159.4, low: 153.1, close: 158.7 },
+  { open: 158.7, high: 163.1, low: 157.2, close: 161.9 },
+  { open: 161.9, high: 166.2, low: 160.5, close: 164.8 },
+  { open: 164.8, high: 169.7, low: 163.9, close: 168.5 },
+  { open: 168.5, high: 171.1, low: 166.0, close: 167.2 },
+  { open: 167.2, high: 170.0, low: 162.7, close: 164.1 },
+  { open: 164.1, high: 168.8, low: 162.9, close: 167.9 },
+  { open: 167.9, high: 173.4, low: 166.8, close: 171.8 },
+  { open: 171.8, high: 176.2, low: 170.6, close: 174.9 },
+  { open: 174.9, high: 178.5, low: 172.1, close: 173.0 },
+  { open: 173.0, high: 176.1, low: 168.4, close: 169.5 },
+
+  { open: 169.5, high: 173.8, low: 166.7, close: 171.9 },
+  { open: 171.9, high: 176.5, low: 170.8, close: 175.2 },
+  { open: 175.2, high: 180.7, low: 173.9, close: 179.4 },
+  { open: 179.4, high: 184.9, low: 178.0, close: 183.1 },
+  { open: 183.1, high: 186.0, low: 179.2, close: 181.0 },
+  { open: 181.0, high: 184.2, low: 176.4, close: 178.2 },
+  { open: 178.2, high: 181.7, low: 174.8, close: 180.6 },
+  { open: 180.6, high: 185.4, low: 179.1, close: 184.0 },
+  { open: 184.0, high: 189.6, low: 182.8, close: 188.1 },
+  { open: 188.1, high: 192.8, low: 186.7, close: 191.5 },
+  { open: 191.5, high: 194.2, low: 188.0, close: 189.3 },
+  { open: 189.3, high: 192.7, low: 184.9, close: 186.0 },
+  { open: 186.0, high: 190.8, low: 184.4, close: 189.7 },
+  { open: 189.7, high: 195.0, low: 188.6, close: 193.9 },
+  { open: 193.9, high: 198.7, low: 192.1, close: 197.4 },
+  { open: 197.4, high: 200.1, low: 194.0, close: 195.1 },
+  { open: 195.1, high: 199.3, low: 191.7, close: 193.0 },
+  { open: 193.0, high: 197.9, low: 191.8, close: 196.8 },
+  { open: 196.8, high: 202.5, low: 195.9, close: 201.7 },
+  { open: 201.7, high: 207.8, low: 200.4, close: 205.9 },
+];
+const ForexCandleField: React.FC<{
+  compact?: boolean;
+}> = ({ compact = false }) => {
+  const candles = compact
+    ? FOREX_CANDLES.slice(42)
+    : FOREX_CANDLES;
+
+  const chartWidth = compact ? 760 : 1600;
+  const chartHeight = compact ? 420 : 760;
+
+  const candleWidth = compact ? 11 : 15;
+  const candleStep = chartWidth / candles.length;
+
+  const minPrice = 45;
+  const maxPrice = 215;
+
+  const scaleY = (price: number) =>
+    chartHeight -
+    ((price - minPrice) / (maxPrice - minPrice)) * chartHeight;
+
+  return (
+    <svg
+      className={`vs-forex-candles ${
+        compact
+          ? 'vs-forex-candles-compact'
+          : 'vs-forex-candles-unified'
+      }`}
+      viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <defs>
+        <filter
+          id={compact ? 'forexGlowCompact' : 'forexGlowUnified'}
+          x="-100%"
+          y="-100%"
+          width="300%"
+          height="300%"
+        >
+          <feGaussianBlur
+            stdDeviation={compact ? 1.25 : 1.7}
+            result="blur"
+          />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      {candles.map((candle, index) => {
+        const baseX =
+          index * candleStep + candleStep / 2;
+
+        const openY = scaleY(candle.open);
+        const closeY = scaleY(candle.close);
+        const highY = scaleY(candle.high);
+        const lowY = scaleY(candle.low);
+
+        const bullish = candle.close >= candle.open;
+
+        /*
+         * IMPORTANT:
+         * The candles remain vertically oriented.
+         *
+         * Their X position increases normally while their Y position
+         * receives a progressive upward offset. This creates the
+         * requested "/" projection without rotating the candles.
+         */
+        const diagonalRise = compact
+          ? (index / Math.max(candles.length - 1, 1)) * 245
+          : 0;
+
+        const centerX = baseX;
+        const shiftedOpenY = openY - diagonalRise;
+        const shiftedCloseY = closeY - diagonalRise;
+        const shiftedHighY = highY - diagonalRise;
+        const shiftedLowY = lowY - diagonalRise;
+
+        const x = centerX - candleWidth / 2;
+
+        const bodyTop = Math.min(
+          shiftedOpenY,
+          shiftedCloseY
+        );
+
+        const bodyHeight = Math.max(
+          Math.abs(shiftedCloseY - shiftedOpenY),
+          compact ? 5 : 5
+        );
+
+        return (
+          <g
+            key={`${
+              compact ? 'diagonal' : 'main'
+            }-forex-candle-${index}`}
+            opacity={0.95 + (index % 4) * 0.012}
+          >
+            <line
+              x1={centerX}
+              y1={shiftedHighY}
+              x2={centerX}
+              y2={shiftedLowY}
+              stroke={
+                bullish
+                  ? '#22D4FF'
+                  : '#3B83A7'
+              }
+              strokeWidth={
+                compact ? 1.25 : 1.35
+              }
+              filter={`url(#${
+                compact
+                  ? 'forexGlowCompact'
+                  : 'forexGlowUnified'
+              })`}
+            />
+
+            <rect
+              x={x}
+              y={bodyTop}
+              width={candleWidth}
+              height={bodyHeight}
+              rx="1"
+              fill={
+                bullish
+                  ? '#078AC4'
+                  : '#123A59'
+              }
+              stroke={
+                bullish
+                  ? '#35D8FF'
+                  : '#2C7198'
+              }
+              strokeWidth={
+                compact ? 0.9 : 0.95
+              }
+            />
+
+            <line
+              x1={x}
+              y1={
+                bullish
+                  ? shiftedCloseY
+                  : shiftedOpenY
+              }
+              x2={x + candleWidth}
+              y2={
+                bullish
+                  ? shiftedCloseY
+                  : shiftedOpenY
+              }
+              stroke={
+                bullish
+                  ? '#78E8FF'
+                  : '#5795B6'
+              }
+              strokeWidth={
+                compact ? 0.8 : 0.85
+              }
+              opacity="0.82"
+            />
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+  const handleBiometric = () => {
+    setLocalError('Biometric Login is not available yet.');
+  };
+
+  const handleForgotPassword = () => {
+    setLocalError('Password recovery is not available yet.');
+  };
+
+  const handleAdminPortal = () => {
+    setLocalError('Admin Portal is not available yet.');
+  };
+
+  return (
+    <main className="vs-auth-root">
+      <style>{`
+        :root {
+          --vs-bg: #020711;
+          --vs-blue: #079eff;
+          --vs-blue-bright: #49d4ff;
+          --vs-blue-soft: #67dfff;
+          --vs-text: #e8edf7;
+          --vs-muted: #9ba9bf;
+        }
+
+        * {
+          box-sizing: border-box;
+        }
+
+        .vs-auth-root {
+          position: fixed;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+          background:
+            radial-gradient(
+              ellipse at 50% 43%,
+              rgba(4, 53, 92, 0.16) 0%,
+              rgba(2, 17, 35, 0.08) 28%,
+              rgba(0, 0, 0, 0) 56%
+            ),
+            linear-gradient(
+              180deg,
+              #01040a 0%,
+              #020a16 44%,
+              #010713 100%
+            );
+          color: var(--vs-text);
+          font-family:
+            Inter,
+            ui-sans-serif,
+            system-ui,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
+          isolation: isolate;
+        }
+
+        .vs-auth-root::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: 9;
+          pointer-events: none;
+          background:
+            linear-gradient(
+              90deg,
+              rgba(0,0,0,0.25),
+              transparent 23%,
+              transparent 77%,
+              rgba(0,0,0,0.25)
+            ),
+            linear-gradient(
+              180deg,
+              rgba(0,0,0,0.13),
+              transparent 22%,
+              transparent 78%,
+              rgba(0,0,0,0.25)
+            );
+        }
+
+        .vs-cosmos {
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+        }
+        /*
+         * ARCHITECTURAL MARKET CHAMBER
+         *
+         * The VOLSIM-PRO lettering is treated as part of the
+         * room itself rather than ordinary background text.
+         */
+
+        .vs-bg-word::after {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 50%;
+          width: 130%;
+          height: 1px;
+          background:
+            linear-gradient(
+              90deg,
+              rgba(24, 135, 205, 0.22),
+              rgba(24, 135, 205, 0.04),
+              transparent
+            );
+          box-shadow:
+            0 0 12px rgba(0, 130, 220, 0.08);
+        }
+
+        /*
+         * Dark architectural side-wall shading makes the two
+         * VOLSIM-PRO surfaces feel like the walls of a deep room.
+         */
+
+        .vs-card-wrap {
+          position: absolute;
+          z-index: 20;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 30px;
+          pointer-events: none;
+        }
+
+        .vs-card {
+          position: relative;
+          width: min(390px, calc(100vw - 48px));
+          min-height: 606px;
+          padding: 47px 33px 29px;
+          border: 1px solid rgba(74, 170, 255, 0.72);
+          border-radius: 25px;
+          background:
+            linear-gradient(
+              145deg,
+              rgba(20, 65, 108, 0.62),
+              rgba(4, 19, 39, 0.72) 48%,
+              rgba(2, 16, 32, 0.78)
+            );
+          box-shadow:
+            0 0 0 1px rgba(22, 114, 201, 0.12),
+            0 0 25px rgba(0, 125, 255, 0.27),
+            0 0 65px rgba(0, 76, 170, 0.15),
+            inset 0 1px 0 rgba(128, 207, 255, 0.18),
+            inset 0 -25px 60px rgba(0, 21, 43, 0.22);
+          backdrop-filter: blur(17px);
+          -webkit-backdrop-filter: blur(17px);
+          pointer-events: auto;
+        }
+
+        .vs-card::before {
+          content: "";
+          position: absolute;
+          inset: 1px;
+          border-radius: 24px;
+          pointer-events: none;
+          background:
+            linear-gradient(
+              135deg,
+              rgba(83, 190, 255, 0.13),
+              transparent 25%,
+              transparent 73%,
+              rgba(17, 109, 190, 0.08)
+            );
+        }
+
+        .vs-card::after {
+          content: "";
+          position: absolute;
+          left: 8%;
+          right: 8%;
+          bottom: -1px;
+          height: 35%;
+          border-radius: 50%;
+          background: rgba(0, 137, 255, 0.11);
+          filter: blur(28px);
+          pointer-events: none;
+        }
+
+        .vs-brand {
+          position: relative;
+          z-index: 2;
+          margin: 0;
+          text-align: center;
+          font-size: clamp(31px, 4vw, 39px);
+          line-height: 1;
+          font-weight: 800;
+          letter-spacing: -1.7px;
+          color: #62d9ff;
+          text-shadow:
+            0 0 7px rgba(66, 205, 255, 0.8),
+            0 0 19px rgba(17, 144, 255, 0.46),
+            0 0 35px rgba(17, 105, 255, 0.18);
+        }
+
+        .vs-divider {
+          position: relative;
+          z-index: 2;
+          width: 100%;
+          height: 1px;
+          margin: 31px 0 25px;
+          background:
+            linear-gradient(
+              90deg,
+              transparent,
+              rgba(80, 176, 255, 0.26) 10%,
+              rgba(80, 176, 255, 0.36) 50%,
+              rgba(80, 176, 255, 0.26) 90%,
+              transparent
+            );
+        }
+
+        .vs-tabs {
+          position: relative;
+          z-index: 3;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          margin-bottom: 23px;
+        }
+
+        .vs-tab {
+          position: relative;
+          height: 38px;
+          border: 0;
+          background: transparent;
+          color: #a9b4c8;
+          font-size: 21px;
+          font-weight: 400;
+          cursor: pointer;
+          transition:
+            color 160ms ease,
+            text-shadow 160ms ease;
+        }
+
+        .vs-tab:hover {
+          color: #dbeaff;
+        }
+
+        .vs-tab.active {
+          color: #eef6ff;
+          text-shadow: 0 0 10px rgba(115, 207, 255, 0.18);
+        }
+
+        .vs-tab.active::after {
+          content: "";
+          position: absolute;
+          left: 12%;
+          right: 12%;
+          bottom: -1px;
+          height: 4px;
+          border-radius: 4px;
+          background: #35d4ff;
+          box-shadow:
+            0 0 7px rgba(49, 214, 255, 0.8),
+            0 0 16px rgba(0, 169, 255, 0.55);
+        }
+
+        .vs-form {
+          position: relative;
+          z-index: 3;
+        }
+
+        .vs-field {
+          position: relative;
+          height: 60px;
+          margin-bottom: 15px;
+        }
+
+        .vs-field-icon {
+          position: absolute;
+          z-index: 2;
+          left: 16px;
+          top: 50%;
+          width: 29px;
+          height: 29px;
+          transform: translateY(-50%);
+          color: #c2d0e2;
+          stroke-width: 1.65;
+          pointer-events: none;
+        }
+
+        .vs-input {
+          width: 100%;
+          height: 100%;
+          padding: 0 17px 0 62px;
+          border: 1px solid rgba(144, 176, 215, 0.72);
+          border-radius: 12px;
+          outline: none;
+          background:
+            linear-gradient(
+              90deg,
+              rgba(6, 30, 57, 0.72),
+              rgba(5, 27, 51, 0.5)
+            );
+          color: #eef7ff;
+          font-size: 18px;
+          font-weight: 400;
+          box-shadow:
+            inset 0 0 13px rgba(0, 0, 0, 0.12),
+            0 0 8px rgba(0, 97, 190, 0.04);
+          transition:
+            border-color 160ms ease,
+            box-shadow 160ms ease,
+            background 160ms ease;
+        }
+
+        .vs-input::placeholder {
+          color: #b5c0d0;
+          opacity: 0.95;
+        }
+
+        .vs-input:focus {
+          border-color: rgba(74, 195, 255, 0.94);
+          background: rgba(5, 31, 60, 0.73);
+          box-shadow:
+            0 0 0 1px rgba(35, 178, 255, 0.16),
+            0 0 18px rgba(0, 131, 255, 0.16),
+            inset 0 0 15px rgba(0, 104, 194, 0.07);
+        }
+
+        .vs-login-button {
+          position: relative;
+          width: 100%;
+          height: 55px;
+          margin-top: 5px;
+          border: 1px solid rgba(220, 234, 255, 0.9);
+          border-radius: 11px;
+          background:
+            linear-gradient(
+              180deg,
+              #f3f7ff 0%,
+              #dce4f1 100%
+            );
+          color: #101827;
+          font-size: 22px;
+          font-weight: 650;
+          cursor: pointer;
+          box-shadow:
+            0 0 8px rgba(180, 224, 255, 0.13),
+            inset 0 1px 0 rgba(255,255,255,0.9);
+          transition:
+            transform 140ms ease,
+            box-shadow 140ms ease,
+            filter 140ms ease;
+        }
+
+        .vs-login-button:hover:not(:disabled) {
+          transform: translateY(-1px);
+          filter: brightness(1.03);
+          box-shadow:
+            0 0 13px rgba(135, 211, 255, 0.23),
+            0 5px 18px rgba(0, 70, 150, 0.16);
+        }
+
+        .vs-login-button:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        .vs-login-button:disabled {
+          opacity: 0.68;
+          cursor: wait;
+        }
+
+        .vs-biometric-row {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          margin-top: 20px;
+        }
+
+        .vs-fingerprint-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 66px;
+          height: 66px;
+          flex: 0 0 66px;
+          border: 1px solid rgba(66, 177, 255, 0.78);
+          border-radius: 13px;
+          background:
+            linear-gradient(
+              145deg,
+              rgba(9, 47, 86, 0.76),
+              rgba(4, 27, 53, 0.6)
+            );
+          color: #31c9ff;
+          cursor: pointer;
+          box-shadow:
+            0 0 11px rgba(0, 127, 255, 0.16),
+            inset 0 0 13px rgba(0, 119, 255, 0.08);
+          transition:
+            border-color 160ms ease,
+            box-shadow 160ms ease,
+            transform 160ms ease;
+        }
+
+        .vs-fingerprint-button:hover {
+          transform: translateY(-1px);
+          border-color: #65d9ff;
+          box-shadow:
+            0 0 17px rgba(0, 155, 255, 0.25),
+            inset 0 0 17px rgba(0, 119, 255, 0.12);
+        }
+
+        .vs-fingerprint-icon {
+          width: 39px;
+          height: 39px;
+          stroke-width: 1.25;
+        }
+
+        .vs-biometric-label {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          color: #aebbd0;
+          font-size: 17px;
+          white-space: nowrap;
+        }
+
+        .vs-biometric-label svg {
+          width: 22px;
+          height: 22px;
+          color: #aebbd0;
+          stroke-width: 1.5;
+        }
+
+        .vs-bottom {
+          position: relative;
+          z-index: 4;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 18px;
+          margin-top: 31px;
+          white-space: nowrap;
+        }
+
+        .vs-bottom-button {
+          padding: 0;
+          border: 0;
+          background: transparent;
+          color: #35c7ff;
+          font-size: 15.5px;
+          font-weight: 500;
+          cursor: pointer;
+          text-shadow: 0 0 9px rgba(0, 157, 255, 0.2);
+          transition:
+            color 160ms ease,
+            text-shadow 160ms ease;
+        }
+
+        .vs-bottom-button:hover {
+          color: #8ce5ff;
+          text-shadow:
+            0 0 8px rgba(51, 201, 255, 0.35),
+            0 0 18px rgba(0, 131, 255, 0.22);
+        }
+
+        .vs-bottom-divider {
+          width: 1px;
+          height: 25px;
+          background: rgba(190, 216, 242, 0.55);
+        }
+
+        .vs-error {
+          position: relative;
+          z-index: 4;
+          margin: 9px 2px -2px;
+          padding: 9px 11px;
+          border: 1px solid rgba(255, 107, 107, 0.36);
+          border-radius: 8px;
+          background: rgba(85, 15, 25, 0.3);
+          color: #ffb4bd;
+          font-size: 13px;
+          line-height: 1.35;
+          text-align: center;
+        }
+
+        .vs-loading {
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+          justify-content: center;
+        }
+
+        .vs-spinner {
+          width: 17px;
+          height: 17px;
+          border: 2px solid rgba(16, 24, 39, 0.2);
+          border-top-color: #101827;
+          border-radius: 50%;
+          animation: vs-spin 700ms linear infinite;
+        }
+
+        @keyframes vs-spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        /*
+         * Atmospheric network topology.
+         * Thin layered lines replace the previous digital waveform.
+         */
+        /*
+         * AMPLIFIED MARKET NETWORK
+         *
+         * Bright enough to read as an active computational /
+         * market-data environment, while remaining behind the
+         * authentication surface.
+         */
+
+        /*
+         * Professional market candles:
+         * narrow bodies + fine wicks + restrained blue palette.
+         */
+
+        .vs-candle-field line {
+          vector-effect: non-scaling-stroke;
+        }
+
+        @media (max-width: 720px) {
+          .vs-card-wrap {
+            padding: 18px;
+          }
+
+          .vs-card {
+            width: min(390px, calc(100vw - 32px));
+            min-height: 0;
+            padding: 38px 25px 25px;
+            border-radius: 22px;
+          }
+
+          .vs-brand {
+            font-size: 31px;
+          }
+
+          .vs-divider {
+            margin-top: 26px;
+            margin-bottom: 21px;
+          }
+
+          .vs-tab {
+            font-size: 19px;
+          }
+
+          .vs-input {
+            font-size: 16px;
+          }
+
+          .vs-bottom-button {
+            font-size: 13px;
+          }
+
+          .vs-bottom {
+            gap: 12px;
+          }
+        }
+
+        @media (max-height: 760px) and (min-width: 600px) {
+          .vs-card {
+            transform: scale(0.86);
+          }
+        }
+
+        @media (max-height: 650px) {
+          .vs-card {
+            transform: scale(0.76);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .vs-spinner {
+            animation: none;
+          }
+
+          .vs-login-button,
+          .vs-fingerprint-button,
+          .vs-tab,
+          .vs-bottom-button {
+            transition: none;
+          }
+        }
+
+        /* ============================================================
+   REALISTIC FOREX CANDLE BACKGROUND
+   ============================================================ */
+
+.vs-forex-background {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.vs-forex-candles {
+  position: absolute;
+  top: 50%;
+  width: min(42vw, 500px);
+  height: min(68vh, 600px);
+  transform: translateY(-50%);
+  overflow: visible;
+  opacity: 0.94;
+}
+
+.vs-forex-candles-left {
+  left: 0.8vw;
+}
+
+.vs-forex-candles-right {
+  right: 0.8vw;
+  transform: translateY(-50%) scaleX(-1);
+}
+
+/* Fade candles naturally into the same dark background. */
+.vs-forex-background::before,
+.vs-forex-background::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 30%;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.vs-forex-background::before {
+  left: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(2, 7, 17, 0.35) 0%,
+    rgba(2, 7, 17, 0) 100%
+  );
+}
+
+.vs-forex-background::after {
+  right: 0;
+  background: linear-gradient(
+    270deg,
+    rgba(2, 7, 17, 0.35) 0%,
+    rgba(2, 7, 17, 0) 100%
+  );
+}
+
+.vs-card-wrap {
+  position: relative;
+  z-index: 20;
+}
+
+@media (max-width: 900px) {
+  .vs-forex-candles {
+    width: 30vw;
+    height: 52vh;
+    opacity: 0.58;
+  }
+
+  .vs-forex-candles-left {
+    left: -3vw;
+  }
+
+  .vs-forex-candles-right {
+    right: -3vw;
+  }
+}
+
+@media (max-width: 640px) {
+  .vs-forex-candles {
+    width: 35vw;
+    height: 46vh;
+    opacity: 0.38;
+  }
+
+  .vs-forex-candles-left {
+    left: -10vw;
+  }
+
+  .vs-forex-candles-right {
+    right: -10vw;
+  }
+}
+
+        /* ============================================================
+   VOLSIM-PRO MARKET DATA BACKGROUND
+   Dense cyan particle-network wave mesh + forex candles
+   ============================================================ */
+
+.vs-market-background {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.vs-wave-mesh {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  overflow: visible;
+  opacity: 0.94;
+}
+
+.vs-forex-background {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.vs-forex-candles {
+  position: absolute;
+  top: 50%;
+  width: min(42vw, 500px);
+  height: min(68vh, 600px);
+  transform: translateY(-50%);
+  overflow: visible;
+  opacity: 1;
+}
+
+.vs-forex-candles-left {
+  left: 0.8vw;
+}
+
+.vs-forex-candles-right {
+  right: 0.8vw;
+  transform: translateY(-50%) scaleX(-1);
+}
+
+/* Preserve the black upper field while allowing the
+   lower particle mesh to become increasingly visible. */
+
+.vs-market-background::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(2, 4, 10, 0.98) 0%,
+      rgba(2, 4, 10, 0.94) 24%,
+      rgba(2, 4, 10, 0.58) 42%,
+      rgba(2, 4, 10, 0.12) 66%,
+      rgba(2, 4, 10, 0) 82%
+    );
+}
+
+/* Keep candles visible above the mesh and fade them
+   gently into the side edges. */
+
+.vs-forex-background::before,
+.vs-forex-background::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 24%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.vs-forex-background::before {
+  left: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(2, 4, 10, 0.2) 0%,
+    rgba(2, 4, 10, 0) 100%
+  );
+}
+
+.vs-forex-background::after {
+  right: 0;
+  background: linear-gradient(
+    270deg,
+    rgba(2, 4, 10, 0.2) 0%,
+    rgba(2, 4, 10, 0) 100%
+  );
+}
+
+@media (max-width: 900px) {
+  .vs-forex-candles {
+    width: 30vw;
+    height: 52vh;
+  }
+
+  .vs-forex-candles-left {
+    left: -3vw;
+  }
+
+  .vs-forex-candles-right {
+    right: -3vw;
+  }
+
+  .vs-wave-mesh {
+    opacity: 0.94;
+  }
+}
+
+@media (max-width: 640px) {
+  .vs-forex-candles {
+    width: 35vw;
+    height: 46vh;
+    opacity: 0.86;
+  }
+
+  .vs-forex-candles-left {
+    left: -10vw;
+  }
+
+  .vs-forex-candles-right {
+    right: -10vw;
+  }
+
+  .vs-wave-mesh {
+    opacity: 0.62;
+  }
+}
+
+        /* ============================================================
+   VOLSIM-PRO TOP BACKGROUND WORDMARKS
+   ============================================================ */
+
+.vs-top-brand {
+  position: absolute;
+  top: 2.2%;
+  z-index: 4;
+  pointer-events: none;
+  user-select: none;
+
+  /*
+   * Wide enough for the COMPLETE VOLSIM-PRO wordmark.
+   */
+  width: 30%;
+  max-width: 430px;
+  min-width: 240px;
+
+  overflow: visible;
+
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  /*
+   * Reduced from the previous 4x version.
+   * Still substantially larger than the original.
+   */
+  font-size: clamp(29px, 3.15vw, 56px);
+
+  line-height: 0.95;
+  font-weight: 800;
+  letter-spacing: 0.065em;
+
+  color: rgba(0, 91, 158, 0.50);
+
+  text-shadow:
+    0 0 16px rgba(0, 126, 210, 0.11),
+    0 0 34px rgba(0, 78, 160, 0.08);
+
+  white-space: nowrap;
+}
+
+.vs-top-brand-left {
+  left: 1.5%;
+  text-align: left;
+  transform: scaleX(0.90);
+  transform-origin: left center;
+}
+
+.vs-top-brand-right {
+  right: 1.5%;
+  text-align: right;
+  transform: scaleX(0.90);
+  transform-origin: right center;
+}
+
+.vs-forex-candles-top-right {
+  position: absolute;
+  top: 5%;
+  right: -1%;
+  width: 44vw;
+  min-width: 520px;
+  max-width: 780px;
+  height: 36vh;
+  min-height: 270px;
+  max-height: 390px;
+
+  z-index: 3;
+  pointer-events: none;
+  overflow: visible;
+
+  opacity: 0.94;
+
+  mask-image:
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(0,0,0,0.85) 10%,
+      #000 25%,
+      #000 82%,
+      transparent 100%
+    );
+
+  -webkit-mask-image:
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(0,0,0,0.85) 10%,
+      #000 25%,
+      #000 82%,
+      transparent 100%
+    );
+}
+
+.vs-forex-candles-top-right .vs-forex-candles {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  transform: none;
+}
+
+/* Keep the wordmarks subordinate to the login card. */
+.vs-card-wrap {
+  position: relative;
+  z-index: 20;
+}
+      `}</style>
+            <div className="vs-top-brand vs-top-brand-left" aria-hidden="true">
+        VOLSIM-PRO
+      </div>
+
+      <div className="vs-top-brand vs-top-brand-right" aria-hidden="true">
+        VOLSIM-PRO
+      </div>
+<div className="vs-market-background" aria-hidden="true">
+        <ParticleWaveMesh />
+
+        <div className="vs-forex-background">
+          <ForexCandleField />
+
+<div className="vs-forex-candles-top-right" aria-hidden="true">
+  <ForexCandleField compact />
+</div>
+        </div>
+      </div>
+      <div className="vs-card-wrap">
+        <section
+          className="vs-card"
+          aria-label="VOLSIM-PRO authentication"
+        >
+          <h1 className="vs-brand">VOLSIM-PRO</h1>
+
+          <div className="vs-divider" />
+
+          <div className="vs-tabs" role="tablist" aria-label="Authentication">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'login'}
+              className={`vs-tab ${activeTab === 'login' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('login');
+                setLocalError('');
+              }}
+            >
+              Login
+            </button>
+
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'signup'}
+              className={`vs-tab ${activeTab === 'signup' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('signup');
+                setLocalError('');
+              }}
+            >
+              Sign Up
+            </button>
+          </div>
+
+          <form className="vs-form" onSubmit={handleSubmit}>
+            <div className="vs-field">
+              <Mail className="vs-field-icon" aria-hidden="true" />
+
+              <input
+                className="vs-input"
+                type="email"
+                autoComplete="email"
+                placeholder="Email Address"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                disabled={isLoading}
+                aria-label="Email Address"
+              />
+            </div>
+
+            <div className="vs-field">
+              <LockKeyhole
+                className="vs-field-icon"
+                aria-hidden="true"
+              />
+
+              <input
+                className="vs-input"
+                type="password"
+                autoComplete={
+                  activeTab === 'signup'
+                    ? 'new-password'
+                    : 'current-password'
+                }
+                placeholder="Password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                disabled={isLoading}
+                aria-label="Password"
+              />
+            </div>
+
+            <button
+              className="vs-login-button"
+              type="submit"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <span className="vs-loading">
+                  <span className="vs-spinner" />
+                  {activeTab === 'signup'
+                    ? 'Creating Account...'
+                    : 'Signing In...'}
+                </span>
+              ) : activeTab === 'signup' ? (
+                'Sign Up'
+              ) : (
+                'Login'
+              )}
+            </button>
+
+            {localError && (
+              <div className="vs-error" role="alert">
+                {localError}
+              </div>
+            )}
+          </form>
+
+          <div className="vs-biometric-row">
+            <button
+              type="button"
+              className="vs-fingerprint-button"
+              onClick={handleBiometric}
+              aria-label="Biometric Login"
+            >
+              <Fingerprint
+                className="vs-fingerprint-icon"
+                aria-hidden="true"
+              />
+            </button>
+
+            <div className="vs-biometric-label">
+              <LockKeyhole aria-hidden="true" />
+              <span>Biometric Login</span>
+            </div>
+          </div>
+
+          <div className="vs-bottom">
+            <button
+              type="button"
+              className="vs-bottom-button"
+              onClick={handleForgotPassword}
+            >
+              Forgot Password?
+            </button>
+
+            <span className="vs-bottom-divider" aria-hidden="true" />
+
+            <button
+              type="button"
+              className="vs-bottom-button"
+              onClick={handleAdminPortal}
+            >
+              Sign In with Admin Portal
+            </button>
+          </div>
+
+          <Shield
+            style={{
+              position: 'absolute',
+              width: 0,
+              height: 0,
+              opacity: 0,
+            }}
+            aria-hidden="true"
+          />
+        </section>
+      </div>
+    </main>
+  );
+};
+
+export default LoginScreen;
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,2549 @@
+
+=== CODE OBJECT: <module> | line 1 ===
+args: 0
+locals: 0
+varnames: ()
+names: ('builtins', '@py_builtins', '_pytest.assertion.rewrite', 'assertion', 'rewrite', '@pytest_ar', 'pytest', 'src.services.vault_service', 'services', 'vault_service', 'vault_module', 'VaultService', 'FakeTransaction', 'FakeConnection', 'FakeDatabaseService', 'mark', 'asyncio', 'test_first_cumulative_profit_creates_one_70_30_allocation')
+constants: (0, None, ('VaultService',), <code object FakeTransaction at 0x00000224512DE870, file "C:\volsim-dev\tests\test_vault_durability.py", line 7>, 'FakeTransaction', <code object FakeConnection at 0x0000022451354810, file "C:\volsim-dev\tests\test_vault_durability.py", line 18>, 'FakeConnection', <code object FakeDatabaseService at 0x0000022451354B90, file "C:\volsim-dev\tests\test_vault_durability.py", line 90>, 'FakeDatabaseService', <code object test_first_cumulative_profit_creates_one_70_30_allocation at 0x000002245149CAF0, file "C:\volsim-dev\tests\test_vault_durability.py", line 98>)
+
+  0           0 RESUME                   0
+
+  1           2 LOAD_CONST               0 (0)
+              4 LOAD_CONST               1 (None)
+              6 IMPORT_NAME              0 (builtins)
+              8 STORE_NAME               1 (@py_builtins)
+             10 LOAD_CONST               0 (0)
+             12 LOAD_CONST               1 (None)
+             14 IMPORT_NAME              2 (_pytest.assertion.rewrite)
+             16 IMPORT_FROM              3 (assertion)
+             18 SWAP                     2
+             20 POP_TOP
+             22 IMPORT_FROM              4 (rewrite)
+             24 STORE_NAME               5 (@pytest_ar)
+             26 POP_TOP
+             28 LOAD_CONST               0 (0)
+             30 LOAD_CONST               1 (None)
+             32 IMPORT_NAME              6 (pytest)
+             34 STORE_NAME               6 (pytest)
+
+  3          36 LOAD_CONST               0 (0)
+             38 LOAD_CONST               1 (None)
+             40 IMPORT_NAME              7 (src.services.vault_service)
+             42 IMPORT_FROM              8 (services)
+             44 SWAP                     2
+             46 POP_TOP
+             48 IMPORT_FROM              9 (vault_service)
+             50 STORE_NAME              10 (vault_module)
+             52 POP_TOP
+
+  4          54 LOAD_CONST               0 (0)
+             56 LOAD_CONST               2 (('VaultService',))
+             58 IMPORT_NAME              7 (src.services.vault_service)
+             60 IMPORT_FROM             11 (VaultService)
+             62 STORE_NAME              11 (VaultService)
+             64 POP_TOP
+
+  7          66 PUSH_NULL
+             68 LOAD_BUILD_CLASS
+             70 LOAD_CONST               3 (<code object FakeTransaction at 0x00000224512DE870, file "C:\volsim-dev\tests\test_vault_durability.py", line 7>)
+             72 MAKE_FUNCTION            0
+             74 LOAD_CONST               4 ('FakeTransaction')
+             76 PRECALL                  2
+             80 CALL                     2
+             90 STORE_NAME              12 (FakeTransaction)
+
+ 18          92 PUSH_NULL
+             94 LOAD_BUILD_CLASS
+             96 LOAD_CONST               5 (<code object FakeConnection at 0x0000022451354810, file "C:\volsim-dev\tests\test_vault_durability.py", line 18>)
+             98 MAKE_FUNCTION            0
+            100 LOAD_CONST               6 ('FakeConnection')
+            102 PRECALL                  2
+            106 CALL                     2
+            116 STORE_NAME              13 (FakeConnection)
+
+ 90         118 PUSH_NULL
+            120 LOAD_BUILD_CLASS
+            122 LOAD_CONST               7 (<code object FakeDatabaseService at 0x0000022451354B90, file "C:\volsim-dev\tests\test_vault_durability.py", line 90>)
+            124 MAKE_FUNCTION            0
+            126 LOAD_CONST               8 ('FakeDatabaseService')
+            128 PRECALL                  2
+            132 CALL                     2
+            142 STORE_NAME              14 (FakeDatabaseService)
+
+ 98         144 LOAD_NAME                6 (pytest)
+            146 LOAD_ATTR               15 (mark)
+            156 LOAD_ATTR               16 (asyncio)
+
+ 99         166 LOAD_CONST               9 (<code object test_first_cumulative_profit_creates_one_70_30_allocation at 0x000002245149CAF0, file "C:\volsim-dev\tests\test_vault_durability.py", line 98>)
+            168 MAKE_FUNCTION            0
+
+ 98         170 PRECALL                  0
+            174 CALL                     0
+
+ 99         184 STORE_NAME              17 (test_first_cumulative_profit_creates_one_70_30_allocation)
+            186 LOAD_CONST               1 (None)
+            188 RETURN_VALUE
+
+Disassembly of <code object FakeTransaction at 0x00000224512DE870, file "C:\volsim-dev\tests\test_vault_durability.py", line 7>:
+  7           0 RESUME                   0
+              2 LOAD_NAME                0 (__name__)
+              4 STORE_NAME               1 (__module__)
+              6 LOAD_CONST               0 ('FakeTransaction')
+              8 STORE_NAME               2 (__qualname__)
+
+  8          10 LOAD_CONST               1 (<code object __init__ at 0x000002245116A320, file "C:\volsim-dev\tests\test_vault_durability.py", line 8>)
+             12 MAKE_FUNCTION            0
+             14 STORE_NAME               3 (__init__)
+
+ 11          16 LOAD_CONST               2 (<code object __aenter__ at 0x000002245116A4C0, file "C:\volsim-dev\tests\test_vault_durability.py", line 11>)
+             18 MAKE_FUNCTION            0
+             20 STORE_NAME               4 (__aenter__)
+
+ 14          22 LOAD_CONST               3 (<code object __aexit__ at 0x00000224513492E0, file "C:\volsim-dev\tests\test_vault_durability.py", line 14>)
+             24 MAKE_FUNCTION            0
+             26 STORE_NAME               5 (__aexit__)
+             28 LOAD_CONST               4 (None)
+             30 RETURN_VALUE
+
+Disassembly of <code object __init__ at 0x000002245116A320, file "C:\volsim-dev\tests\test_vault_durability.py", line 8>:
+  8           0 RESUME                   0
+
+  9           2 LOAD_FAST                1 (connection)
+              4 LOAD_FAST                0 (self)
+              6 STORE_ATTR               0 (connection)
+             16 LOAD_CONST               0 (None)
+             18 RETURN_VALUE
+
+Disassembly of <code object __aenter__ at 0x000002245116A4C0, file "C:\volsim-dev\tests\test_vault_durability.py", line 11>:
+ 11           0 RETURN_GENERATOR
+              2 POP_TOP
+              4 RESUME                   0
+
+ 12           6 LOAD_FAST                0 (self)
+              8 LOAD_ATTR                0 (connection)
+             18 RETURN_VALUE
+
+Disassembly of <code object __aexit__ at 0x00000224513492E0, file "C:\volsim-dev\tests\test_vault_durability.py", line 14>:
+ 14           0 RETURN_GENERATOR
+              2 POP_TOP
+              4 RESUME                   0
+
+ 15           6 LOAD_CONST               1 (False)
+              8 RETURN_VALUE
+
+Disassembly of <code object FakeConnection at 0x0000022451354810, file "C:\volsim-dev\tests\test_vault_durability.py", line 18>:
+ 18           0 RESUME                   0
+              2 LOAD_NAME                0 (__name__)
+              4 STORE_NAME               1 (__module__)
+              6 LOAD_CONST               0 ('FakeConnection')
+              8 STORE_NAME               2 (__qualname__)
+
+ 19          10 LOAD_CONST               1 (<code object __init__ at 0x0000022451628690, file "C:\volsim-dev\tests\test_vault_durability.py", line 19>)
+             12 MAKE_FUNCTION            0
+             14 STORE_NAME               3 (__init__)
+
+ 39          16 LOAD_CONST               2 (<code object fetch at 0x00000224510D9590, file "C:\volsim-dev\tests\test_vault_durability.py", line 39>)
+             18 MAKE_FUNCTION            0
+             20 STORE_NAME               4 (fetch)
+
+ 45          22 LOAD_CONST               3 (<code object fetchrow at 0x0000022451132CD0, file "C:\volsim-dev\tests\test_vault_durability.py", line 45>)
+             24 MAKE_FUNCTION            0
+             26 STORE_NAME               5 (fetchrow)
+
+ 57          28 LOAD_CONST               4 (<code object execute at 0x0000022451481E30, file "C:\volsim-dev\tests\test_vault_durability.py", line 57>)
+             30 MAKE_FUNCTION            0
+             32 STORE_NAME               6 (execute)
+             34 LOAD_CONST               5 (None)
+             36 RETURN_VALUE
+
+Disassembly of <code object __init__ at 0x0000022451628690, file "C:\volsim-dev\tests\test_vault_durability.py", line 19>:
+ 19           0 RESUME                   0
+
+ 21           2 LOAD_CONST               1 (1)
+
+ 22           4 LOAD_CONST               2 (1000.0)
+
+ 23           6 LOAD_CONST               3 (0.0)
+
+ 24           8 LOAD_CONST               4 ('CORE_SATELLITE_70_30')
+
+ 25          10 LOAD_CONST               5 (70.0)
+
+ 26          12 LOAD_CONST               6 (30.0)
+
+ 27          14 LOAD_CONST               3 (0.0)
+
+ 28          16 LOAD_CONST               3 (0.0)
+
+ 29          18 LOAD_CONST               3 (0.0)
+
+ 30          20 LOAD_CONST               7 ('PENDING')
+
+ 31          22 LOAD_CONST               0 (None)
+
+ 32          24 LOAD_CONST               0 (None)
+
+ 33          26 LOAD_CONST               0 (None)
+
+ 34          28 LOAD_CONST               3 (0.0)
+
+ 20          30 LOAD_CONST               8 (('id', 'trading_equity_balance', 'vault_balance', 'allocation_profile', 'equity_percentage', 'vault_percentage', 'pending_vault_allocation', 'total_allocated', 'total_transferred', 'sync_status', 'wallet_address', 'blockchain_network', 'last_tx_hash', 'last_realized_profit'))
+             32 BUILD_CONST_KEY_MAP     14
+             34 LOAD_FAST                0 (self)
+             36 STORE_ATTR               0 (state)
+
+ 36          46 BUILD_LIST               0
+             48 LOAD_FAST                0 (self)
+             50 STORE_ATTR               1 (ledger)
+
+ 37          60 BUILD_LIST               0
+             62 LOAD_FAST                0 (self)
+             64 STORE_ATTR               2 (execute_calls)
+             74 LOAD_CONST               0 (None)
+             76 RETURN_VALUE
+
+Disassembly of <code object fetch at 0x00000224510D9590, file "C:\volsim-dev\tests\test_vault_durability.py", line 39>:
+ 39           0 RETURN_GENERATOR
+              2 POP_TOP
+              4 RESUME                   0
+
+ 40           6 LOAD_CONST               1 ('FROM public.immutable_vault_state')
+              8 LOAD_FAST                1 (query)
+             10 CONTAINS_OP              0
+             12 POP_JUMP_FORWARD_IF_FALSE    21 (to 56)
+
+ 41          14 LOAD_GLOBAL              1 (NULL + dict)
+             26 LOAD_FAST                0 (self)
+             28 LOAD_ATTR                1 (state)
+             38 PRECALL                  1
+             42 CALL                     1
+             52 BUILD_LIST               1
+             54 RETURN_VALUE
+
+ 43     >>   56 LOAD_GLOBAL              5 (NULL + AssertionError)
+             68 LOAD_CONST               2 ('Unexpected fetch query: ')
+             70 LOAD_FAST                1 (query)
+             72 FORMAT_VALUE             0
+             74 BUILD_STRING             2
+             76 PRECALL                  1
+             80 CALL                     1
+             90 RAISE_VARARGS            1
+
+Disassembly of <code object fetchrow at 0x0000022451132CD0, file "C:\volsim-dev\tests\test_vault_durability.py", line 45>:
+ 45           0 RETURN_GENERATOR
+              2 POP_TOP
+              4 RESUME                   0
+
+ 46           6 LOAD_CONST               1 ('FROM public.vault_ledger')
+              8 LOAD_FAST                1 (query)
+             10 CONTAINS_OP              0
+             12 POP_JUMP_FORWARD_IF_FALSE    49 (to 112)
+
+ 47          14 LOAD_FAST                2 (args)
+             16 LOAD_CONST               2 (0)
+             18 BINARY_SUBSCR
+             28 STORE_FAST               3 (trade_id)
+
+ 49          30 LOAD_FAST                0 (self)
+             32 LOAD_ATTR                0 (ledger)
+             42 GET_ITER
+        >>   44 FOR_ITER                31 (to 108)
+             46 STORE_FAST               4 (row)
+
+ 50          48 LOAD_FAST                4 (row)
+             50 LOAD_CONST               3 ('trade_id')
+             52 BINARY_SUBSCR
+             62 LOAD_FAST                3 (trade_id)
+             64 COMPARE_OP               2 (==)
+             70 POP_JUMP_FORWARD_IF_FALSE    17 (to 106)
+
+ 51          72 LOAD_GLOBAL              3 (NULL + dict)
+             84 LOAD_FAST                4 (row)
+             86 PRECALL                  1
+             90 CALL                     1
+            100 SWAP                     2
+            102 POP_TOP
+            104 RETURN_VALUE
+
+ 50     >>  106 JUMP_BACKWARD           32 (to 44)
+
+ 53     >>  108 LOAD_CONST               0 (None)
+            110 RETURN_VALUE
+
+ 55     >>  112 LOAD_GLOBAL              5 (NULL + AssertionError)
+            124 LOAD_CONST               4 ('Unexpected fetchrow query: ')
+            126 LOAD_FAST                1 (query)
+            128 FORMAT_VALUE             0
+            130 BUILD_STRING             2
+            132 PRECALL                  1
+            136 CALL                     1
+            146 RAISE_VARARGS            1
+
+Disassembly of <code object execute at 0x0000022451481E30, file "C:\volsim-dev\tests\test_vault_durability.py", line 57>:
+ 57           0 RETURN_GENERATOR
+              2 POP_TOP
+              4 RESUME                   0
+
+ 58           6 LOAD_FAST                0 (self)
+              8 LOAD_ATTR                0 (execute_calls)
+             18 LOAD_METHOD              1 (append)
+             40 LOAD_FAST                1 (query)
+             42 LOAD_FAST                2 (args)
+             44 BUILD_TUPLE              2
+             46 PRECALL                  1
+             50 CALL                     1
+             60 POP_TOP
+
+ 60          62 LOAD_CONST               1 ('INSERT INTO public.vault_ledger')
+             64 LOAD_FAST                1 (query)
+             66 CONTAINS_OP              0
+             68 POP_JUMP_FORWARD_IF_FALSE    98 (to 266)
+
+ 61          70 LOAD_FAST                0 (self)
+             72 LOAD_ATTR                2 (ledger)
+             82 LOAD_METHOD              1 (append)
+
+ 63         104 LOAD_GLOBAL              7 (NULL + len)
+            116 LOAD_FAST                0 (self)
+            118 LOAD_ATTR                2 (ledger)
+            128 PRECALL                  1
+            132 CALL                     1
+            142 LOAD_CONST               2 (1)
+            144 BINARY_OP                0 (+)
+
+ 64         148 LOAD_FAST                2 (args)
+            150 LOAD_CONST               3 (0)
+            152 BINARY_SUBSCR
+
+ 65         162 LOAD_GLOBAL              9 (NULL + float)
+            174 LOAD_FAST                2 (args)
+            176 LOAD_CONST               4 (2)
+            178 BINARY_SUBSCR
+            188 PRECALL                  1
+            192 CALL                     1
+
+ 66         202 LOAD_GLOBAL              9 (NULL + float)
+            214 LOAD_FAST                2 (args)
+            216 LOAD_CONST               5 (3)
+            218 BINARY_SUBSCR
+            228 PRECALL                  1
+            232 CALL                     1
+
+ 62         242 LOAD_CONST               6 (('id', 'trade_id', 'equity_amount', 'vault_amount'))
+            244 BUILD_CONST_KEY_MAP      4
+
+ 61         246 PRECALL                  1
+            250 CALL                     1
+            260 POP_TOP
+
+ 69         262 LOAD_CONST               7 ('INSERT 0 1')
+            264 RETURN_VALUE
+
+ 71     >>  266 LOAD_CONST               8 ('UPDATE public.immutable_vault_state')
+            268 LOAD_FAST                1 (query)
+            270 CONTAINS_OP              0
+            272 POP_JUMP_FORWARD_IF_FALSE   196 (to 666)
+
+ 72         274 LOAD_CONST               9 ('last_realized_profit')
+            276 LOAD_FAST                1 (query)
+            278 CONTAINS_OP              0
+            280 POP_JUMP_FORWARD_IF_FALSE   190 (to 662)
+
+ 77         282 LOAD_GLOBAL              9 (NULL + float)
+            294 LOAD_FAST                2 (args)
+            296 LOAD_CONST               3 (0)
+            298 BINARY_SUBSCR
+            308 PRECALL                  1
+            312 CALL                     1
+            322 LOAD_FAST                0 (self)
+            324 LOAD_ATTR                5 (state)
+            334 LOAD_CONST              10 ('trading_equity_balance')
+            336 STORE_SUBSCR
+
+ 78         340 LOAD_GLOBAL              9 (NULL + float)
+            352 LOAD_FAST                2 (args)
+            354 LOAD_CONST               2 (1)
+            356 BINARY_SUBSCR
+            366 PRECALL                  1
+            370 CALL                     1
+            380 LOAD_FAST                0 (self)
+            382 LOAD_ATTR                5 (state)
+            392 LOAD_CONST              11 ('vault_balance')
+            394 STORE_SUBSCR
+
+ 79         398 LOAD_GLOBAL              9 (NULL + float)
+            410 LOAD_FAST                2 (args)
+            412 LOAD_CONST               4 (2)
+            414 BINARY_SUBSCR
+            424 PRECALL                  1
+            428 CALL                     1
+            438 LOAD_FAST                0 (self)
+            440 LOAD_ATTR                5 (state)
+            450 LOAD_CONST              12 ('pending_vault_allocation')
+            452 STORE_SUBSCR
+
+ 80         456 LOAD_GLOBAL              9 (NULL + float)
+            468 LOAD_FAST                2 (args)
+            470 LOAD_CONST               5 (3)
+            472 BINARY_SUBSCR
+            482 PRECALL                  1
+            486 CALL                     1
+            496 LOAD_FAST                0 (self)
+            498 LOAD_ATTR                5 (state)
+            508 LOAD_CONST              13 ('total_allocated')
+            510 STORE_SUBSCR
+
+ 81         514 LOAD_GLOBAL              9 (NULL + float)
+            526 LOAD_FAST                2 (args)
+            528 LOAD_CONST              14 (4)
+            530 BINARY_SUBSCR
+            540 PRECALL                  1
+            544 CALL                     1
+            554 LOAD_FAST                0 (self)
+            556 LOAD_ATTR                5 (state)
+            566 LOAD_CONST              15 ('total_transferred')
+            568 STORE_SUBSCR
+
+ 82         572 LOAD_FAST                2 (args)
+            574 LOAD_CONST              16 (5)
+            576 BINARY_SUBSCR
+            586 LOAD_FAST                0 (self)
+            588 LOAD_ATTR                5 (state)
+            598 LOAD_CONST              17 ('sync_status')
+            600 STORE_SUBSCR
+
+ 83         604 LOAD_GLOBAL              9 (NULL + float)
+            616 LOAD_FAST                2 (args)
+            618 LOAD_CONST              18 (6)
+            620 BINARY_SUBSCR
+            630 PRECALL                  1
+            634 CALL                     1
+            644 LOAD_FAST                0 (self)
+            646 LOAD_ATTR                5 (state)
+            656 LOAD_CONST               9 ('last_realized_profit')
+            658 STORE_SUBSCR
+
+ 85     >>  662 LOAD_CONST              19 ('UPDATE 1')
+            664 RETURN_VALUE
+
+ 87     >>  666 LOAD_GLOBAL             13 (NULL + AssertionError)
+            678 LOAD_CONST              20 ('Unexpected execute query: ')
+            680 LOAD_FAST                1 (query)
+            682 FORMAT_VALUE             0
+            684 BUILD_STRING             2
+            686 PRECALL                  1
+            690 CALL                     1
+            700 RAISE_VARARGS            1
+
+Disassembly of <code object FakeDatabaseService at 0x0000022451354B90, file "C:\volsim-dev\tests\test_vault_durability.py", line 90>:
+ 90           0 RESUME                   0
+              2 LOAD_NAME                0 (__name__)
+              4 STORE_NAME               1 (__module__)
+              6 LOAD_CONST               0 ('FakeDatabaseService')
+              8 STORE_NAME               2 (__qualname__)
+
+ 91          10 LOAD_CONST               1 (<code object __init__ at 0x0000022451604780, file "C:\volsim-dev\tests\test_vault_durability.py", line 91>)
+             12 MAKE_FUNCTION            0
+             14 STORE_NAME               3 (__init__)
+
+ 94          16 LOAD_CONST               2 (<code object transaction at 0x00000224510F2D30, file "C:\volsim-dev\tests\test_vault_durability.py", line 94>)
+             18 MAKE_FUNCTION            0
+             20 STORE_NAME               4 (transaction)
+             22 LOAD_CONST               3 (None)
+             24 RETURN_VALUE
+
+Disassembly of <code object __init__ at 0x0000022451604780, file "C:\volsim-dev\tests\test_vault_durability.py", line 91>:
+ 91           0 RESUME                   0
+
+ 92           2 LOAD_FAST                1 (connection)
+              4 LOAD_FAST                0 (self)
+              6 STORE_ATTR               0 (connection)
+             16 LOAD_CONST               0 (None)
+             18 RETURN_VALUE
+
+Disassembly of <code object transaction at 0x00000224510F2D30, file "C:\volsim-dev\tests\test_vault_durability.py", line 94>:
+ 94           0 RESUME                   0
+
+ 95           2 LOAD_GLOBAL              1 (NULL + FakeTransaction)
+             14 LOAD_FAST                0 (self)
+             16 LOAD_ATTR                1 (connection)
+             26 PRECALL                  1
+             30 CALL                     1
+             40 RETURN_VALUE
+
+Disassembly of <code object test_first_cumulative_profit_creates_one_70_30_allocation at 0x000002245149CAF0, file "C:\volsim-dev\tests\test_vault_durability.py", line 98>:
+ 98           0 RETURN_GENERATOR
+              2 POP_TOP
+              4 RESUME                   0
+
+100           6 LOAD_GLOBAL              1 (NULL + FakeConnection)
+             18 PRECALL                  0
+             22 CALL                     0
+             32 STORE_FAST               1 (connection)
+
+102          34 LOAD_FAST                0 (monkeypatch)
+             36 LOAD_METHOD              1 (setattr)
+
+103          58 LOAD_GLOBAL              4 (vault_module)
+
+104          70 LOAD_CONST               1 ('database_service')
+
+105          72 LOAD_GLOBAL              7 (NULL + FakeDatabaseService)
+             84 LOAD_FAST                1 (connection)
+             86 PRECALL                  1
+             90 CALL                     1
+
+102         100 PRECALL                  3
+            104 CALL                     3
+            114 POP_TOP
+
+108         116 LOAD_GLOBAL              9 (NULL + VaultService)
+            128 PRECALL                  0
+            132 CALL                     0
+            142 STORE_FAST               2 (service)
+
+110         144 LOAD_FAST                2 (service)
+            146 LOAD_METHOD              5 (persist_state)
+
+111         168 LOAD_CONST               2 (100.0)
+
+112         170 LOAD_CONST               3 (70.0)
+
+113         172 LOAD_CONST               4 (30.0)
+
+114         174 LOAD_CONST               5 (True)
+
+110         176 KW_NAMES                 6
+            178 PRECALL                  4
+            182 CALL                     4
+            192 GET_AWAITABLE            0
+            194 LOAD_CONST               0 (None)
+        >>  196 SEND                     3 (to 204)
+            198 YIELD_VALUE
+            200 RESUME                   3
+            202 JUMP_BACKWARD_NO_INTERRUPT     4 (to 196)
+        >>  204 STORE_FAST               3 (result)
+
+117         206 LOAD_FAST                3 (result)
+            208 LOAD_CONST               7 ('trading_equity_balance')
+            210 BINARY_SUBSCR
+            220 STORE_FAST               4 (@py_assert0)
+            222 LOAD_CONST               8 (1070.0)
+            224 STORE_FAST               5 (@py_assert3)
+            226 LOAD_FAST                4 (@py_assert0)
+            228 LOAD_FAST                5 (@py_assert3)
+            230 COMPARE_OP               2 (==)
+            236 STORE_FAST               6 (@py_assert2)
+            238 LOAD_FAST                6 (@py_assert2)
+            240 POP_JUMP_FORWARD_IF_TRUE   108 (to 458)
+            242 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            254 LOAD_ATTR                7 (_call_reprcompare)
+            264 LOAD_CONST               9 (('==',))
+            266 LOAD_FAST                6 (@py_assert2)
+            268 BUILD_TUPLE              1
+            270 LOAD_CONST              10 (('%(py1)s == %(py4)s',))
+            272 LOAD_FAST                4 (@py_assert0)
+            274 LOAD_FAST                5 (@py_assert3)
+            276 BUILD_TUPLE              2
+            278 PRECALL                  4
+            282 CALL                     4
+            292 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            304 LOAD_ATTR                8 (_saferepr)
+            314 LOAD_FAST                4 (@py_assert0)
+            316 PRECALL                  1
+            320 CALL                     1
+            330 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            342 LOAD_ATTR                8 (_saferepr)
+            352 LOAD_FAST                5 (@py_assert3)
+            354 PRECALL                  1
+            358 CALL                     1
+            368 LOAD_CONST              11 (('py1', 'py4'))
+            370 BUILD_CONST_KEY_MAP      2
+            372 BINARY_OP                6 (%)
+            376 STORE_FAST               7 (@py_format5)
+            378 LOAD_CONST              12 ('assert %(py6)s')
+            380 LOAD_CONST              13 ('py6')
+            382 LOAD_FAST                7 (@py_format5)
+            384 BUILD_MAP                1
+            386 BINARY_OP                6 (%)
+            390 STORE_FAST               8 (@py_format7)
+            392 LOAD_GLOBAL             19 (NULL + AssertionError)
+            404 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            416 LOAD_ATTR               10 (_format_explanation)
+            426 LOAD_FAST                8 (@py_format7)
+            428 PRECALL                  1
+            432 CALL                     1
+            442 PRECALL                  1
+            446 CALL                     1
+            456 RAISE_VARARGS            1
+        >>  458 LOAD_CONST               0 (None)
+            460 COPY                     1
+            462 STORE_FAST               4 (@py_assert0)
+            464 COPY                     1
+            466 STORE_FAST               6 (@py_assert2)
+            468 STORE_FAST               5 (@py_assert3)
+
+118         470 LOAD_FAST                3 (result)
+            472 LOAD_CONST              14 ('vault_balance')
+            474 BINARY_SUBSCR
+            484 STORE_FAST               4 (@py_assert0)
+            486 LOAD_CONST               4 (30.0)
+            488 STORE_FAST               5 (@py_assert3)
+            490 LOAD_FAST                4 (@py_assert0)
+            492 LOAD_FAST                5 (@py_assert3)
+            494 COMPARE_OP               2 (==)
+            500 STORE_FAST               6 (@py_assert2)
+            502 LOAD_FAST                6 (@py_assert2)
+            504 POP_JUMP_FORWARD_IF_TRUE   108 (to 722)
+            506 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            518 LOAD_ATTR                7 (_call_reprcompare)
+            528 LOAD_CONST               9 (('==',))
+            530 LOAD_FAST                6 (@py_assert2)
+            532 BUILD_TUPLE              1
+            534 LOAD_CONST              10 (('%(py1)s == %(py4)s',))
+            536 LOAD_FAST                4 (@py_assert0)
+            538 LOAD_FAST                5 (@py_assert3)
+            540 BUILD_TUPLE              2
+            542 PRECALL                  4
+            546 CALL                     4
+            556 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            568 LOAD_ATTR                8 (_saferepr)
+            578 LOAD_FAST                4 (@py_assert0)
+            580 PRECALL                  1
+            584 CALL                     1
+            594 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            606 LOAD_ATTR                8 (_saferepr)
+            616 LOAD_FAST                5 (@py_assert3)
+            618 PRECALL                  1
+            622 CALL                     1
+            632 LOAD_CONST              11 (('py1', 'py4'))
+            634 BUILD_CONST_KEY_MAP      2
+            636 BINARY_OP                6 (%)
+            640 STORE_FAST               7 (@py_format5)
+            642 LOAD_CONST              12 ('assert %(py6)s')
+            644 LOAD_CONST              13 ('py6')
+            646 LOAD_FAST                7 (@py_format5)
+            648 BUILD_MAP                1
+            650 BINARY_OP                6 (%)
+            654 STORE_FAST               8 (@py_format7)
+            656 LOAD_GLOBAL             19 (NULL + AssertionError)
+            668 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            680 LOAD_ATTR               10 (_format_explanation)
+            690 LOAD_FAST                8 (@py_format7)
+            692 PRECALL                  1
+            696 CALL                     1
+            706 PRECALL                  1
+            710 CALL                     1
+            720 RAISE_VARARGS            1
+        >>  722 LOAD_CONST               0 (None)
+            724 COPY                     1
+            726 STORE_FAST               4 (@py_assert0)
+            728 COPY                     1
+            730 STORE_FAST               6 (@py_assert2)
+            732 STORE_FAST               5 (@py_assert3)
+
+119         734 LOAD_FAST                3 (result)
+            736 LOAD_CONST              15 ('pending_allocation')
+            738 BINARY_SUBSCR
+            748 STORE_FAST               4 (@py_assert0)
+            750 LOAD_CONST               4 (30.0)
+            752 STORE_FAST               5 (@py_assert3)
+            754 LOAD_FAST                4 (@py_assert0)
+            756 LOAD_FAST                5 (@py_assert3)
+            758 COMPARE_OP               2 (==)
+            764 STORE_FAST               6 (@py_assert2)
+            766 LOAD_FAST                6 (@py_assert2)
+            768 POP_JUMP_FORWARD_IF_TRUE   108 (to 986)
+            770 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            782 LOAD_ATTR                7 (_call_reprcompare)
+            792 LOAD_CONST               9 (('==',))
+            794 LOAD_FAST                6 (@py_assert2)
+            796 BUILD_TUPLE              1
+            798 LOAD_CONST              10 (('%(py1)s == %(py4)s',))
+            800 LOAD_FAST                4 (@py_assert0)
+            802 LOAD_FAST                5 (@py_assert3)
+            804 BUILD_TUPLE              2
+            806 PRECALL                  4
+            810 CALL                     4
+            820 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            832 LOAD_ATTR                8 (_saferepr)
+            842 LOAD_FAST                4 (@py_assert0)
+            844 PRECALL                  1
+            848 CALL                     1
+            858 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            870 LOAD_ATTR                8 (_saferepr)
+            880 LOAD_FAST                5 (@py_assert3)
+            882 PRECALL                  1
+            886 CALL                     1
+            896 LOAD_CONST              11 (('py1', 'py4'))
+            898 BUILD_CONST_KEY_MAP      2
+            900 BINARY_OP                6 (%)
+            904 STORE_FAST               7 (@py_format5)
+            906 LOAD_CONST              12 ('assert %(py6)s')
+            908 LOAD_CONST              13 ('py6')
+            910 LOAD_FAST                7 (@py_format5)
+            912 BUILD_MAP                1
+            914 BINARY_OP                6 (%)
+            918 STORE_FAST               8 (@py_format7)
+            920 LOAD_GLOBAL             19 (NULL + AssertionError)
+            932 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            944 LOAD_ATTR               10 (_format_explanation)
+            954 LOAD_FAST                8 (@py_format7)
+            956 PRECALL                  1
+            960 CALL                     1
+            970 PRECALL                  1
+            974 CALL                     1
+            984 RAISE_VARARGS            1
+        >>  986 LOAD_CONST               0 (None)
+            988 COPY                     1
+            990 STORE_FAST               4 (@py_assert0)
+            992 COPY                     1
+            994 STORE_FAST               6 (@py_assert2)
+            996 STORE_FAST               5 (@py_assert3)
+
+120         998 LOAD_FAST                3 (result)
+           1000 LOAD_CONST              16 ('total_allocated')
+           1002 BINARY_SUBSCR
+           1012 STORE_FAST               4 (@py_assert0)
+           1014 LOAD_CONST               4 (30.0)
+           1016 STORE_FAST               5 (@py_assert3)
+           1018 LOAD_FAST                4 (@py_assert0)
+           1020 LOAD_FAST                5 (@py_assert3)
+           1022 COMPARE_OP               2 (==)
+           1028 STORE_FAST               6 (@py_assert2)
+           1030 LOAD_FAST                6 (@py_assert2)
+           1032 POP_JUMP_FORWARD_IF_TRUE   108 (to 1250)
+           1034 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1046 LOAD_ATTR                7 (_call_reprcompare)
+           1056 LOAD_CONST               9 (('==',))
+           1058 LOAD_FAST                6 (@py_assert2)
+           1060 BUILD_TUPLE              1
+           1062 LOAD_CONST              10 (('%(py1)s == %(py4)s',))
+           1064 LOAD_FAST                4 (@py_assert0)
+           1066 LOAD_FAST                5 (@py_assert3)
+           1068 BUILD_TUPLE              2
+           1070 PRECALL                  4
+           1074 CALL                     4
+           1084 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1096 LOAD_ATTR                8 (_saferepr)
+           1106 LOAD_FAST                4 (@py_assert0)
+           1108 PRECALL                  1
+           1112 CALL                     1
+           1122 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1134 LOAD_ATTR                8 (_saferepr)
+           1144 LOAD_FAST                5 (@py_assert3)
+           1146 PRECALL                  1
+           1150 CALL                     1
+           1160 LOAD_CONST              11 (('py1', 'py4'))
+           1162 BUILD_CONST_KEY_MAP      2
+           1164 BINARY_OP                6 (%)
+           1168 STORE_FAST               7 (@py_format5)
+           1170 LOAD_CONST              12 ('assert %(py6)s')
+           1172 LOAD_CONST              13 ('py6')
+           1174 LOAD_FAST                7 (@py_format5)
+           1176 BUILD_MAP                1
+           1178 BINARY_OP                6 (%)
+           1182 STORE_FAST               8 (@py_format7)
+           1184 LOAD_GLOBAL             19 (NULL + AssertionError)
+           1196 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1208 LOAD_ATTR               10 (_format_explanation)
+           1218 LOAD_FAST                8 (@py_format7)
+           1220 PRECALL                  1
+           1224 CALL                     1
+           1234 PRECALL                  1
+           1238 CALL                     1
+           1248 RAISE_VARARGS            1
+        >> 1250 LOAD_CONST               0 (None)
+           1252 COPY                     1
+           1254 STORE_FAST               4 (@py_assert0)
+           1256 COPY                     1
+           1258 STORE_FAST               6 (@py_assert2)
+           1260 STORE_FAST               5 (@py_assert3)
+
+121        1262 LOAD_FAST                3 (result)
+           1264 LOAD_CONST              17 ('total_transferred')
+           1266 BINARY_SUBSCR
+           1276 STORE_FAST               4 (@py_assert0)
+           1278 LOAD_CONST              18 (0.0)
+           1280 STORE_FAST               5 (@py_assert3)
+           1282 LOAD_FAST                4 (@py_assert0)
+           1284 LOAD_FAST                5 (@py_assert3)
+           1286 COMPARE_OP               2 (==)
+           1292 STORE_FAST               6 (@py_assert2)
+           1294 LOAD_FAST                6 (@py_assert2)
+           1296 POP_JUMP_FORWARD_IF_TRUE   108 (to 1514)
+           1298 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1310 LOAD_ATTR                7 (_call_reprcompare)
+           1320 LOAD_CONST               9 (('==',))
+           1322 LOAD_FAST                6 (@py_assert2)
+           1324 BUILD_TUPLE              1
+           1326 LOAD_CONST              10 (('%(py1)s == %(py4)s',))
+           1328 LOAD_FAST                4 (@py_assert0)
+           1330 LOAD_FAST                5 (@py_assert3)
+           1332 BUILD_TUPLE              2
+           1334 PRECALL                  4
+           1338 CALL                     4
+           1348 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1360 LOAD_ATTR                8 (_saferepr)
+           1370 LOAD_FAST                4 (@py_assert0)
+           1372 PRECALL                  1
+           1376 CALL                     1
+           1386 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1398 LOAD_ATTR                8 (_saferepr)
+           1408 LOAD_FAST                5 (@py_assert3)
+           1410 PRECALL                  1
+           1414 CALL                     1
+           1424 LOAD_CONST              11 (('py1', 'py4'))
+           1426 BUILD_CONST_KEY_MAP      2
+           1428 BINARY_OP                6 (%)
+           1432 STORE_FAST               7 (@py_format5)
+           1434 LOAD_CONST              12 ('assert %(py6)s')
+           1436 LOAD_CONST              13 ('py6')
+           1438 LOAD_FAST                7 (@py_format5)
+           1440 BUILD_MAP                1
+           1442 BINARY_OP                6 (%)
+           1446 STORE_FAST               8 (@py_format7)
+           1448 LOAD_GLOBAL             19 (NULL + AssertionError)
+           1460 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1472 LOAD_ATTR               10 (_format_explanation)
+           1482 LOAD_FAST                8 (@py_format7)
+           1484 PRECALL                  1
+           1488 CALL                     1
+           1498 PRECALL                  1
+           1502 CALL                     1
+           1512 RAISE_VARARGS            1
+        >> 1514 LOAD_CONST               0 (None)
+           1516 COPY                     1
+           1518 STORE_FAST               4 (@py_assert0)
+           1520 COPY                     1
+           1522 STORE_FAST               6 (@py_assert2)
+           1524 STORE_FAST               5 (@py_assert3)
+
+122        1526 LOAD_FAST                3 (result)
+           1528 LOAD_CONST              19 ('last_realized_profit')
+           1530 BINARY_SUBSCR
+           1540 STORE_FAST               4 (@py_assert0)
+           1542 LOAD_CONST               2 (100.0)
+           1544 STORE_FAST               5 (@py_assert3)
+           1546 LOAD_FAST                4 (@py_assert0)
+           1548 LOAD_FAST                5 (@py_assert3)
+           1550 COMPARE_OP               2 (==)
+           1556 STORE_FAST               6 (@py_assert2)
+           1558 LOAD_FAST                6 (@py_assert2)
+           1560 POP_JUMP_FORWARD_IF_TRUE   108 (to 1778)
+           1562 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1574 LOAD_ATTR                7 (_call_reprcompare)
+           1584 LOAD_CONST               9 (('==',))
+           1586 LOAD_FAST                6 (@py_assert2)
+           1588 BUILD_TUPLE              1
+           1590 LOAD_CONST              10 (('%(py1)s == %(py4)s',))
+           1592 LOAD_FAST                4 (@py_assert0)
+           1594 LOAD_FAST                5 (@py_assert3)
+           1596 BUILD_TUPLE              2
+           1598 PRECALL                  4
+           1602 CALL                     4
+           1612 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1624 LOAD_ATTR                8 (_saferepr)
+           1634 LOAD_FAST                4 (@py_assert0)
+           1636 PRECALL                  1
+           1640 CALL                     1
+           1650 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1662 LOAD_ATTR                8 (_saferepr)
+           1672 LOAD_FAST                5 (@py_assert3)
+           1674 PRECALL                  1
+           1678 CALL                     1
+           1688 LOAD_CONST              11 (('py1', 'py4'))
+           1690 BUILD_CONST_KEY_MAP      2
+           1692 BINARY_OP                6 (%)
+           1696 STORE_FAST               7 (@py_format5)
+           1698 LOAD_CONST              12 ('assert %(py6)s')
+           1700 LOAD_CONST              13 ('py6')
+           1702 LOAD_FAST                7 (@py_format5)
+           1704 BUILD_MAP                1
+           1706 BINARY_OP                6 (%)
+           1710 STORE_FAST               8 (@py_format7)
+           1712 LOAD_GLOBAL             19 (NULL + AssertionError)
+           1724 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1736 LOAD_ATTR               10 (_format_explanation)
+           1746 LOAD_FAST                8 (@py_format7)
+           1748 PRECALL                  1
+           1752 CALL                     1
+           1762 PRECALL                  1
+           1766 CALL                     1
+           1776 RAISE_VARARGS            1
+        >> 1778 LOAD_CONST               0 (None)
+           1780 COPY                     1
+           1782 STORE_FAST               4 (@py_assert0)
+           1784 COPY                     1
+           1786 STORE_FAST               6 (@py_assert2)
+           1788 STORE_FAST               5 (@py_assert3)
+
+124        1790 LOAD_FAST                1 (connection)
+           1792 LOAD_ATTR               11 (ledger)
+           1802 STORE_FAST               6 (@py_assert2)
+           1804 LOAD_GLOBAL             25 (NULL + len)
+           1816 LOAD_FAST                6 (@py_assert2)
+           1818 PRECALL                  1
+           1822 CALL                     1
+           1832 STORE_FAST               9 (@py_assert4)
+           1834 LOAD_CONST              20 (1)
+           1836 STORE_FAST              10 (@py_assert7)
+           1838 LOAD_FAST                9 (@py_assert4)
+           1840 LOAD_FAST               10 (@py_assert7)
+           1842 COMPARE_OP               2 (==)
+           1848 STORE_FAST              11 (@py_assert6)
+           1850 LOAD_FAST               11 (@py_assert6)
+           1852 EXTENDED_ARG             1
+           1854 POP_JUMP_FORWARD_IF_TRUE   261 (to 2378)
+           1856 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1868 LOAD_ATTR                7 (_call_reprcompare)
+           1878 LOAD_CONST               9 (('==',))
+           1880 LOAD_FAST               11 (@py_assert6)
+           1882 BUILD_TUPLE              1
+           1884 LOAD_CONST              21 (('%(py5)s\n{%(py5)s = %(py0)s(%(py3)s\n{%(py3)s = %(py1)s.ledger\n})\n} == %(py8)s',))
+           1886 LOAD_FAST                9 (@py_assert4)
+           1888 LOAD_FAST               10 (@py_assert7)
+           1890 BUILD_TUPLE              2
+           1892 PRECALL                  4
+           1896 CALL                     4
+           1906 LOAD_CONST              22 ('len')
+           1908 LOAD_GLOBAL             27 (NULL + @py_builtins)
+           1920 LOAD_ATTR               14 (locals)
+           1930 PRECALL                  0
+           1934 CALL                     0
+           1944 CONTAINS_OP              0
+           1946 POP_JUMP_FORWARD_IF_TRUE    25 (to 1998)
+           1948 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1960 LOAD_ATTR               15 (_should_repr_global_name)
+           1970 LOAD_GLOBAL             24 (len)
+           1982 PRECALL                  1
+           1986 CALL                     1
+           1996 POP_JUMP_FORWARD_IF_FALSE    25 (to 2048)
+        >> 1998 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2010 LOAD_ATTR                8 (_saferepr)
+           2020 LOAD_GLOBAL             24 (len)
+           2032 PRECALL                  1
+           2036 CALL                     1
+           2046 JUMP_FORWARD             1 (to 2050)
+        >> 2048 LOAD_CONST              22 ('len')
+        >> 2050 LOAD_CONST              23 ('connection')
+           2052 LOAD_GLOBAL             27 (NULL + @py_builtins)
+           2064 LOAD_ATTR               14 (locals)
+           2074 PRECALL                  0
+           2078 CALL                     0
+           2088 CONTAINS_OP              0
+           2090 POP_JUMP_FORWARD_IF_TRUE    20 (to 2132)
+           2092 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2104 LOAD_ATTR               15 (_should_repr_global_name)
+           2114 LOAD_FAST                1 (connection)
+           2116 PRECALL                  1
+           2120 CALL                     1
+           2130 POP_JUMP_FORWARD_IF_FALSE    20 (to 2172)
+        >> 2132 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2144 LOAD_ATTR                8 (_saferepr)
+           2154 LOAD_FAST                1 (connection)
+           2156 PRECALL                  1
+           2160 CALL                     1
+           2170 JUMP_FORWARD             1 (to 2174)
+        >> 2172 LOAD_CONST              23 ('connection')
+        >> 2174 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2186 LOAD_ATTR                8 (_saferepr)
+           2196 LOAD_FAST                6 (@py_assert2)
+           2198 PRECALL                  1
+           2202 CALL                     1
+           2212 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2224 LOAD_ATTR                8 (_saferepr)
+           2234 LOAD_FAST                9 (@py_assert4)
+           2236 PRECALL                  1
+           2240 CALL                     1
+           2250 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2262 LOAD_ATTR                8 (_saferepr)
+           2272 LOAD_FAST               10 (@py_assert7)
+           2274 PRECALL                  1
+           2278 CALL                     1
+           2288 LOAD_CONST              24 (('py0', 'py1', 'py3', 'py5', 'py8'))
+           2290 BUILD_CONST_KEY_MAP      5
+           2292 BINARY_OP                6 (%)
+           2296 STORE_FAST              12 (@py_format9)
+           2298 LOAD_CONST              25 ('assert %(py10)s')
+           2300 LOAD_CONST              26 ('py10')
+           2302 LOAD_FAST               12 (@py_format9)
+           2304 BUILD_MAP                1
+           2306 BINARY_OP                6 (%)
+           2310 STORE_FAST              13 (@py_format11)
+           2312 LOAD_GLOBAL             19 (NULL + AssertionError)
+           2324 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2336 LOAD_ATTR               10 (_format_explanation)
+           2346 LOAD_FAST               13 (@py_format11)
+           2348 PRECALL                  1
+           2352 CALL                     1
+           2362 PRECALL                  1
+           2366 CALL                     1
+           2376 RAISE_VARARGS            1
+        >> 2378 LOAD_CONST               0 (None)
+           2380 COPY                     1
+           2382 STORE_FAST               6 (@py_assert2)
+           2384 COPY                     1
+           2386 STORE_FAST               9 (@py_assert4)
+           2388 COPY                     1
+           2390 STORE_FAST              11 (@py_assert6)
+           2392 STORE_FAST              10 (@py_assert7)
+
+125        2394 LOAD_FAST                1 (connection)
+           2396 LOAD_ATTR               11 (ledger)
+           2406 LOAD_CONST              27 (0)
+           2408 BINARY_SUBSCR
+           2418 LOAD_CONST              28 ('equity_amount')
+           2420 BINARY_SUBSCR
+           2430 STORE_FAST               4 (@py_assert0)
+           2432 LOAD_CONST               3 (70.0)
+           2434 STORE_FAST               5 (@py_assert3)
+           2436 LOAD_FAST                4 (@py_assert0)
+           2438 LOAD_FAST                5 (@py_assert3)
+           2440 COMPARE_OP               2 (==)
+           2446 STORE_FAST               6 (@py_assert2)
+           2448 LOAD_FAST                6 (@py_assert2)
+           2450 POP_JUMP_FORWARD_IF_TRUE   108 (to 2668)
+           2452 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2464 LOAD_ATTR                7 (_call_reprcompare)
+           2474 LOAD_CONST               9 (('==',))
+           2476 LOAD_FAST                6 (@py_assert2)
+           2478 BUILD_TUPLE              1
+           2480 LOAD_CONST              10 (('%(py1)s == %(py4)s',))
+           2482 LOAD_FAST                4 (@py_assert0)
+           2484 LOAD_FAST                5 (@py_assert3)
+           2486 BUILD_TUPLE              2
+           2488 PRECALL                  4
+           2492 CALL                     4
+           2502 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2514 LOAD_ATTR                8 (_saferepr)
+           2524 LOAD_FAST                4 (@py_assert0)
+           2526 PRECALL                  1
+           2530 CALL                     1
+           2540 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2552 LOAD_ATTR                8 (_saferepr)
+           2562 LOAD_FAST                5 (@py_assert3)
+           2564 PRECALL                  1
+           2568 CALL                     1
+           2578 LOAD_CONST              11 (('py1', 'py4'))
+           2580 BUILD_CONST_KEY_MAP      2
+           2582 BINARY_OP                6 (%)
+           2586 STORE_FAST               7 (@py_format5)
+           2588 LOAD_CONST              12 ('assert %(py6)s')
+           2590 LOAD_CONST              13 ('py6')
+           2592 LOAD_FAST                7 (@py_format5)
+           2594 BUILD_MAP                1
+           2596 BINARY_OP                6 (%)
+           2600 STORE_FAST               8 (@py_format7)
+           2602 LOAD_GLOBAL             19 (NULL + AssertionError)
+           2614 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2626 LOAD_ATTR               10 (_format_explanation)
+           2636 LOAD_FAST                8 (@py_format7)
+           2638 PRECALL                  1
+           2642 CALL                     1
+           2652 PRECALL                  1
+           2656 CALL                     1
+           2666 RAISE_VARARGS            1
+        >> 2668 LOAD_CONST               0 (None)
+           2670 COPY                     1
+           2672 STORE_FAST               4 (@py_assert0)
+           2674 COPY                     1
+           2676 STORE_FAST               6 (@py_assert2)
+           2678 STORE_FAST               5 (@py_assert3)
+
+126        2680 LOAD_FAST                1 (connection)
+           2682 LOAD_ATTR               11 (ledger)
+           2692 LOAD_CONST              27 (0)
+           2694 BINARY_SUBSCR
+           2704 LOAD_CONST              29 ('vault_amount')
+           2706 BINARY_SUBSCR
+           2716 STORE_FAST               4 (@py_assert0)
+           2718 LOAD_CONST               4 (30.0)
+           2720 STORE_FAST               5 (@py_assert3)
+           2722 LOAD_FAST                4 (@py_assert0)
+           2724 LOAD_FAST                5 (@py_assert3)
+           2726 COMPARE_OP               2 (==)
+           2732 STORE_FAST               6 (@py_assert2)
+           2734 LOAD_FAST                6 (@py_assert2)
+           2736 POP_JUMP_FORWARD_IF_TRUE   108 (to 2954)
+           2738 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2750 LOAD_ATTR                7 (_call_reprcompare)
+           2760 LOAD_CONST               9 (('==',))
+           2762 LOAD_FAST                6 (@py_assert2)
+           2764 BUILD_TUPLE              1
+           2766 LOAD_CONST              10 (('%(py1)s == %(py4)s',))
+           2768 LOAD_FAST                4 (@py_assert0)
+           2770 LOAD_FAST                5 (@py_assert3)
+           2772 BUILD_TUPLE              2
+           2774 PRECALL                  4
+           2778 CALL                     4
+           2788 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2800 LOAD_ATTR                8 (_saferepr)
+           2810 LOAD_FAST                4 (@py_assert0)
+           2812 PRECALL                  1
+           2816 CALL                     1
+           2826 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2838 LOAD_ATTR                8 (_saferepr)
+           2848 LOAD_FAST                5 (@py_assert3)
+           2850 PRECALL                  1
+           2854 CALL                     1
+           2864 LOAD_CONST              11 (('py1', 'py4'))
+           2866 BUILD_CONST_KEY_MAP      2
+           2868 BINARY_OP                6 (%)
+           2872 STORE_FAST               7 (@py_format5)
+           2874 LOAD_CONST              12 ('assert %(py6)s')
+           2876 LOAD_CONST              13 ('py6')
+           2878 LOAD_FAST                7 (@py_format5)
+           2880 BUILD_MAP                1
+           2882 BINARY_OP                6 (%)
+           2886 STORE_FAST               8 (@py_format7)
+           2888 LOAD_GLOBAL             19 (NULL + AssertionError)
+           2900 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2912 LOAD_ATTR               10 (_format_explanation)
+           2922 LOAD_FAST                8 (@py_format7)
+           2924 PRECALL                  1
+           2928 CALL                     1
+           2938 PRECALL                  1
+           2942 CALL                     1
+           2952 RAISE_VARARGS            1
+        >> 2954 LOAD_CONST               0 (None)
+           2956 COPY                     1
+           2958 STORE_FAST               4 (@py_assert0)
+           2960 COPY                     1
+           2962 STORE_FAST               6 (@py_assert2)
+           2964 STORE_FAST               5 (@py_assert3)
+           2966 LOAD_CONST               0 (None)
+           2968 RETURN_VALUE
+
+    === CODE OBJECT: FakeTransaction | line 7 ===
+    args: 0
+    locals: 0
+    varnames: ()
+    names: ('__name__', '__module__', '__qualname__', '__init__', '__aenter__', '__aexit__')
+    constants: ('FakeTransaction', <code object __init__ at 0x000002245116A320, file "C:\volsim-dev\tests\test_vault_durability.py", line 8>, <code object __aenter__ at 0x000002245116A4C0, file "C:\volsim-dev\tests\test_vault_durability.py", line 11>, <code object __aexit__ at 0x00000224513492E0, file "C:\volsim-dev\tests\test_vault_durability.py", line 14>, None)
+
+  7           0 RESUME                   0
+              2 LOAD_NAME                0 (__name__)
+              4 STORE_NAME               1 (__module__)
+              6 LOAD_CONST               0 ('FakeTransaction')
+              8 STORE_NAME               2 (__qualname__)
+
+  8          10 LOAD_CONST               1 (<code object __init__ at 0x000002245116A320, file "C:\volsim-dev\tests\test_vault_durability.py", line 8>)
+             12 MAKE_FUNCTION            0
+             14 STORE_NAME               3 (__init__)
+
+ 11          16 LOAD_CONST               2 (<code object __aenter__ at 0x000002245116A4C0, file "C:\volsim-dev\tests\test_vault_durability.py", line 11>)
+             18 MAKE_FUNCTION            0
+             20 STORE_NAME               4 (__aenter__)
+
+ 14          22 LOAD_CONST               3 (<code object __aexit__ at 0x00000224513492E0, file "C:\volsim-dev\tests\test_vault_durability.py", line 14>)
+             24 MAKE_FUNCTION            0
+             26 STORE_NAME               5 (__aexit__)
+             28 LOAD_CONST               4 (None)
+             30 RETURN_VALUE
+
+Disassembly of <code object __init__ at 0x000002245116A320, file "C:\volsim-dev\tests\test_vault_durability.py", line 8>:
+  8           0 RESUME                   0
+
+  9           2 LOAD_FAST                1 (connection)
+              4 LOAD_FAST                0 (self)
+              6 STORE_ATTR               0 (connection)
+             16 LOAD_CONST               0 (None)
+             18 RETURN_VALUE
+
+Disassembly of <code object __aenter__ at 0x000002245116A4C0, file "C:\volsim-dev\tests\test_vault_durability.py", line 11>:
+ 11           0 RETURN_GENERATOR
+              2 POP_TOP
+              4 RESUME                   0
+
+ 12           6 LOAD_FAST                0 (self)
+              8 LOAD_ATTR                0 (connection)
+             18 RETURN_VALUE
+
+Disassembly of <code object __aexit__ at 0x00000224513492E0, file "C:\volsim-dev\tests\test_vault_durability.py", line 14>:
+ 14           0 RETURN_GENERATOR
+              2 POP_TOP
+              4 RESUME                   0
+
+ 15           6 LOAD_CONST               1 (False)
+              8 RETURN_VALUE
+
+        === CODE OBJECT: __init__ | line 8 ===
+        args: 2
+        locals: 2
+        varnames: ('self', 'connection')
+        names: ('connection',)
+        constants: (None,)
+
+  8           0 RESUME                   0
+
+  9           2 LOAD_FAST                1 (connection)
+              4 LOAD_FAST                0 (self)
+              6 STORE_ATTR               0 (connection)
+             16 LOAD_CONST               0 (None)
+             18 RETURN_VALUE
+
+        === CODE OBJECT: __aenter__ | line 11 ===
+        args: 1
+        locals: 1
+        varnames: ('self',)
+        names: ('connection',)
+        constants: (None,)
+
+ 11           0 RETURN_GENERATOR
+              2 POP_TOP
+              4 RESUME                   0
+
+ 12           6 LOAD_FAST                0 (self)
+              8 LOAD_ATTR                0 (connection)
+             18 RETURN_VALUE
+
+        === CODE OBJECT: __aexit__ | line 14 ===
+        args: 4
+        locals: 4
+        varnames: ('self', 'exc_type', 'exc', 'tb')
+        names: ()
+        constants: (None, False)
+
+ 14           0 RETURN_GENERATOR
+              2 POP_TOP
+              4 RESUME                   0
+
+ 15           6 LOAD_CONST               1 (False)
+              8 RETURN_VALUE
+
+    === CODE OBJECT: FakeConnection | line 18 ===
+    args: 0
+    locals: 0
+    varnames: ()
+    names: ('__name__', '__module__', '__qualname__', '__init__', 'fetch', 'fetchrow', 'execute')
+    constants: ('FakeConnection', <code object __init__ at 0x0000022451628690, file "C:\volsim-dev\tests\test_vault_durability.py", line 19>, <code object fetch at 0x00000224510D9590, file "C:\volsim-dev\tests\test_vault_durability.py", line 39>, <code object fetchrow at 0x0000022451132CD0, file "C:\volsim-dev\tests\test_vault_durability.py", line 45>, <code object execute at 0x0000022451481E30, file "C:\volsim-dev\tests\test_vault_durability.py", line 57>, None)
+
+ 18           0 RESUME                   0
+              2 LOAD_NAME                0 (__name__)
+              4 STORE_NAME               1 (__module__)
+              6 LOAD_CONST               0 ('FakeConnection')
+              8 STORE_NAME               2 (__qualname__)
+
+ 19          10 LOAD_CONST               1 (<code object __init__ at 0x0000022451628690, file "C:\volsim-dev\tests\test_vault_durability.py", line 19>)
+             12 MAKE_FUNCTION            0
+             14 STORE_NAME               3 (__init__)
+
+ 39          16 LOAD_CONST               2 (<code object fetch at 0x00000224510D9590, file "C:\volsim-dev\tests\test_vault_durability.py", line 39>)
+             18 MAKE_FUNCTION            0
+             20 STORE_NAME               4 (fetch)
+
+ 45          22 LOAD_CONST               3 (<code object fetchrow at 0x0000022451132CD0, file "C:\volsim-dev\tests\test_vault_durability.py", line 45>)
+             24 MAKE_FUNCTION            0
+             26 STORE_NAME               5 (fetchrow)
+
+ 57          28 LOAD_CONST               4 (<code object execute at 0x0000022451481E30, file "C:\volsim-dev\tests\test_vault_durability.py", line 57>)
+             30 MAKE_FUNCTION            0
+             32 STORE_NAME               6 (execute)
+             34 LOAD_CONST               5 (None)
+             36 RETURN_VALUE
+
+Disassembly of <code object __init__ at 0x0000022451628690, file "C:\volsim-dev\tests\test_vault_durability.py", line 19>:
+ 19           0 RESUME                   0
+
+ 21           2 LOAD_CONST               1 (1)
+
+ 22           4 LOAD_CONST               2 (1000.0)
+
+ 23           6 LOAD_CONST               3 (0.0)
+
+ 24           8 LOAD_CONST               4 ('CORE_SATELLITE_70_30')
+
+ 25          10 LOAD_CONST               5 (70.0)
+
+ 26          12 LOAD_CONST               6 (30.0)
+
+ 27          14 LOAD_CONST               3 (0.0)
+
+ 28          16 LOAD_CONST               3 (0.0)
+
+ 29          18 LOAD_CONST               3 (0.0)
+
+ 30          20 LOAD_CONST               7 ('PENDING')
+
+ 31          22 LOAD_CONST               0 (None)
+
+ 32          24 LOAD_CONST               0 (None)
+
+ 33          26 LOAD_CONST               0 (None)
+
+ 34          28 LOAD_CONST               3 (0.0)
+
+ 20          30 LOAD_CONST               8 (('id', 'trading_equity_balance', 'vault_balance', 'allocation_profile', 'equity_percentage', 'vault_percentage', 'pending_vault_allocation', 'total_allocated', 'total_transferred', 'sync_status', 'wallet_address', 'blockchain_network', 'last_tx_hash', 'last_realized_profit'))
+             32 BUILD_CONST_KEY_MAP     14
+             34 LOAD_FAST                0 (self)
+             36 STORE_ATTR               0 (state)
+
+ 36          46 BUILD_LIST               0
+             48 LOAD_FAST                0 (self)
+             50 STORE_ATTR               1 (ledger)
+
+ 37          60 BUILD_LIST               0
+             62 LOAD_FAST                0 (self)
+             64 STORE_ATTR               2 (execute_calls)
+             74 LOAD_CONST               0 (None)
+             76 RETURN_VALUE
+
+Disassembly of <code object fetch at 0x00000224510D9590, file "C:\volsim-dev\tests\test_vault_durability.py", line 39>:
+ 39           0 RETURN_GENERATOR
+              2 POP_TOP
+              4 RESUME                   0
+
+ 40           6 LOAD_CONST               1 ('FROM public.immutable_vault_state')
+              8 LOAD_FAST                1 (query)
+             10 CONTAINS_OP              0
+             12 POP_JUMP_FORWARD_IF_FALSE    21 (to 56)
+
+ 41          14 LOAD_GLOBAL              1 (NULL + dict)
+             26 LOAD_FAST                0 (self)
+             28 LOAD_ATTR                1 (state)
+             38 PRECALL                  1
+             42 CALL                     1
+             52 BUILD_LIST               1
+             54 RETURN_VALUE
+
+ 43     >>   56 LOAD_GLOBAL              5 (NULL + AssertionError)
+             68 LOAD_CONST               2 ('Unexpected fetch query: ')
+             70 LOAD_FAST                1 (query)
+             72 FORMAT_VALUE             0
+             74 BUILD_STRING             2
+             76 PRECALL                  1
+             80 CALL                     1
+             90 RAISE_VARARGS            1
+
+Disassembly of <code object fetchrow at 0x0000022451132CD0, file "C:\volsim-dev\tests\test_vault_durability.py", line 45>:
+ 45           0 RETURN_GENERATOR
+              2 POP_TOP
+              4 RESUME                   0
+
+ 46           6 LOAD_CONST               1 ('FROM public.vault_ledger')
+              8 LOAD_FAST                1 (query)
+             10 CONTAINS_OP              0
+             12 POP_JUMP_FORWARD_IF_FALSE    49 (to 112)
+
+ 47          14 LOAD_FAST                2 (args)
+             16 LOAD_CONST               2 (0)
+             18 BINARY_SUBSCR
+             28 STORE_FAST               3 (trade_id)
+
+ 49          30 LOAD_FAST                0 (self)
+             32 LOAD_ATTR                0 (ledger)
+             42 GET_ITER
+        >>   44 FOR_ITER                31 (to 108)
+             46 STORE_FAST               4 (row)
+
+ 50          48 LOAD_FAST                4 (row)
+             50 LOAD_CONST               3 ('trade_id')
+             52 BINARY_SUBSCR
+             62 LOAD_FAST                3 (trade_id)
+             64 COMPARE_OP               2 (==)
+             70 POP_JUMP_FORWARD_IF_FALSE    17 (to 106)
+
+ 51          72 LOAD_GLOBAL              3 (NULL + dict)
+             84 LOAD_FAST                4 (row)
+             86 PRECALL                  1
+             90 CALL                     1
+            100 SWAP                     2
+            102 POP_TOP
+            104 RETURN_VALUE
+
+ 50     >>  106 JUMP_BACKWARD           32 (to 44)
+
+ 53     >>  108 LOAD_CONST               0 (None)
+            110 RETURN_VALUE
+
+ 55     >>  112 LOAD_GLOBAL              5 (NULL + AssertionError)
+            124 LOAD_CONST               4 ('Unexpected fetchrow query: ')
+            126 LOAD_FAST                1 (query)
+            128 FORMAT_VALUE             0
+            130 BUILD_STRING             2
+            132 PRECALL                  1
+            136 CALL                     1
+            146 RAISE_VARARGS            1
+
+Disassembly of <code object execute at 0x0000022451481E30, file "C:\volsim-dev\tests\test_vault_durability.py", line 57>:
+ 57           0 RETURN_GENERATOR
+              2 POP_TOP
+              4 RESUME                   0
+
+ 58           6 LOAD_FAST                0 (self)
+              8 LOAD_ATTR                0 (execute_calls)
+             18 LOAD_METHOD              1 (append)
+             40 LOAD_FAST                1 (query)
+             42 LOAD_FAST                2 (args)
+             44 BUILD_TUPLE              2
+             46 PRECALL                  1
+             50 CALL                     1
+             60 POP_TOP
+
+ 60          62 LOAD_CONST               1 ('INSERT INTO public.vault_ledger')
+             64 LOAD_FAST                1 (query)
+             66 CONTAINS_OP              0
+             68 POP_JUMP_FORWARD_IF_FALSE    98 (to 266)
+
+ 61          70 LOAD_FAST                0 (self)
+             72 LOAD_ATTR                2 (ledger)
+             82 LOAD_METHOD              1 (append)
+
+ 63         104 LOAD_GLOBAL              7 (NULL + len)
+            116 LOAD_FAST                0 (self)
+            118 LOAD_ATTR                2 (ledger)
+            128 PRECALL                  1
+            132 CALL                     1
+            142 LOAD_CONST               2 (1)
+            144 BINARY_OP                0 (+)
+
+ 64         148 LOAD_FAST                2 (args)
+            150 LOAD_CONST               3 (0)
+            152 BINARY_SUBSCR
+
+ 65         162 LOAD_GLOBAL              9 (NULL + float)
+            174 LOAD_FAST                2 (args)
+            176 LOAD_CONST               4 (2)
+            178 BINARY_SUBSCR
+            188 PRECALL                  1
+            192 CALL                     1
+
+ 66         202 LOAD_GLOBAL              9 (NULL + float)
+            214 LOAD_FAST                2 (args)
+            216 LOAD_CONST               5 (3)
+            218 BINARY_SUBSCR
+            228 PRECALL                  1
+            232 CALL                     1
+
+ 62         242 LOAD_CONST               6 (('id', 'trade_id', 'equity_amount', 'vault_amount'))
+            244 BUILD_CONST_KEY_MAP      4
+
+ 61         246 PRECALL                  1
+            250 CALL                     1
+            260 POP_TOP
+
+ 69         262 LOAD_CONST               7 ('INSERT 0 1')
+            264 RETURN_VALUE
+
+ 71     >>  266 LOAD_CONST               8 ('UPDATE public.immutable_vault_state')
+            268 LOAD_FAST                1 (query)
+            270 CONTAINS_OP              0
+            272 POP_JUMP_FORWARD_IF_FALSE   196 (to 666)
+
+ 72         274 LOAD_CONST               9 ('last_realized_profit')
+            276 LOAD_FAST                1 (query)
+            278 CONTAINS_OP              0
+            280 POP_JUMP_FORWARD_IF_FALSE   190 (to 662)
+
+ 77         282 LOAD_GLOBAL              9 (NULL + float)
+            294 LOAD_FAST                2 (args)
+            296 LOAD_CONST               3 (0)
+            298 BINARY_SUBSCR
+            308 PRECALL                  1
+            312 CALL                     1
+            322 LOAD_FAST                0 (self)
+            324 LOAD_ATTR                5 (state)
+            334 LOAD_CONST              10 ('trading_equity_balance')
+            336 STORE_SUBSCR
+
+ 78         340 LOAD_GLOBAL              9 (NULL + float)
+            352 LOAD_FAST                2 (args)
+            354 LOAD_CONST               2 (1)
+            356 BINARY_SUBSCR
+            366 PRECALL                  1
+            370 CALL                     1
+            380 LOAD_FAST                0 (self)
+            382 LOAD_ATTR                5 (state)
+            392 LOAD_CONST              11 ('vault_balance')
+            394 STORE_SUBSCR
+
+ 79         398 LOAD_GLOBAL              9 (NULL + float)
+            410 LOAD_FAST                2 (args)
+            412 LOAD_CONST               4 (2)
+            414 BINARY_SUBSCR
+            424 PRECALL                  1
+            428 CALL                     1
+            438 LOAD_FAST                0 (self)
+            440 LOAD_ATTR                5 (state)
+            450 LOAD_CONST              12 ('pending_vault_allocation')
+            452 STORE_SUBSCR
+
+ 80         456 LOAD_GLOBAL              9 (NULL + float)
+            468 LOAD_FAST                2 (args)
+            470 LOAD_CONST               5 (3)
+            472 BINARY_SUBSCR
+            482 PRECALL                  1
+            486 CALL                     1
+            496 LOAD_FAST                0 (self)
+            498 LOAD_ATTR                5 (state)
+            508 LOAD_CONST              13 ('total_allocated')
+            510 STORE_SUBSCR
+
+ 81         514 LOAD_GLOBAL              9 (NULL + float)
+            526 LOAD_FAST                2 (args)
+            528 LOAD_CONST              14 (4)
+            530 BINARY_SUBSCR
+            540 PRECALL                  1
+            544 CALL                     1
+            554 LOAD_FAST                0 (self)
+            556 LOAD_ATTR                5 (state)
+            566 LOAD_CONST              15 ('total_transferred')
+            568 STORE_SUBSCR
+
+ 82         572 LOAD_FAST                2 (args)
+            574 LOAD_CONST              16 (5)
+            576 BINARY_SUBSCR
+            586 LOAD_FAST                0 (self)
+            588 LOAD_ATTR                5 (state)
+            598 LOAD_CONST              17 ('sync_status')
+            600 STORE_SUBSCR
+
+ 83         604 LOAD_GLOBAL              9 (NULL + float)
+            616 LOAD_FAST                2 (args)
+            618 LOAD_CONST              18 (6)
+            620 BINARY_SUBSCR
+            630 PRECALL                  1
+            634 CALL                     1
+            644 LOAD_FAST                0 (self)
+            646 LOAD_ATTR                5 (state)
+            656 LOAD_CONST               9 ('last_realized_profit')
+            658 STORE_SUBSCR
+
+ 85     >>  662 LOAD_CONST              19 ('UPDATE 1')
+            664 RETURN_VALUE
+
+ 87     >>  666 LOAD_GLOBAL             13 (NULL + AssertionError)
+            678 LOAD_CONST              20 ('Unexpected execute query: ')
+            680 LOAD_FAST                1 (query)
+            682 FORMAT_VALUE             0
+            684 BUILD_STRING             2
+            686 PRECALL                  1
+            690 CALL                     1
+            700 RAISE_VARARGS            1
+
+        === CODE OBJECT: __init__ | line 19 ===
+        args: 1
+        locals: 1
+        varnames: ('self',)
+        names: ('state', 'ledger', 'execute_calls')
+        constants: (None, 1, 1000.0, 0.0, 'CORE_SATELLITE_70_30', 70.0, 30.0, 'PENDING', ('id', 'trading_equity_balance', 'vault_balance', 'allocation_profile', 'equity_percentage', 'vault_percentage', 'pending_vault_allocation', 'total_allocated', 'total_transferred', 'sync_status', 'wallet_address', 'blockchain_network', 'last_tx_hash', 'last_realized_profit'))
+
+ 19           0 RESUME                   0
+
+ 21           2 LOAD_CONST               1 (1)
+
+ 22           4 LOAD_CONST               2 (1000.0)
+
+ 23           6 LOAD_CONST               3 (0.0)
+
+ 24           8 LOAD_CONST               4 ('CORE_SATELLITE_70_30')
+
+ 25          10 LOAD_CONST               5 (70.0)
+
+ 26          12 LOAD_CONST               6 (30.0)
+
+ 27          14 LOAD_CONST               3 (0.0)
+
+ 28          16 LOAD_CONST               3 (0.0)
+
+ 29          18 LOAD_CONST               3 (0.0)
+
+ 30          20 LOAD_CONST               7 ('PENDING')
+
+ 31          22 LOAD_CONST               0 (None)
+
+ 32          24 LOAD_CONST               0 (None)
+
+ 33          26 LOAD_CONST               0 (None)
+
+ 34          28 LOAD_CONST               3 (0.0)
+
+ 20          30 LOAD_CONST               8 (('id', 'trading_equity_balance', 'vault_balance', 'allocation_profile', 'equity_percentage', 'vault_percentage', 'pending_vault_allocation', 'total_allocated', 'total_transferred', 'sync_status', 'wallet_address', 'blockchain_network', 'last_tx_hash', 'last_realized_profit'))
+             32 BUILD_CONST_KEY_MAP     14
+             34 LOAD_FAST                0 (self)
+             36 STORE_ATTR               0 (state)
+
+ 36          46 BUILD_LIST               0
+             48 LOAD_FAST                0 (self)
+             50 STORE_ATTR               1 (ledger)
+
+ 37          60 BUILD_LIST               0
+             62 LOAD_FAST                0 (self)
+             64 STORE_ATTR               2 (execute_calls)
+             74 LOAD_CONST               0 (None)
+             76 RETURN_VALUE
+
+        === CODE OBJECT: fetch | line 39 ===
+        args: 2
+        locals: 3
+        varnames: ('self', 'query', 'args')
+        names: ('dict', 'state', 'AssertionError')
+        constants: (None, 'FROM public.immutable_vault_state', 'Unexpected fetch query: ')
+
+ 39           0 RETURN_GENERATOR
+              2 POP_TOP
+              4 RESUME                   0
+
+ 40           6 LOAD_CONST               1 ('FROM public.immutable_vault_state')
+              8 LOAD_FAST                1 (query)
+             10 CONTAINS_OP              0
+             12 POP_JUMP_FORWARD_IF_FALSE    21 (to 56)
+
+ 41          14 LOAD_GLOBAL              1 (NULL + dict)
+             26 LOAD_FAST                0 (self)
+             28 LOAD_ATTR                1 (state)
+             38 PRECALL                  1
+             42 CALL                     1
+             52 BUILD_LIST               1
+             54 RETURN_VALUE
+
+ 43     >>   56 LOAD_GLOBAL              5 (NULL + AssertionError)
+             68 LOAD_CONST               2 ('Unexpected fetch query: ')
+             70 LOAD_FAST                1 (query)
+             72 FORMAT_VALUE             0
+             74 BUILD_STRING             2
+             76 PRECALL                  1
+             80 CALL                     1
+             90 RAISE_VARARGS            1
+
+        === CODE OBJECT: fetchrow | line 45 ===
+        args: 2
+        locals: 5
+        varnames: ('self', 'query', 'args', 'trade_id', 'row')
+        names: ('ledger', 'dict', 'AssertionError')
+        constants: (None, 'FROM public.vault_ledger', 0, 'trade_id', 'Unexpected fetchrow query: ')
+
+ 45           0 RETURN_GENERATOR
+              2 POP_TOP
+              4 RESUME                   0
+
+ 46           6 LOAD_CONST               1 ('FROM public.vault_ledger')
+              8 LOAD_FAST                1 (query)
+             10 CONTAINS_OP              0
+             12 POP_JUMP_FORWARD_IF_FALSE    49 (to 112)
+
+ 47          14 LOAD_FAST                2 (args)
+             16 LOAD_CONST               2 (0)
+             18 BINARY_SUBSCR
+             28 STORE_FAST               3 (trade_id)
+
+ 49          30 LOAD_FAST                0 (self)
+             32 LOAD_ATTR                0 (ledger)
+             42 GET_ITER
+        >>   44 FOR_ITER                31 (to 108)
+             46 STORE_FAST               4 (row)
+
+ 50          48 LOAD_FAST                4 (row)
+             50 LOAD_CONST               3 ('trade_id')
+             52 BINARY_SUBSCR
+             62 LOAD_FAST                3 (trade_id)
+             64 COMPARE_OP               2 (==)
+             70 POP_JUMP_FORWARD_IF_FALSE    17 (to 106)
+
+ 51          72 LOAD_GLOBAL              3 (NULL + dict)
+             84 LOAD_FAST                4 (row)
+             86 PRECALL                  1
+             90 CALL                     1
+            100 SWAP                     2
+            102 POP_TOP
+            104 RETURN_VALUE
+
+ 50     >>  106 JUMP_BACKWARD           32 (to 44)
+
+ 53     >>  108 LOAD_CONST               0 (None)
+            110 RETURN_VALUE
+
+ 55     >>  112 LOAD_GLOBAL              5 (NULL + AssertionError)
+            124 LOAD_CONST               4 ('Unexpected fetchrow query: ')
+            126 LOAD_FAST                1 (query)
+            128 FORMAT_VALUE             0
+            130 BUILD_STRING             2
+            132 PRECALL                  1
+            136 CALL                     1
+            146 RAISE_VARARGS            1
+
+        === CODE OBJECT: execute | line 57 ===
+        args: 2
+        locals: 3
+        varnames: ('self', 'query', 'args')
+        names: ('execute_calls', 'append', 'ledger', 'len', 'float', 'state', 'AssertionError')
+        constants: (None, 'INSERT INTO public.vault_ledger', 1, 0, 2, 3, ('id', 'trade_id', 'equity_amount', 'vault_amount'), 'INSERT 0 1', 'UPDATE public.immutable_vault_state', 'last_realized_profit', 'trading_equity_balance', 'vault_balance', 'pending_vault_allocation', 'total_allocated', 4, 'total_transferred', 5, 'sync_status', 6, 'UPDATE 1', 'Unexpected execute query: ')
+
+ 57           0 RETURN_GENERATOR
+              2 POP_TOP
+              4 RESUME                   0
+
+ 58           6 LOAD_FAST                0 (self)
+              8 LOAD_ATTR                0 (execute_calls)
+             18 LOAD_METHOD              1 (append)
+             40 LOAD_FAST                1 (query)
+             42 LOAD_FAST                2 (args)
+             44 BUILD_TUPLE              2
+             46 PRECALL                  1
+             50 CALL                     1
+             60 POP_TOP
+
+ 60          62 LOAD_CONST               1 ('INSERT INTO public.vault_ledger')
+             64 LOAD_FAST                1 (query)
+             66 CONTAINS_OP              0
+             68 POP_JUMP_FORWARD_IF_FALSE    98 (to 266)
+
+ 61          70 LOAD_FAST                0 (self)
+             72 LOAD_ATTR                2 (ledger)
+             82 LOAD_METHOD              1 (append)
+
+ 63         104 LOAD_GLOBAL              7 (NULL + len)
+            116 LOAD_FAST                0 (self)
+            118 LOAD_ATTR                2 (ledger)
+            128 PRECALL                  1
+            132 CALL                     1
+            142 LOAD_CONST               2 (1)
+            144 BINARY_OP                0 (+)
+
+ 64         148 LOAD_FAST                2 (args)
+            150 LOAD_CONST               3 (0)
+            152 BINARY_SUBSCR
+
+ 65         162 LOAD_GLOBAL              9 (NULL + float)
+            174 LOAD_FAST                2 (args)
+            176 LOAD_CONST               4 (2)
+            178 BINARY_SUBSCR
+            188 PRECALL                  1
+            192 CALL                     1
+
+ 66         202 LOAD_GLOBAL              9 (NULL + float)
+            214 LOAD_FAST                2 (args)
+            216 LOAD_CONST               5 (3)
+            218 BINARY_SUBSCR
+            228 PRECALL                  1
+            232 CALL                     1
+
+ 62         242 LOAD_CONST               6 (('id', 'trade_id', 'equity_amount', 'vault_amount'))
+            244 BUILD_CONST_KEY_MAP      4
+
+ 61         246 PRECALL                  1
+            250 CALL                     1
+            260 POP_TOP
+
+ 69         262 LOAD_CONST               7 ('INSERT 0 1')
+            264 RETURN_VALUE
+
+ 71     >>  266 LOAD_CONST               8 ('UPDATE public.immutable_vault_state')
+            268 LOAD_FAST                1 (query)
+            270 CONTAINS_OP              0
+            272 POP_JUMP_FORWARD_IF_FALSE   196 (to 666)
+
+ 72         274 LOAD_CONST               9 ('last_realized_profit')
+            276 LOAD_FAST                1 (query)
+            278 CONTAINS_OP              0
+            280 POP_JUMP_FORWARD_IF_FALSE   190 (to 662)
+
+ 77         282 LOAD_GLOBAL              9 (NULL + float)
+            294 LOAD_FAST                2 (args)
+            296 LOAD_CONST               3 (0)
+            298 BINARY_SUBSCR
+            308 PRECALL                  1
+            312 CALL                     1
+            322 LOAD_FAST                0 (self)
+            324 LOAD_ATTR                5 (state)
+            334 LOAD_CONST              10 ('trading_equity_balance')
+            336 STORE_SUBSCR
+
+ 78         340 LOAD_GLOBAL              9 (NULL + float)
+            352 LOAD_FAST                2 (args)
+            354 LOAD_CONST               2 (1)
+            356 BINARY_SUBSCR
+            366 PRECALL                  1
+            370 CALL                     1
+            380 LOAD_FAST                0 (self)
+            382 LOAD_ATTR                5 (state)
+            392 LOAD_CONST              11 ('vault_balance')
+            394 STORE_SUBSCR
+
+ 79         398 LOAD_GLOBAL              9 (NULL + float)
+            410 LOAD_FAST                2 (args)
+            412 LOAD_CONST               4 (2)
+            414 BINARY_SUBSCR
+            424 PRECALL                  1
+            428 CALL                     1
+            438 LOAD_FAST                0 (self)
+            440 LOAD_ATTR                5 (state)
+            450 LOAD_CONST              12 ('pending_vault_allocation')
+            452 STORE_SUBSCR
+
+ 80         456 LOAD_GLOBAL              9 (NULL + float)
+            468 LOAD_FAST                2 (args)
+            470 LOAD_CONST               5 (3)
+            472 BINARY_SUBSCR
+            482 PRECALL                  1
+            486 CALL                     1
+            496 LOAD_FAST                0 (self)
+            498 LOAD_ATTR                5 (state)
+            508 LOAD_CONST              13 ('total_allocated')
+            510 STORE_SUBSCR
+
+ 81         514 LOAD_GLOBAL              9 (NULL + float)
+            526 LOAD_FAST                2 (args)
+            528 LOAD_CONST              14 (4)
+            530 BINARY_SUBSCR
+            540 PRECALL                  1
+            544 CALL                     1
+            554 LOAD_FAST                0 (self)
+            556 LOAD_ATTR                5 (state)
+            566 LOAD_CONST              15 ('total_transferred')
+            568 STORE_SUBSCR
+
+ 82         572 LOAD_FAST                2 (args)
+            574 LOAD_CONST              16 (5)
+            576 BINARY_SUBSCR
+            586 LOAD_FAST                0 (self)
+            588 LOAD_ATTR                5 (state)
+            598 LOAD_CONST              17 ('sync_status')
+            600 STORE_SUBSCR
+
+ 83         604 LOAD_GLOBAL              9 (NULL + float)
+            616 LOAD_FAST                2 (args)
+            618 LOAD_CONST              18 (6)
+            620 BINARY_SUBSCR
+            630 PRECALL                  1
+            634 CALL                     1
+            644 LOAD_FAST                0 (self)
+            646 LOAD_ATTR                5 (state)
+            656 LOAD_CONST               9 ('last_realized_profit')
+            658 STORE_SUBSCR
+
+ 85     >>  662 LOAD_CONST              19 ('UPDATE 1')
+            664 RETURN_VALUE
+
+ 87     >>  666 LOAD_GLOBAL             13 (NULL + AssertionError)
+            678 LOAD_CONST              20 ('Unexpected execute query: ')
+            680 LOAD_FAST                1 (query)
+            682 FORMAT_VALUE             0
+            684 BUILD_STRING             2
+            686 PRECALL                  1
+            690 CALL                     1
+            700 RAISE_VARARGS            1
+
+    === CODE OBJECT: FakeDatabaseService | line 90 ===
+    args: 0
+    locals: 0
+    varnames: ()
+    names: ('__name__', '__module__', '__qualname__', '__init__', 'transaction')
+    constants: ('FakeDatabaseService', <code object __init__ at 0x0000022451604780, file "C:\volsim-dev\tests\test_vault_durability.py", line 91>, <code object transaction at 0x00000224510F2D30, file "C:\volsim-dev\tests\test_vault_durability.py", line 94>, None)
+
+ 90           0 RESUME                   0
+              2 LOAD_NAME                0 (__name__)
+              4 STORE_NAME               1 (__module__)
+              6 LOAD_CONST               0 ('FakeDatabaseService')
+              8 STORE_NAME               2 (__qualname__)
+
+ 91          10 LOAD_CONST               1 (<code object __init__ at 0x0000022451604780, file "C:\volsim-dev\tests\test_vault_durability.py", line 91>)
+             12 MAKE_FUNCTION            0
+             14 STORE_NAME               3 (__init__)
+
+ 94          16 LOAD_CONST               2 (<code object transaction at 0x00000224510F2D30, file "C:\volsim-dev\tests\test_vault_durability.py", line 94>)
+             18 MAKE_FUNCTION            0
+             20 STORE_NAME               4 (transaction)
+             22 LOAD_CONST               3 (None)
+             24 RETURN_VALUE
+
+Disassembly of <code object __init__ at 0x0000022451604780, file "C:\volsim-dev\tests\test_vault_durability.py", line 91>:
+ 91           0 RESUME                   0
+
+ 92           2 LOAD_FAST                1 (connection)
+              4 LOAD_FAST                0 (self)
+              6 STORE_ATTR               0 (connection)
+             16 LOAD_CONST               0 (None)
+             18 RETURN_VALUE
+
+Disassembly of <code object transaction at 0x00000224510F2D30, file "C:\volsim-dev\tests\test_vault_durability.py", line 94>:
+ 94           0 RESUME                   0
+
+ 95           2 LOAD_GLOBAL              1 (NULL + FakeTransaction)
+             14 LOAD_FAST                0 (self)
+             16 LOAD_ATTR                1 (connection)
+             26 PRECALL                  1
+             30 CALL                     1
+             40 RETURN_VALUE
+
+        === CODE OBJECT: __init__ | line 91 ===
+        args: 2
+        locals: 2
+        varnames: ('self', 'connection')
+        names: ('connection',)
+        constants: (None,)
+
+ 91           0 RESUME                   0
+
+ 92           2 LOAD_FAST                1 (connection)
+              4 LOAD_FAST                0 (self)
+              6 STORE_ATTR               0 (connection)
+             16 LOAD_CONST               0 (None)
+             18 RETURN_VALUE
+
+        === CODE OBJECT: transaction | line 94 ===
+        args: 1
+        locals: 1
+        varnames: ('self',)
+        names: ('FakeTransaction', 'connection')
+        constants: (None,)
+
+ 94           0 RESUME                   0
+
+ 95           2 LOAD_GLOBAL              1 (NULL + FakeTransaction)
+             14 LOAD_FAST                0 (self)
+             16 LOAD_ATTR                1 (connection)
+             26 PRECALL                  1
+             30 CALL                     1
+             40 RETURN_VALUE
+
+    === CODE OBJECT: test_first_cumulative_profit_creates_one_70_30_allocation | line 98 ===
+    args: 1
+    locals: 14
+    varnames: ('monkeypatch', 'connection', 'service', 'result', '@py_assert0', '@py_assert3', '@py_assert2', '@py_format5', '@py_format7', '@py_assert4', '@py_assert7', '@py_assert6', '@py_format9', '@py_format11')
+    names: ('FakeConnection', 'setattr', 'vault_module', 'FakeDatabaseService', 'VaultService', 'persist_state', '@pytest_ar', '_call_reprcompare', '_saferepr', 'AssertionError', '_format_explanation', 'ledger', 'len', '@py_builtins', 'locals', '_should_repr_global_name')
+    constants: (None, 'database_service', 100.0, 70.0, 30.0, True, ('realized_profit', 'equity_amount', 'vault_amount', 'create_ledger'), 'trading_equity_balance', 1070.0, ('==',), ('%(py1)s == %(py4)s',), ('py1', 'py4'), 'assert %(py6)s', 'py6', 'vault_balance', 'pending_allocation', 'total_allocated', 'total_transferred', 0.0, 'last_realized_profit', 1, ('%(py5)s\n{%(py5)s = %(py0)s(%(py3)s\n{%(py3)s = %(py1)s.ledger\n})\n} == %(py8)s',), 'len', 'connection', ('py0', 'py1', 'py3', 'py5', 'py8'), 'assert %(py10)s', 'py10', 0, 'equity_amount', 'vault_amount')
+
+ 98           0 RETURN_GENERATOR
+              2 POP_TOP
+              4 RESUME                   0
+
+100           6 LOAD_GLOBAL              1 (NULL + FakeConnection)
+             18 PRECALL                  0
+             22 CALL                     0
+             32 STORE_FAST               1 (connection)
+
+102          34 LOAD_FAST                0 (monkeypatch)
+             36 LOAD_METHOD              1 (setattr)
+
+103          58 LOAD_GLOBAL              4 (vault_module)
+
+104          70 LOAD_CONST               1 ('database_service')
+
+105          72 LOAD_GLOBAL              7 (NULL + FakeDatabaseService)
+             84 LOAD_FAST                1 (connection)
+             86 PRECALL                  1
+             90 CALL                     1
+
+102         100 PRECALL                  3
+            104 CALL                     3
+            114 POP_TOP
+
+108         116 LOAD_GLOBAL              9 (NULL + VaultService)
+            128 PRECALL                  0
+            132 CALL                     0
+            142 STORE_FAST               2 (service)
+
+110         144 LOAD_FAST                2 (service)
+            146 LOAD_METHOD              5 (persist_state)
+
+111         168 LOAD_CONST               2 (100.0)
+
+112         170 LOAD_CONST               3 (70.0)
+
+113         172 LOAD_CONST               4 (30.0)
+
+114         174 LOAD_CONST               5 (True)
+
+110         176 KW_NAMES                 6
+            178 PRECALL                  4
+            182 CALL                     4
+            192 GET_AWAITABLE            0
+            194 LOAD_CONST               0 (None)
+        >>  196 SEND                     3 (to 204)
+            198 YIELD_VALUE
+            200 RESUME                   3
+            202 JUMP_BACKWARD_NO_INTERRUPT     4 (to 196)
+        >>  204 STORE_FAST               3 (result)
+
+117         206 LOAD_FAST                3 (result)
+            208 LOAD_CONST               7 ('trading_equity_balance')
+            210 BINARY_SUBSCR
+            220 STORE_FAST               4 (@py_assert0)
+            222 LOAD_CONST               8 (1070.0)
+            224 STORE_FAST               5 (@py_assert3)
+            226 LOAD_FAST                4 (@py_assert0)
+            228 LOAD_FAST                5 (@py_assert3)
+            230 COMPARE_OP               2 (==)
+            236 STORE_FAST               6 (@py_assert2)
+            238 LOAD_FAST                6 (@py_assert2)
+            240 POP_JUMP_FORWARD_IF_TRUE   108 (to 458)
+            242 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            254 LOAD_ATTR                7 (_call_reprcompare)
+            264 LOAD_CONST               9 (('==',))
+            266 LOAD_FAST                6 (@py_assert2)
+            268 BUILD_TUPLE              1
+            270 LOAD_CONST              10 (('%(py1)s == %(py4)s',))
+            272 LOAD_FAST                4 (@py_assert0)
+            274 LOAD_FAST                5 (@py_assert3)
+            276 BUILD_TUPLE              2
+            278 PRECALL                  4
+            282 CALL                     4
+            292 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            304 LOAD_ATTR                8 (_saferepr)
+            314 LOAD_FAST                4 (@py_assert0)
+            316 PRECALL                  1
+            320 CALL                     1
+            330 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            342 LOAD_ATTR                8 (_saferepr)
+            352 LOAD_FAST                5 (@py_assert3)
+            354 PRECALL                  1
+            358 CALL                     1
+            368 LOAD_CONST              11 (('py1', 'py4'))
+            370 BUILD_CONST_KEY_MAP      2
+            372 BINARY_OP                6 (%)
+            376 STORE_FAST               7 (@py_format5)
+            378 LOAD_CONST              12 ('assert %(py6)s')
+            380 LOAD_CONST              13 ('py6')
+            382 LOAD_FAST                7 (@py_format5)
+            384 BUILD_MAP                1
+            386 BINARY_OP                6 (%)
+            390 STORE_FAST               8 (@py_format7)
+            392 LOAD_GLOBAL             19 (NULL + AssertionError)
+            404 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            416 LOAD_ATTR               10 (_format_explanation)
+            426 LOAD_FAST                8 (@py_format7)
+            428 PRECALL                  1
+            432 CALL                     1
+            442 PRECALL                  1
+            446 CALL                     1
+            456 RAISE_VARARGS            1
+        >>  458 LOAD_CONST               0 (None)
+            460 COPY                     1
+            462 STORE_FAST               4 (@py_assert0)
+            464 COPY                     1
+            466 STORE_FAST               6 (@py_assert2)
+            468 STORE_FAST               5 (@py_assert3)
+
+118         470 LOAD_FAST                3 (result)
+            472 LOAD_CONST              14 ('vault_balance')
+            474 BINARY_SUBSCR
+            484 STORE_FAST               4 (@py_assert0)
+            486 LOAD_CONST               4 (30.0)
+            488 STORE_FAST               5 (@py_assert3)
+            490 LOAD_FAST                4 (@py_assert0)
+            492 LOAD_FAST                5 (@py_assert3)
+            494 COMPARE_OP               2 (==)
+            500 STORE_FAST               6 (@py_assert2)
+            502 LOAD_FAST                6 (@py_assert2)
+            504 POP_JUMP_FORWARD_IF_TRUE   108 (to 722)
+            506 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            518 LOAD_ATTR                7 (_call_reprcompare)
+            528 LOAD_CONST               9 (('==',))
+            530 LOAD_FAST                6 (@py_assert2)
+            532 BUILD_TUPLE              1
+            534 LOAD_CONST              10 (('%(py1)s == %(py4)s',))
+            536 LOAD_FAST                4 (@py_assert0)
+            538 LOAD_FAST                5 (@py_assert3)
+            540 BUILD_TUPLE              2
+            542 PRECALL                  4
+            546 CALL                     4
+            556 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            568 LOAD_ATTR                8 (_saferepr)
+            578 LOAD_FAST                4 (@py_assert0)
+            580 PRECALL                  1
+            584 CALL                     1
+            594 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            606 LOAD_ATTR                8 (_saferepr)
+            616 LOAD_FAST                5 (@py_assert3)
+            618 PRECALL                  1
+            622 CALL                     1
+            632 LOAD_CONST              11 (('py1', 'py4'))
+            634 BUILD_CONST_KEY_MAP      2
+            636 BINARY_OP                6 (%)
+            640 STORE_FAST               7 (@py_format5)
+            642 LOAD_CONST              12 ('assert %(py6)s')
+            644 LOAD_CONST              13 ('py6')
+            646 LOAD_FAST                7 (@py_format5)
+            648 BUILD_MAP                1
+            650 BINARY_OP                6 (%)
+            654 STORE_FAST               8 (@py_format7)
+            656 LOAD_GLOBAL             19 (NULL + AssertionError)
+            668 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            680 LOAD_ATTR               10 (_format_explanation)
+            690 LOAD_FAST                8 (@py_format7)
+            692 PRECALL                  1
+            696 CALL                     1
+            706 PRECALL                  1
+            710 CALL                     1
+            720 RAISE_VARARGS            1
+        >>  722 LOAD_CONST               0 (None)
+            724 COPY                     1
+            726 STORE_FAST               4 (@py_assert0)
+            728 COPY                     1
+            730 STORE_FAST               6 (@py_assert2)
+            732 STORE_FAST               5 (@py_assert3)
+
+119         734 LOAD_FAST                3 (result)
+            736 LOAD_CONST              15 ('pending_allocation')
+            738 BINARY_SUBSCR
+            748 STORE_FAST               4 (@py_assert0)
+            750 LOAD_CONST               4 (30.0)
+            752 STORE_FAST               5 (@py_assert3)
+            754 LOAD_FAST                4 (@py_assert0)
+            756 LOAD_FAST                5 (@py_assert3)
+            758 COMPARE_OP               2 (==)
+            764 STORE_FAST               6 (@py_assert2)
+            766 LOAD_FAST                6 (@py_assert2)
+            768 POP_JUMP_FORWARD_IF_TRUE   108 (to 986)
+            770 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            782 LOAD_ATTR                7 (_call_reprcompare)
+            792 LOAD_CONST               9 (('==',))
+            794 LOAD_FAST                6 (@py_assert2)
+            796 BUILD_TUPLE              1
+            798 LOAD_CONST              10 (('%(py1)s == %(py4)s',))
+            800 LOAD_FAST                4 (@py_assert0)
+            802 LOAD_FAST                5 (@py_assert3)
+            804 BUILD_TUPLE              2
+            806 PRECALL                  4
+            810 CALL                     4
+            820 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            832 LOAD_ATTR                8 (_saferepr)
+            842 LOAD_FAST                4 (@py_assert0)
+            844 PRECALL                  1
+            848 CALL                     1
+            858 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            870 LOAD_ATTR                8 (_saferepr)
+            880 LOAD_FAST                5 (@py_assert3)
+            882 PRECALL                  1
+            886 CALL                     1
+            896 LOAD_CONST              11 (('py1', 'py4'))
+            898 BUILD_CONST_KEY_MAP      2
+            900 BINARY_OP                6 (%)
+            904 STORE_FAST               7 (@py_format5)
+            906 LOAD_CONST              12 ('assert %(py6)s')
+            908 LOAD_CONST              13 ('py6')
+            910 LOAD_FAST                7 (@py_format5)
+            912 BUILD_MAP                1
+            914 BINARY_OP                6 (%)
+            918 STORE_FAST               8 (@py_format7)
+            920 LOAD_GLOBAL             19 (NULL + AssertionError)
+            932 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+            944 LOAD_ATTR               10 (_format_explanation)
+            954 LOAD_FAST                8 (@py_format7)
+            956 PRECALL                  1
+            960 CALL                     1
+            970 PRECALL                  1
+            974 CALL                     1
+            984 RAISE_VARARGS            1
+        >>  986 LOAD_CONST               0 (None)
+            988 COPY                     1
+            990 STORE_FAST               4 (@py_assert0)
+            992 COPY                     1
+            994 STORE_FAST               6 (@py_assert2)
+            996 STORE_FAST               5 (@py_assert3)
+
+120         998 LOAD_FAST                3 (result)
+           1000 LOAD_CONST              16 ('total_allocated')
+           1002 BINARY_SUBSCR
+           1012 STORE_FAST               4 (@py_assert0)
+           1014 LOAD_CONST               4 (30.0)
+           1016 STORE_FAST               5 (@py_assert3)
+           1018 LOAD_FAST                4 (@py_assert0)
+           1020 LOAD_FAST                5 (@py_assert3)
+           1022 COMPARE_OP               2 (==)
+           1028 STORE_FAST               6 (@py_assert2)
+           1030 LOAD_FAST                6 (@py_assert2)
+           1032 POP_JUMP_FORWARD_IF_TRUE   108 (to 1250)
+           1034 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1046 LOAD_ATTR                7 (_call_reprcompare)
+           1056 LOAD_CONST               9 (('==',))
+           1058 LOAD_FAST                6 (@py_assert2)
+           1060 BUILD_TUPLE              1
+           1062 LOAD_CONST              10 (('%(py1)s == %(py4)s',))
+           1064 LOAD_FAST                4 (@py_assert0)
+           1066 LOAD_FAST                5 (@py_assert3)
+           1068 BUILD_TUPLE              2
+           1070 PRECALL                  4
+           1074 CALL                     4
+           1084 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1096 LOAD_ATTR                8 (_saferepr)
+           1106 LOAD_FAST                4 (@py_assert0)
+           1108 PRECALL                  1
+           1112 CALL                     1
+           1122 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1134 LOAD_ATTR                8 (_saferepr)
+           1144 LOAD_FAST                5 (@py_assert3)
+           1146 PRECALL                  1
+           1150 CALL                     1
+           1160 LOAD_CONST              11 (('py1', 'py4'))
+           1162 BUILD_CONST_KEY_MAP      2
+           1164 BINARY_OP                6 (%)
+           1168 STORE_FAST               7 (@py_format5)
+           1170 LOAD_CONST              12 ('assert %(py6)s')
+           1172 LOAD_CONST              13 ('py6')
+           1174 LOAD_FAST                7 (@py_format5)
+           1176 BUILD_MAP                1
+           1178 BINARY_OP                6 (%)
+           1182 STORE_FAST               8 (@py_format7)
+           1184 LOAD_GLOBAL             19 (NULL + AssertionError)
+           1196 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1208 LOAD_ATTR               10 (_format_explanation)
+           1218 LOAD_FAST                8 (@py_format7)
+           1220 PRECALL                  1
+           1224 CALL                     1
+           1234 PRECALL                  1
+           1238 CALL                     1
+           1248 RAISE_VARARGS            1
+        >> 1250 LOAD_CONST               0 (None)
+           1252 COPY                     1
+           1254 STORE_FAST               4 (@py_assert0)
+           1256 COPY                     1
+           1258 STORE_FAST               6 (@py_assert2)
+           1260 STORE_FAST               5 (@py_assert3)
+
+121        1262 LOAD_FAST                3 (result)
+           1264 LOAD_CONST              17 ('total_transferred')
+           1266 BINARY_SUBSCR
+           1276 STORE_FAST               4 (@py_assert0)
+           1278 LOAD_CONST              18 (0.0)
+           1280 STORE_FAST               5 (@py_assert3)
+           1282 LOAD_FAST                4 (@py_assert0)
+           1284 LOAD_FAST                5 (@py_assert3)
+           1286 COMPARE_OP               2 (==)
+           1292 STORE_FAST               6 (@py_assert2)
+           1294 LOAD_FAST                6 (@py_assert2)
+           1296 POP_JUMP_FORWARD_IF_TRUE   108 (to 1514)
+           1298 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1310 LOAD_ATTR                7 (_call_reprcompare)
+           1320 LOAD_CONST               9 (('==',))
+           1322 LOAD_FAST                6 (@py_assert2)
+           1324 BUILD_TUPLE              1
+           1326 LOAD_CONST              10 (('%(py1)s == %(py4)s',))
+           1328 LOAD_FAST                4 (@py_assert0)
+           1330 LOAD_FAST                5 (@py_assert3)
+           1332 BUILD_TUPLE              2
+           1334 PRECALL                  4
+           1338 CALL                     4
+           1348 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1360 LOAD_ATTR                8 (_saferepr)
+           1370 LOAD_FAST                4 (@py_assert0)
+           1372 PRECALL                  1
+           1376 CALL                     1
+           1386 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1398 LOAD_ATTR                8 (_saferepr)
+           1408 LOAD_FAST                5 (@py_assert3)
+           1410 PRECALL                  1
+           1414 CALL                     1
+           1424 LOAD_CONST              11 (('py1', 'py4'))
+           1426 BUILD_CONST_KEY_MAP      2
+           1428 BINARY_OP                6 (%)
+           1432 STORE_FAST               7 (@py_format5)
+           1434 LOAD_CONST              12 ('assert %(py6)s')
+           1436 LOAD_CONST              13 ('py6')
+           1438 LOAD_FAST                7 (@py_format5)
+           1440 BUILD_MAP                1
+           1442 BINARY_OP                6 (%)
+           1446 STORE_FAST               8 (@py_format7)
+           1448 LOAD_GLOBAL             19 (NULL + AssertionError)
+           1460 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1472 LOAD_ATTR               10 (_format_explanation)
+           1482 LOAD_FAST                8 (@py_format7)
+           1484 PRECALL                  1
+           1488 CALL                     1
+           1498 PRECALL                  1
+           1502 CALL                     1
+           1512 RAISE_VARARGS            1
+        >> 1514 LOAD_CONST               0 (None)
+           1516 COPY                     1
+           1518 STORE_FAST               4 (@py_assert0)
+           1520 COPY                     1
+           1522 STORE_FAST               6 (@py_assert2)
+           1524 STORE_FAST               5 (@py_assert3)
+
+122        1526 LOAD_FAST                3 (result)
+           1528 LOAD_CONST              19 ('last_realized_profit')
+           1530 BINARY_SUBSCR
+           1540 STORE_FAST               4 (@py_assert0)
+           1542 LOAD_CONST               2 (100.0)
+           1544 STORE_FAST               5 (@py_assert3)
+           1546 LOAD_FAST                4 (@py_assert0)
+           1548 LOAD_FAST                5 (@py_assert3)
+           1550 COMPARE_OP               2 (==)
+           1556 STORE_FAST               6 (@py_assert2)
+           1558 LOAD_FAST                6 (@py_assert2)
+           1560 POP_JUMP_FORWARD_IF_TRUE   108 (to 1778)
+           1562 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1574 LOAD_ATTR                7 (_call_reprcompare)
+           1584 LOAD_CONST               9 (('==',))
+           1586 LOAD_FAST                6 (@py_assert2)
+           1588 BUILD_TUPLE              1
+           1590 LOAD_CONST              10 (('%(py1)s == %(py4)s',))
+           1592 LOAD_FAST                4 (@py_assert0)
+           1594 LOAD_FAST                5 (@py_assert3)
+           1596 BUILD_TUPLE              2
+           1598 PRECALL                  4
+           1602 CALL                     4
+           1612 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1624 LOAD_ATTR                8 (_saferepr)
+           1634 LOAD_FAST                4 (@py_assert0)
+           1636 PRECALL                  1
+           1640 CALL                     1
+           1650 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1662 LOAD_ATTR                8 (_saferepr)
+           1672 LOAD_FAST                5 (@py_assert3)
+           1674 PRECALL                  1
+           1678 CALL                     1
+           1688 LOAD_CONST              11 (('py1', 'py4'))
+           1690 BUILD_CONST_KEY_MAP      2
+           1692 BINARY_OP                6 (%)
+           1696 STORE_FAST               7 (@py_format5)
+           1698 LOAD_CONST              12 ('assert %(py6)s')
+           1700 LOAD_CONST              13 ('py6')
+           1702 LOAD_FAST                7 (@py_format5)
+           1704 BUILD_MAP                1
+           1706 BINARY_OP                6 (%)
+           1710 STORE_FAST               8 (@py_format7)
+           1712 LOAD_GLOBAL             19 (NULL + AssertionError)
+           1724 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1736 LOAD_ATTR               10 (_format_explanation)
+           1746 LOAD_FAST                8 (@py_format7)
+           1748 PRECALL                  1
+           1752 CALL                     1
+           1762 PRECALL                  1
+           1766 CALL                     1
+           1776 RAISE_VARARGS            1
+        >> 1778 LOAD_CONST               0 (None)
+           1780 COPY                     1
+           1782 STORE_FAST               4 (@py_assert0)
+           1784 COPY                     1
+           1786 STORE_FAST               6 (@py_assert2)
+           1788 STORE_FAST               5 (@py_assert3)
+
+124        1790 LOAD_FAST                1 (connection)
+           1792 LOAD_ATTR               11 (ledger)
+           1802 STORE_FAST               6 (@py_assert2)
+           1804 LOAD_GLOBAL             25 (NULL + len)
+           1816 LOAD_FAST                6 (@py_assert2)
+           1818 PRECALL                  1
+           1822 CALL                     1
+           1832 STORE_FAST               9 (@py_assert4)
+           1834 LOAD_CONST              20 (1)
+           1836 STORE_FAST              10 (@py_assert7)
+           1838 LOAD_FAST                9 (@py_assert4)
+           1840 LOAD_FAST               10 (@py_assert7)
+           1842 COMPARE_OP               2 (==)
+           1848 STORE_FAST              11 (@py_assert6)
+           1850 LOAD_FAST               11 (@py_assert6)
+           1852 EXTENDED_ARG             1
+           1854 POP_JUMP_FORWARD_IF_TRUE   261 (to 2378)
+           1856 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1868 LOAD_ATTR                7 (_call_reprcompare)
+           1878 LOAD_CONST               9 (('==',))
+           1880 LOAD_FAST               11 (@py_assert6)
+           1882 BUILD_TUPLE              1
+           1884 LOAD_CONST              21 (('%(py5)s\n{%(py5)s = %(py0)s(%(py3)s\n{%(py3)s = %(py1)s.ledger\n})\n} == %(py8)s',))
+           1886 LOAD_FAST                9 (@py_assert4)
+           1888 LOAD_FAST               10 (@py_assert7)
+           1890 BUILD_TUPLE              2
+           1892 PRECALL                  4
+           1896 CALL                     4
+           1906 LOAD_CONST              22 ('len')
+           1908 LOAD_GLOBAL             27 (NULL + @py_builtins)
+           1920 LOAD_ATTR               14 (locals)
+           1930 PRECALL                  0
+           1934 CALL                     0
+           1944 CONTAINS_OP              0
+           1946 POP_JUMP_FORWARD_IF_TRUE    25 (to 1998)
+           1948 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           1960 LOAD_ATTR               15 (_should_repr_global_name)
+           1970 LOAD_GLOBAL             24 (len)
+           1982 PRECALL                  1
+           1986 CALL                     1
+           1996 POP_JUMP_FORWARD_IF_FALSE    25 (to 2048)
+        >> 1998 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2010 LOAD_ATTR                8 (_saferepr)
+           2020 LOAD_GLOBAL             24 (len)
+           2032 PRECALL                  1
+           2036 CALL                     1
+           2046 JUMP_FORWARD             1 (to 2050)
+        >> 2048 LOAD_CONST              22 ('len')
+        >> 2050 LOAD_CONST              23 ('connection')
+           2052 LOAD_GLOBAL             27 (NULL + @py_builtins)
+           2064 LOAD_ATTR               14 (locals)
+           2074 PRECALL                  0
+           2078 CALL                     0
+           2088 CONTAINS_OP              0
+           2090 POP_JUMP_FORWARD_IF_TRUE    20 (to 2132)
+           2092 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2104 LOAD_ATTR               15 (_should_repr_global_name)
+           2114 LOAD_FAST                1 (connection)
+           2116 PRECALL                  1
+           2120 CALL                     1
+           2130 POP_JUMP_FORWARD_IF_FALSE    20 (to 2172)
+        >> 2132 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2144 LOAD_ATTR                8 (_saferepr)
+           2154 LOAD_FAST                1 (connection)
+           2156 PRECALL                  1
+           2160 CALL                     1
+           2170 JUMP_FORWARD             1 (to 2174)
+        >> 2172 LOAD_CONST              23 ('connection')
+        >> 2174 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2186 LOAD_ATTR                8 (_saferepr)
+           2196 LOAD_FAST                6 (@py_assert2)
+           2198 PRECALL                  1
+           2202 CALL                     1
+           2212 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2224 LOAD_ATTR                8 (_saferepr)
+           2234 LOAD_FAST                9 (@py_assert4)
+           2236 PRECALL                  1
+           2240 CALL                     1
+           2250 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2262 LOAD_ATTR                8 (_saferepr)
+           2272 LOAD_FAST               10 (@py_assert7)
+           2274 PRECALL                  1
+           2278 CALL                     1
+           2288 LOAD_CONST              24 (('py0', 'py1', 'py3', 'py5', 'py8'))
+           2290 BUILD_CONST_KEY_MAP      5
+           2292 BINARY_OP                6 (%)
+           2296 STORE_FAST              12 (@py_format9)
+           2298 LOAD_CONST              25 ('assert %(py10)s')
+           2300 LOAD_CONST              26 ('py10')
+           2302 LOAD_FAST               12 (@py_format9)
+           2304 BUILD_MAP                1
+           2306 BINARY_OP                6 (%)
+           2310 STORE_FAST              13 (@py_format11)
+           2312 LOAD_GLOBAL             19 (NULL + AssertionError)
+           2324 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2336 LOAD_ATTR               10 (_format_explanation)
+           2346 LOAD_FAST               13 (@py_format11)
+           2348 PRECALL                  1
+           2352 CALL                     1
+           2362 PRECALL                  1
+           2366 CALL                     1
+           2376 RAISE_VARARGS            1
+        >> 2378 LOAD_CONST               0 (None)
+           2380 COPY                     1
+           2382 STORE_FAST               6 (@py_assert2)
+           2384 COPY                     1
+           2386 STORE_FAST               9 (@py_assert4)
+           2388 COPY                     1
+           2390 STORE_FAST              11 (@py_assert6)
+           2392 STORE_FAST              10 (@py_assert7)
+
+125        2394 LOAD_FAST                1 (connection)
+           2396 LOAD_ATTR               11 (ledger)
+           2406 LOAD_CONST              27 (0)
+           2408 BINARY_SUBSCR
+           2418 LOAD_CONST              28 ('equity_amount')
+           2420 BINARY_SUBSCR
+           2430 STORE_FAST               4 (@py_assert0)
+           2432 LOAD_CONST               3 (70.0)
+           2434 STORE_FAST               5 (@py_assert3)
+           2436 LOAD_FAST                4 (@py_assert0)
+           2438 LOAD_FAST                5 (@py_assert3)
+           2440 COMPARE_OP               2 (==)
+           2446 STORE_FAST               6 (@py_assert2)
+           2448 LOAD_FAST                6 (@py_assert2)
+           2450 POP_JUMP_FORWARD_IF_TRUE   108 (to 2668)
+           2452 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2464 LOAD_ATTR                7 (_call_reprcompare)
+           2474 LOAD_CONST               9 (('==',))
+           2476 LOAD_FAST                6 (@py_assert2)
+           2478 BUILD_TUPLE              1
+           2480 LOAD_CONST              10 (('%(py1)s == %(py4)s',))
+           2482 LOAD_FAST                4 (@py_assert0)
+           2484 LOAD_FAST                5 (@py_assert3)
+           2486 BUILD_TUPLE              2
+           2488 PRECALL                  4
+           2492 CALL                     4
+           2502 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2514 LOAD_ATTR                8 (_saferepr)
+           2524 LOAD_FAST                4 (@py_assert0)
+           2526 PRECALL                  1
+           2530 CALL                     1
+           2540 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2552 LOAD_ATTR                8 (_saferepr)
+           2562 LOAD_FAST                5 (@py_assert3)
+           2564 PRECALL                  1
+           2568 CALL                     1
+           2578 LOAD_CONST              11 (('py1', 'py4'))
+           2580 BUILD_CONST_KEY_MAP      2
+           2582 BINARY_OP                6 (%)
+           2586 STORE_FAST               7 (@py_format5)
+           2588 LOAD_CONST              12 ('assert %(py6)s')
+           2590 LOAD_CONST              13 ('py6')
+           2592 LOAD_FAST                7 (@py_format5)
+           2594 BUILD_MAP                1
+           2596 BINARY_OP                6 (%)
+           2600 STORE_FAST               8 (@py_format7)
+           2602 LOAD_GLOBAL             19 (NULL + AssertionError)
+           2614 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2626 LOAD_ATTR               10 (_format_explanation)
+           2636 LOAD_FAST                8 (@py_format7)
+           2638 PRECALL                  1
+           2642 CALL                     1
+           2652 PRECALL                  1
+           2656 CALL                     1
+           2666 RAISE_VARARGS            1
+        >> 2668 LOAD_CONST               0 (None)
+           2670 COPY                     1
+           2672 STORE_FAST               4 (@py_assert0)
+           2674 COPY                     1
+           2676 STORE_FAST               6 (@py_assert2)
+           2678 STORE_FAST               5 (@py_assert3)
+
+126        2680 LOAD_FAST                1 (connection)
+           2682 LOAD_ATTR               11 (ledger)
+           2692 LOAD_CONST              27 (0)
+           2694 BINARY_SUBSCR
+           2704 LOAD_CONST              29 ('vault_amount')
+           2706 BINARY_SUBSCR
+           2716 STORE_FAST               4 (@py_assert0)
+           2718 LOAD_CONST               4 (30.0)
+           2720 STORE_FAST               5 (@py_assert3)
+           2722 LOAD_FAST                4 (@py_assert0)
+           2724 LOAD_FAST                5 (@py_assert3)
+           2726 COMPARE_OP               2 (==)
+           2732 STORE_FAST               6 (@py_assert2)
+           2734 LOAD_FAST                6 (@py_assert2)
+           2736 POP_JUMP_FORWARD_IF_TRUE   108 (to 2954)
+           2738 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2750 LOAD_ATTR                7 (_call_reprcompare)
+           2760 LOAD_CONST               9 (('==',))
+           2762 LOAD_FAST                6 (@py_assert2)
+           2764 BUILD_TUPLE              1
+           2766 LOAD_CONST              10 (('%(py1)s == %(py4)s',))
+           2768 LOAD_FAST                4 (@py_assert0)
+           2770 LOAD_FAST                5 (@py_assert3)
+           2772 BUILD_TUPLE              2
+           2774 PRECALL                  4
+           2778 CALL                     4
+           2788 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2800 LOAD_ATTR                8 (_saferepr)
+           2810 LOAD_FAST                4 (@py_assert0)
+           2812 PRECALL                  1
+           2816 CALL                     1
+           2826 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2838 LOAD_ATTR                8 (_saferepr)
+           2848 LOAD_FAST                5 (@py_assert3)
+           2850 PRECALL                  1
+           2854 CALL                     1
+           2864 LOAD_CONST              11 (('py1', 'py4'))
+           2866 BUILD_CONST_KEY_MAP      2
+           2868 BINARY_OP                6 (%)
+           2872 STORE_FAST               7 (@py_format5)
+           2874 LOAD_CONST              12 ('assert %(py6)s')
+           2876 LOAD_CONST              13 ('py6')
+           2878 LOAD_FAST                7 (@py_format5)
+           2880 BUILD_MAP                1
+           2882 BINARY_OP                6 (%)
+           2886 STORE_FAST               8 (@py_format7)
+           2888 LOAD_GLOBAL             19 (NULL + AssertionError)
+           2900 LOAD_GLOBAL             13 (NULL + @pytest_ar)
+           2912 LOAD_ATTR               10 (_format_explanation)
+           2922 LOAD_FAST                8 (@py_format7)
+           2924 PRECALL                  1
+           2928 CALL                     1
+           2938 PRECALL                  1
+           2942 CALL                     1
+           2952 RAISE_VARARGS            1
+        >> 2954 LOAD_CONST               0 (None)
+           2956 COPY                     1
+           2958 STORE_FAST               4 (@py_assert0)
+           2960 COPY                     1
+           2962 STORE_FAST               6 (@py_assert2)
+           2964 STORE_FAST               5 (@py_assert3)
+           2966 LOAD_CONST               0 (None)
+           2968 RETURN_VALUE

@@ -1,13 +1,38 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, func
-from sqlalchemy.ext.declarative import declarative_base
+﻿from sqlalchemy import Column, DateTime, Integer, String, func
 
-Base = declarative_base()
+from database import Base
+
 
 class TradeEvent(Base):
-    __tablename__ = 'trade_events'
-    id = Column(Integer, primary_key=True)
-    event_type = Column(String)  # 'ORDER_SENT', 'FILLED', 'REJECTED'
-    symbol = Column(String)
-    ticket = Column(Integer, nullable=True)
-    message = Column(String)
-    created_at = Column(DateTime, default=func.now())
+    __tablename__ = "trade_events"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+    )
+
+    event_type = Column(
+        String,
+        nullable=True,
+    )
+
+    symbol = Column(
+        String,
+        nullable=True,
+    )
+
+    ticket = Column(
+        Integer,
+        nullable=True,
+    )
+
+    message = Column(
+        String,
+        nullable=True,
+    )
+
+    created_at = Column(
+        DateTime,
+        server_default=func.now(),
+        nullable=True,
+    )

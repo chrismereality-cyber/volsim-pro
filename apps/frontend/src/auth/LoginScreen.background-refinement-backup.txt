@@ -1,0 +1,1581 @@
+﻿import React, { FormEvent, useMemo, useState } from 'react';
+import { useAuth } from './AuthProvider';
+import {
+  Mail,
+  LockKeyhole,
+  Fingerprint,
+  Shield,
+} from 'lucide-react';
+
+/*
+ * VOLSIM-PRO AUTH GATE
+ * Visual-only replacement for the existing LoginScreen.
+ *
+ * Preserved:
+ * - useAuth()
+ * - login(email, password)
+ * - register(email, password)
+ * - isLoading
+ * - login/signup flow
+ * - existing error handling
+ * - biometric handler
+ * - forgot-password handler
+ * - admin-portal handler
+ *
+ * No WebSocket, trading, market-data, Zustand, or backend architecture
+ * is introduced here.
+ */
+
+type AuthTab = 'login' | 'signup';
+
+type Candle = {
+  x: number;
+  top: number;
+  height: number;
+  width: number;
+  bullish: boolean;
+  opacity: number;
+};
+
+const LEFT_CANDLES: Candle[] = [
+  { x: 30,  top: 470, height: 27, width: 6, bullish: true,  opacity: 0.42 },
+  { x: 45,  top: 447, height: 36, width: 6, bullish: false, opacity: 0.48 },
+  { x: 61,  top: 421, height: 31, width: 6, bullish: true,  opacity: 0.51 },
+  { x: 77,  top: 438, height: 47, width: 6, bullish: false, opacity: 0.46 },
+  { x: 94,  top: 397, height: 39, width: 6, bullish: true,  opacity: 0.55 },
+  { x: 111, top: 371, height: 54, width: 6, bullish: true,  opacity: 0.59 },
+  { x: 128, top: 389, height: 29, width: 6, bullish: false, opacity: 0.51 },
+  { x: 145, top: 345, height: 58, width: 6, bullish: true,  opacity: 0.63 },
+  { x: 162, top: 327, height: 42, width: 6, bullish: false, opacity: 0.55 },
+  { x: 179, top: 302, height: 64, width: 6, bullish: true,  opacity: 0.62 },
+  { x: 196, top: 281, height: 46, width: 6, bullish: true,  opacity: 0.57 },
+  { x: 213, top: 267, height: 67, width: 6, bullish: false, opacity: 0.53 },
+];
+
+const RIGHT_CANDLES: Candle[] = [
+  { x: 690, top: 468, height: 32, width: 6, bullish: false, opacity: 0.42 },
+  { x: 674, top: 442, height: 43, width: 6, bullish: true,  opacity: 0.48 },
+  { x: 658, top: 457, height: 28, width: 6, bullish: false, opacity: 0.45 },
+  { x: 642, top: 416, height: 51, width: 6, bullish: true,  opacity: 0.54 },
+  { x: 626, top: 392, height: 36, width: 6, bullish: false, opacity: 0.49 },
+  { x: 610, top: 365, height: 58, width: 6, bullish: true,  opacity: 0.58 },
+  { x: 594, top: 343, height: 44, width: 6, bullish: true,  opacity: 0.55 },
+  { x: 578, top: 319, height: 62, width: 6, bullish: false, opacity: 0.51 },
+  { x: 562, top: 294, height: 47, width: 6, bullish: true,  opacity: 0.59 },
+  { x: 546, top: 273, height: 69, width: 6, bullish: true,  opacity: 0.61 },
+  { x: 530, top: 251, height: 44, width: 6, bullish: false, opacity: 0.52 },
+  { x: 514, top: 229, height: 65, width: 6, bullish: true,  opacity: 0.58 },
+];
+
+const PARTICLES = Array.from({ length: 230 }, (_, index) => {
+  const column = index % 23;
+  const row = Math.floor(index / 23);
+
+  return {
+    id: index,
+    x: -20 + column * 34 + ((row * 19) % 25),
+    y: 70 + row * 39 + ((column * 23) % 27),
+    r:
+      index % 19 === 0
+        ? 1.5
+        : index % 7 === 0
+          ? 1
+          : 0.55,
+    opacity:
+      index % 17 === 0
+        ? 0.52
+        : index % 5 === 0
+          ? 0.29
+          : 0.14,
+  };
+});
+
+type ForexCandle = {
+  open: number;
+  close: number;
+  high: number;
+  low: number;
+};
+
+const FOREX_CANDLES: ForexCandle[] = [
+  { open: 248, close: 258, high: 266, low: 239 },
+  { open: 258, close: 253, high: 269, low: 246 },
+  { open: 253, close: 267, high: 275, low: 247 },
+  { open: 267, close: 274, high: 286, low: 260 },
+  { open: 274, close: 269, high: 281, low: 258 },
+  { open: 269, close: 282, high: 291, low: 264 },
+  { open: 282, close: 279, high: 296, low: 271 },
+  { open: 279, close: 293, high: 301, low: 273 },
+  { open: 293, close: 288, high: 306, low: 281 },
+  { open: 288, close: 302, high: 314, low: 282 },
+
+  { open: 302, close: 315, high: 326, low: 294 },
+  { open: 315, close: 309, high: 329, low: 301 },
+  { open: 309, close: 323, high: 334, low: 305 },
+  { open: 323, close: 337, high: 349, low: 317 },
+  { open: 337, close: 331, high: 345, low: 321 },
+  { open: 331, close: 346, high: 357, low: 326 },
+  { open: 346, close: 352, high: 363, low: 338 },
+  { open: 352, close: 343, high: 366, low: 334 },
+  { open: 343, close: 358, high: 371, low: 337 },
+  { open: 358, close: 365, high: 379, low: 350 },
+
+  { open: 365, close: 357, high: 374, low: 347 },
+  { open: 357, close: 349, high: 366, low: 338 },
+  { open: 349, close: 362, high: 370, low: 341 },
+  { open: 362, close: 376, high: 387, low: 354 },
+  { open: 376, close: 369, high: 391, low: 361 },
+  { open: 369, close: 384, high: 397, low: 364 },
+  { open: 384, close: 392, high: 404, low: 376 },
+  { open: 392, close: 386, high: 409, low: 378 },
+  { open: 386, close: 401, high: 413, low: 381 },
+  { open: 401, close: 414, high: 427, low: 394 },
+
+  { open: 414, close: 406, high: 423, low: 397 },
+  { open: 406, close: 421, high: 434, low: 401 },
+  { open: 421, close: 429, high: 441, low: 414 },
+  { open: 429, close: 418, high: 438, low: 407 },
+  { open: 418, close: 434, high: 446, low: 412 },
+  { open: 434, close: 442, high: 455, low: 425 },
+  { open: 442, close: 436, high: 460, low: 428 },
+  { open: 436, close: 451, high: 464, low: 431 },
+  { open: 451, close: 459, high: 472, low: 443 },
+  { open: 459, close: 452, high: 468, low: 438 },
+];
+const ForexCandleField: React.FC<{
+  side: 'left' | 'right';
+}> = ({ side }) => {
+  const candles = side === 'left'
+    ? FOREX_CANDLES.slice(0, 20)
+    : FOREX_CANDLES.slice(20);
+
+  const chartWidth = 330;
+  const chartHeight = 440;
+  const candleWidth = 13;
+  const gap = 6;
+
+  const minPrice = 55;
+  const maxPrice = 350;
+
+  const scaleY = (price: number) =>
+    chartHeight -
+    ((price - minPrice) / (maxPrice - minPrice)) * chartHeight;
+
+  return (
+    <svg
+      className={`vs-forex-candles vs-forex-candles-${side}`}
+      viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <defs>
+        <filter
+          id={`forexGlow-${side}`}
+          x="-80%"
+          y="-30%"
+          width="260%"
+          height="160%"
+        >
+          <feGaussianBlur stdDeviation="1.7" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      {candles.map((candle, index) => {
+        const x = 14 + index * (candleWidth + gap);
+
+        const openY = scaleY(candle.open);
+        const closeY = scaleY(candle.close);
+        const highY = scaleY(candle.high);
+        const lowY = scaleY(candle.low);
+
+        const bullish = candle.close >= candle.open;
+
+        const bodyTop = Math.min(openY, closeY);
+        const bodyHeight = Math.max(
+          Math.abs(closeY - openY),
+          4
+        );
+
+        return (
+          <g
+            key={`${side}-forex-candle-${index}`}
+            opacity={0.84 + (index % 5) * 0.035}
+          >
+            {/* upper/lower wick */}
+            <line
+              x1={x + candleWidth / 2}
+              y1={highY}
+              x2={x + candleWidth / 2}
+              y2={lowY}
+              stroke={bullish ? '#1BC5F8' : '#3A6382'}
+              strokeWidth="1"
+              filter={`url(#forexGlow-${side})`}
+            />
+
+            {/* candle body */}
+            <rect
+              x={x}
+              y={bodyTop}
+              width={candleWidth}
+              height={bodyHeight}
+              rx="1"
+              fill={bullish ? '#078BC7' : '#12304A'}
+              stroke={bullish ? '#28D0FF' : '#3C6685'}
+              strokeWidth="0.7"
+            />
+
+            {/* subtle close/open edge */}
+            <line
+              x1={x}
+              y1={bullish ? closeY : openY}
+              x2={x + candleWidth}
+              y2={bullish ? closeY : openY}
+              stroke={bullish ? '#72E2FF' : '#557A96'}
+              strokeWidth="0.65"
+              opacity="0.72"
+            />
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+type WaveParticle = {
+  x: number;
+  y: number;
+  radius: number;
+  opacity: number;
+  depth: number;
+};
+
+const WAVE_PARTICLES: WaveParticle[] = (() => {
+  const particles: WaveParticle[] = [];
+
+  const width = 900;
+  const rows = 58;
+  const columns = 96;
+
+  for (let row = 0; row < rows; row++) {
+    const vertical = row / (rows - 1);
+
+    /*
+     * Concentrate the mesh toward the lower portion
+     * of the screen. Upper particles become progressively
+     * sparse and faint.
+     */
+    const lowerBias = Math.pow(vertical, 2.15);
+
+    for (let column = 0; column < columns; column++) {
+      const horizontal = column / (columns - 1);
+
+      const wave1 =
+        Math.sin(horizontal * 12.2 + vertical * 5.4) * 24;
+
+      const wave2 =
+        Math.sin(horizontal * 19.5 - vertical * 8.2) * 11;
+
+      const wave3 =
+        Math.cos(horizontal * 7.4 + vertical * 13.1) * 8;
+
+      const organicRipple =
+        wave1 + wave2 + wave3;
+
+      const baseY =
+        610 +
+        vertical * 350 +
+        organicRipple;
+
+      /*
+       * Keep some upper particles but make them increasingly
+       * sparse as the mesh approaches the black upper field.
+       */
+      const densityGate =
+        vertical < 0.35
+          ? ((column * 17 + row * 31) % 7 === 0)
+          : true;
+
+      if (!densityGate) continue;
+
+      const edgeFade =
+        Math.min(horizontal, 1 - horizontal) * 2;
+
+      const opacity =
+        (0.08 + lowerBias * 0.72) *
+        Math.max(0.12, edgeFade);
+
+      const radius =
+        0.42 +
+        lowerBias * 1.05 +
+        (((column * 13 + row * 7) % 5) / 10);
+
+      particles.push({
+        x:
+          horizontal * width +
+          Math.sin(row * 1.71 + column * 0.19) * 3.2,
+
+        y: baseY,
+
+        radius,
+
+        opacity,
+
+        depth:
+          0.28 +
+          lowerBias * 0.72,
+      });
+    }
+  }
+
+  return particles;
+})();
+
+const ParticleWaveMesh: React.FC = () => {
+  const connectionDistance = 42;
+
+  return (
+    <svg
+      className="vs-wave-mesh"
+      viewBox="0 0 900 1000"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <defs>
+        <radialGradient
+          id="vs-wave-dot-gradient"
+          cx="50%"
+          cy="50%"
+          r="50%"
+        >
+          <stop
+            offset="0%"
+            stopColor="#00E0FF"
+            stopOpacity="1"
+          />
+          <stop
+            offset="38%"
+            stopColor="#00D4FF"
+            stopOpacity="0.72"
+          />
+          <stop
+            offset="100%"
+            stopColor="#00B4FF"
+            stopOpacity="0"
+          />
+        </radialGradient>
+
+        <filter
+          id="vs-wave-bloom"
+          x="-200%"
+          y="-200%"
+          width="400%"
+          height="400%"
+        >
+          <feGaussianBlur
+            stdDeviation="2.2"
+            result="blur"
+          />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <linearGradient
+          id="vs-wave-line"
+          x1="0%"
+          y1="0%"
+          x2="100%"
+          y2="0%"
+        >
+          <stop
+            offset="0%"
+            stopColor="#00B4FF"
+            stopOpacity="0"
+          />
+          <stop
+            offset="18%"
+            stopColor="#00C8FF"
+            stopOpacity="0.22"
+          />
+          <stop
+            offset="50%"
+            stopColor="#00E0FF"
+            stopOpacity="0.38"
+          />
+          <stop
+            offset="82%"
+            stopColor="#00C8FF"
+            stopOpacity="0.22"
+          />
+          <stop
+            offset="100%"
+            stopColor="#00B4FF"
+            stopOpacity="0"
+          />
+        </linearGradient>
+      </defs>
+
+      {/* ------------------------------------------------------
+          BACK / MID / FOREGROUND PARTICLE CONNECTION MESH
+          ------------------------------------------------------ */}
+
+      {WAVE_PARTICLES.map((particle, index) => {
+        const nearby = WAVE_PARTICLES
+          .slice(index + 1, index + 7)
+          .map((candidate, candidateOffset) => ({
+            candidate,
+            candidateOffset,
+          }))
+          .filter(({ candidate }) => {
+            const dx = candidate.x - particle.x;
+            const dy = candidate.y - particle.y;
+            return Math.sqrt(dx * dx + dy * dy) < connectionDistance;
+          });
+
+        return (
+          <g key={`wave-network-${index}`}>
+            {nearby.map(({ candidate, candidateOffset }) => (
+              <line
+                key={`wave-line-${index}-${candidateOffset}`}
+                x1={particle.x}
+                y1={particle.y}
+                x2={candidate.x}
+                y2={candidate.y}
+                stroke="url(#vs-wave-line)"
+                strokeWidth={
+                  particle.depth > 0.72 ? 0.7 : 0.42
+                }
+                opacity={
+                  particle.opacity *
+                  candidate.opacity *
+                  2.2
+                }
+              />
+            ))}
+
+            <circle
+              cx={particle.x}
+              cy={particle.y}
+              r={particle.radius * 2.7}
+              fill="url(#vs-wave-dot-gradient)"
+              opacity={particle.opacity * 0.24}
+              filter="url(#vs-wave-bloom)"
+            />
+
+            <circle
+              cx={particle.x}
+              cy={particle.y}
+              r={particle.radius}
+              fill="#00D4FF"
+              opacity={particle.opacity}
+            />
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+export const LoginScreen: React.FC = () => {
+  const { login, register, isLoading } = useAuth();
+
+  const [activeTab, setActiveTab] = useState<AuthTab>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [localError, setLocalError] = useState('');
+
+  const backgroundText = useMemo(
+    () =>
+      Array.from({ length: 5 }, (_, index) => ({
+        id: index,
+        top: 38 + index * 76,
+      })),
+    []
+  );
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLocalError('');
+
+    if (!email.trim() || !password) {
+      setLocalError('Please enter your email address and password.');
+      return;
+    }
+
+    try {
+      if (activeTab === 'signup') {
+        await register(email.trim(), password);
+        await login(email.trim(), password);
+      } else {
+        await login(email.trim(), password);
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Authentication failed. Please check your credentials and try again.';
+
+      setLocalError(message);
+    }
+  };
+
+  const handleBiometric = () => {
+    setLocalError('Biometric Login is not available yet.');
+  };
+
+  const handleForgotPassword = () => {
+    setLocalError('Password recovery is not available yet.');
+  };
+
+  const handleAdminPortal = () => {
+    setLocalError('Admin Portal is not available yet.');
+  };
+
+  return (
+    <main className="vs-auth-root">
+      <style>{`
+        :root {
+          --vs-bg: #020711;
+          --vs-blue: #079eff;
+          --vs-blue-bright: #49d4ff;
+          --vs-blue-soft: #67dfff;
+          --vs-text: #e8edf7;
+          --vs-muted: #9ba9bf;
+        }
+
+        * {
+          box-sizing: border-box;
+        }
+
+        .vs-auth-root {
+          position: fixed;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+          background:
+            radial-gradient(
+              ellipse at 50% 43%,
+              rgba(4, 53, 92, 0.16) 0%,
+              rgba(2, 17, 35, 0.08) 28%,
+              rgba(0, 0, 0, 0) 56%
+            ),
+            linear-gradient(
+              180deg,
+              #01040a 0%,
+              #020a16 44%,
+              #010713 100%
+            );
+          color: var(--vs-text);
+          font-family:
+            Inter,
+            ui-sans-serif,
+            system-ui,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
+          isolation: isolate;
+        }
+
+        .vs-auth-root::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: 9;
+          pointer-events: none;
+          background:
+            linear-gradient(
+              90deg,
+              rgba(0,0,0,0.25),
+              transparent 23%,
+              transparent 77%,
+              rgba(0,0,0,0.25)
+            ),
+            linear-gradient(
+              180deg,
+              rgba(0,0,0,0.13),
+              transparent 22%,
+              transparent 78%,
+              rgba(0,0,0,0.25)
+            );
+        }
+
+        .vs-cosmos {
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+        }
+        /*
+         * ARCHITECTURAL MARKET CHAMBER
+         *
+         * The VOLSIM-PRO lettering is treated as part of the
+         * room itself rather than ordinary background text.
+         */
+
+        .vs-bg-word::after {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 50%;
+          width: 130%;
+          height: 1px;
+          background:
+            linear-gradient(
+              90deg,
+              rgba(24, 135, 205, 0.22),
+              rgba(24, 135, 205, 0.04),
+              transparent
+            );
+          box-shadow:
+            0 0 12px rgba(0, 130, 220, 0.08);
+        }
+
+        /*
+         * Dark architectural side-wall shading makes the two
+         * VOLSIM-PRO surfaces feel like the walls of a deep room.
+         */
+
+        .vs-card-wrap {
+          position: absolute;
+          z-index: 20;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 30px;
+          pointer-events: none;
+        }
+
+        .vs-card {
+          position: relative;
+          width: min(390px, calc(100vw - 48px));
+          min-height: 606px;
+          padding: 47px 33px 29px;
+          border: 1px solid rgba(74, 170, 255, 0.72);
+          border-radius: 25px;
+          background:
+            linear-gradient(
+              145deg,
+              rgba(20, 65, 108, 0.62),
+              rgba(4, 19, 39, 0.72) 48%,
+              rgba(2, 16, 32, 0.78)
+            );
+          box-shadow:
+            0 0 0 1px rgba(22, 114, 201, 0.12),
+            0 0 25px rgba(0, 125, 255, 0.27),
+            0 0 65px rgba(0, 76, 170, 0.15),
+            inset 0 1px 0 rgba(128, 207, 255, 0.18),
+            inset 0 -25px 60px rgba(0, 21, 43, 0.22);
+          backdrop-filter: blur(17px);
+          -webkit-backdrop-filter: blur(17px);
+          pointer-events: auto;
+        }
+
+        .vs-card::before {
+          content: "";
+          position: absolute;
+          inset: 1px;
+          border-radius: 24px;
+          pointer-events: none;
+          background:
+            linear-gradient(
+              135deg,
+              rgba(83, 190, 255, 0.13),
+              transparent 25%,
+              transparent 73%,
+              rgba(17, 109, 190, 0.08)
+            );
+        }
+
+        .vs-card::after {
+          content: "";
+          position: absolute;
+          left: 8%;
+          right: 8%;
+          bottom: -1px;
+          height: 35%;
+          border-radius: 50%;
+          background: rgba(0, 137, 255, 0.11);
+          filter: blur(28px);
+          pointer-events: none;
+        }
+
+        .vs-brand {
+          position: relative;
+          z-index: 2;
+          margin: 0;
+          text-align: center;
+          font-size: clamp(31px, 4vw, 39px);
+          line-height: 1;
+          font-weight: 800;
+          letter-spacing: -1.7px;
+          color: #62d9ff;
+          text-shadow:
+            0 0 7px rgba(66, 205, 255, 0.8),
+            0 0 19px rgba(17, 144, 255, 0.46),
+            0 0 35px rgba(17, 105, 255, 0.18);
+        }
+
+        .vs-divider {
+          position: relative;
+          z-index: 2;
+          width: 100%;
+          height: 1px;
+          margin: 31px 0 25px;
+          background:
+            linear-gradient(
+              90deg,
+              transparent,
+              rgba(80, 176, 255, 0.26) 10%,
+              rgba(80, 176, 255, 0.36) 50%,
+              rgba(80, 176, 255, 0.26) 90%,
+              transparent
+            );
+        }
+
+        .vs-tabs {
+          position: relative;
+          z-index: 3;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          margin-bottom: 23px;
+        }
+
+        .vs-tab {
+          position: relative;
+          height: 38px;
+          border: 0;
+          background: transparent;
+          color: #a9b4c8;
+          font-size: 21px;
+          font-weight: 400;
+          cursor: pointer;
+          transition:
+            color 160ms ease,
+            text-shadow 160ms ease;
+        }
+
+        .vs-tab:hover {
+          color: #dbeaff;
+        }
+
+        .vs-tab.active {
+          color: #eef6ff;
+          text-shadow: 0 0 10px rgba(115, 207, 255, 0.18);
+        }
+
+        .vs-tab.active::after {
+          content: "";
+          position: absolute;
+          left: 12%;
+          right: 12%;
+          bottom: -1px;
+          height: 4px;
+          border-radius: 4px;
+          background: #35d4ff;
+          box-shadow:
+            0 0 7px rgba(49, 214, 255, 0.8),
+            0 0 16px rgba(0, 169, 255, 0.55);
+        }
+
+        .vs-form {
+          position: relative;
+          z-index: 3;
+        }
+
+        .vs-field {
+          position: relative;
+          height: 60px;
+          margin-bottom: 15px;
+        }
+
+        .vs-field-icon {
+          position: absolute;
+          z-index: 2;
+          left: 16px;
+          top: 50%;
+          width: 29px;
+          height: 29px;
+          transform: translateY(-50%);
+          color: #c2d0e2;
+          stroke-width: 1.65;
+          pointer-events: none;
+        }
+
+        .vs-input {
+          width: 100%;
+          height: 100%;
+          padding: 0 17px 0 62px;
+          border: 1px solid rgba(144, 176, 215, 0.72);
+          border-radius: 12px;
+          outline: none;
+          background:
+            linear-gradient(
+              90deg,
+              rgba(6, 30, 57, 0.72),
+              rgba(5, 27, 51, 0.5)
+            );
+          color: #eef7ff;
+          font-size: 18px;
+          font-weight: 400;
+          box-shadow:
+            inset 0 0 13px rgba(0, 0, 0, 0.12),
+            0 0 8px rgba(0, 97, 190, 0.04);
+          transition:
+            border-color 160ms ease,
+            box-shadow 160ms ease,
+            background 160ms ease;
+        }
+
+        .vs-input::placeholder {
+          color: #b5c0d0;
+          opacity: 0.95;
+        }
+
+        .vs-input:focus {
+          border-color: rgba(74, 195, 255, 0.94);
+          background: rgba(5, 31, 60, 0.73);
+          box-shadow:
+            0 0 0 1px rgba(35, 178, 255, 0.16),
+            0 0 18px rgba(0, 131, 255, 0.16),
+            inset 0 0 15px rgba(0, 104, 194, 0.07);
+        }
+
+        .vs-login-button {
+          position: relative;
+          width: 100%;
+          height: 55px;
+          margin-top: 5px;
+          border: 1px solid rgba(220, 234, 255, 0.9);
+          border-radius: 11px;
+          background:
+            linear-gradient(
+              180deg,
+              #f3f7ff 0%,
+              #dce4f1 100%
+            );
+          color: #101827;
+          font-size: 22px;
+          font-weight: 650;
+          cursor: pointer;
+          box-shadow:
+            0 0 8px rgba(180, 224, 255, 0.13),
+            inset 0 1px 0 rgba(255,255,255,0.9);
+          transition:
+            transform 140ms ease,
+            box-shadow 140ms ease,
+            filter 140ms ease;
+        }
+
+        .vs-login-button:hover:not(:disabled) {
+          transform: translateY(-1px);
+          filter: brightness(1.03);
+          box-shadow:
+            0 0 13px rgba(135, 211, 255, 0.23),
+            0 5px 18px rgba(0, 70, 150, 0.16);
+        }
+
+        .vs-login-button:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        .vs-login-button:disabled {
+          opacity: 0.68;
+          cursor: wait;
+        }
+
+        .vs-biometric-row {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          margin-top: 20px;
+        }
+
+        .vs-fingerprint-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 66px;
+          height: 66px;
+          flex: 0 0 66px;
+          border: 1px solid rgba(66, 177, 255, 0.78);
+          border-radius: 13px;
+          background:
+            linear-gradient(
+              145deg,
+              rgba(9, 47, 86, 0.76),
+              rgba(4, 27, 53, 0.6)
+            );
+          color: #31c9ff;
+          cursor: pointer;
+          box-shadow:
+            0 0 11px rgba(0, 127, 255, 0.16),
+            inset 0 0 13px rgba(0, 119, 255, 0.08);
+          transition:
+            border-color 160ms ease,
+            box-shadow 160ms ease,
+            transform 160ms ease;
+        }
+
+        .vs-fingerprint-button:hover {
+          transform: translateY(-1px);
+          border-color: #65d9ff;
+          box-shadow:
+            0 0 17px rgba(0, 155, 255, 0.25),
+            inset 0 0 17px rgba(0, 119, 255, 0.12);
+        }
+
+        .vs-fingerprint-icon {
+          width: 39px;
+          height: 39px;
+          stroke-width: 1.25;
+        }
+
+        .vs-biometric-label {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          color: #aebbd0;
+          font-size: 17px;
+          white-space: nowrap;
+        }
+
+        .vs-biometric-label svg {
+          width: 22px;
+          height: 22px;
+          color: #aebbd0;
+          stroke-width: 1.5;
+        }
+
+        .vs-bottom {
+          position: relative;
+          z-index: 4;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 18px;
+          margin-top: 31px;
+          white-space: nowrap;
+        }
+
+        .vs-bottom-button {
+          padding: 0;
+          border: 0;
+          background: transparent;
+          color: #35c7ff;
+          font-size: 15.5px;
+          font-weight: 500;
+          cursor: pointer;
+          text-shadow: 0 0 9px rgba(0, 157, 255, 0.2);
+          transition:
+            color 160ms ease,
+            text-shadow 160ms ease;
+        }
+
+        .vs-bottom-button:hover {
+          color: #8ce5ff;
+          text-shadow:
+            0 0 8px rgba(51, 201, 255, 0.35),
+            0 0 18px rgba(0, 131, 255, 0.22);
+        }
+
+        .vs-bottom-divider {
+          width: 1px;
+          height: 25px;
+          background: rgba(190, 216, 242, 0.55);
+        }
+
+        .vs-error {
+          position: relative;
+          z-index: 4;
+          margin: 9px 2px -2px;
+          padding: 9px 11px;
+          border: 1px solid rgba(255, 107, 107, 0.36);
+          border-radius: 8px;
+          background: rgba(85, 15, 25, 0.3);
+          color: #ffb4bd;
+          font-size: 13px;
+          line-height: 1.35;
+          text-align: center;
+        }
+
+        .vs-loading {
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+          justify-content: center;
+        }
+
+        .vs-spinner {
+          width: 17px;
+          height: 17px;
+          border: 2px solid rgba(16, 24, 39, 0.2);
+          border-top-color: #101827;
+          border-radius: 50%;
+          animation: vs-spin 700ms linear infinite;
+        }
+
+        @keyframes vs-spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        /*
+         * Atmospheric network topology.
+         * Thin layered lines replace the previous digital waveform.
+         */
+        /*
+         * AMPLIFIED MARKET NETWORK
+         *
+         * Bright enough to read as an active computational /
+         * market-data environment, while remaining behind the
+         * authentication surface.
+         */
+
+        /*
+         * Professional market candles:
+         * narrow bodies + fine wicks + restrained blue palette.
+         */
+
+        .vs-candle-field line {
+          vector-effect: non-scaling-stroke;
+        }
+
+        @media (max-width: 720px) {
+          .vs-card-wrap {
+            padding: 18px;
+          }
+
+          .vs-card {
+            width: min(390px, calc(100vw - 32px));
+            min-height: 0;
+            padding: 38px 25px 25px;
+            border-radius: 22px;
+          }
+
+          .vs-brand {
+            font-size: 31px;
+          }
+
+          .vs-divider {
+            margin-top: 26px;
+            margin-bottom: 21px;
+          }
+
+          .vs-tab {
+            font-size: 19px;
+          }
+
+          .vs-input {
+            font-size: 16px;
+          }
+
+          .vs-bottom-button {
+            font-size: 13px;
+          }
+
+          .vs-bottom {
+            gap: 12px;
+          }
+        }
+
+        @media (max-height: 760px) and (min-width: 600px) {
+          .vs-card {
+            transform: scale(0.86);
+          }
+        }
+
+        @media (max-height: 650px) {
+          .vs-card {
+            transform: scale(0.76);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .vs-spinner {
+            animation: none;
+          }
+
+          .vs-login-button,
+          .vs-fingerprint-button,
+          .vs-tab,
+          .vs-bottom-button {
+            transition: none;
+          }
+        }
+
+        /* ============================================================
+   REALISTIC FOREX CANDLE BACKGROUND
+   ============================================================ */
+
+.vs-forex-background {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.vs-forex-candles {
+  position: absolute;
+  top: 50%;
+  width: min(42vw, 500px);
+  height: min(68vh, 600px);
+  transform: translateY(-50%);
+  overflow: visible;
+  opacity: 0.94;
+}
+
+.vs-forex-candles-left {
+  left: 0.8vw;
+}
+
+.vs-forex-candles-right {
+  right: 0.8vw;
+  transform: translateY(-50%) scaleX(-1);
+}
+
+/* Fade candles naturally into the same dark background. */
+.vs-forex-background::before,
+.vs-forex-background::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 30%;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.vs-forex-background::before {
+  left: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(2, 7, 17, 0.35) 0%,
+    rgba(2, 7, 17, 0) 100%
+  );
+}
+
+.vs-forex-background::after {
+  right: 0;
+  background: linear-gradient(
+    270deg,
+    rgba(2, 7, 17, 0.35) 0%,
+    rgba(2, 7, 17, 0) 100%
+  );
+}
+
+.vs-card-wrap {
+  position: relative;
+  z-index: 20;
+}
+
+@media (max-width: 900px) {
+  .vs-forex-candles {
+    width: 30vw;
+    height: 52vh;
+    opacity: 0.58;
+  }
+
+  .vs-forex-candles-left {
+    left: -3vw;
+  }
+
+  .vs-forex-candles-right {
+    right: -3vw;
+  }
+}
+
+@media (max-width: 640px) {
+  .vs-forex-candles {
+    width: 35vw;
+    height: 46vh;
+    opacity: 0.38;
+  }
+
+  .vs-forex-candles-left {
+    left: -10vw;
+  }
+
+  .vs-forex-candles-right {
+    right: -10vw;
+  }
+}
+
+        /* ============================================================
+   VOLSIM-PRO MARKET DATA BACKGROUND
+   Dense cyan particle-network wave mesh + forex candles
+   ============================================================ */
+
+.vs-market-background {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.vs-wave-mesh {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  overflow: visible;
+  opacity: 0.94;
+}
+
+.vs-forex-background {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.vs-forex-candles {
+  position: absolute;
+  top: 50%;
+  width: min(42vw, 500px);
+  height: min(68vh, 600px);
+  transform: translateY(-50%);
+  overflow: visible;
+  opacity: 1;
+}
+
+.vs-forex-candles-left {
+  left: 0.8vw;
+}
+
+.vs-forex-candles-right {
+  right: 0.8vw;
+  transform: translateY(-50%) scaleX(-1);
+}
+
+/* Preserve the black upper field while allowing the
+   lower particle mesh to become increasingly visible. */
+
+.vs-market-background::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(2, 4, 10, 0.98) 0%,
+      rgba(2, 4, 10, 0.94) 24%,
+      rgba(2, 4, 10, 0.58) 42%,
+      rgba(2, 4, 10, 0.12) 66%,
+      rgba(2, 4, 10, 0) 82%
+    );
+}
+
+/* Keep candles visible above the mesh and fade them
+   gently into the side edges. */
+
+.vs-forex-background::before,
+.vs-forex-background::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 24%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.vs-forex-background::before {
+  left: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(2, 4, 10, 0.2) 0%,
+    rgba(2, 4, 10, 0) 100%
+  );
+}
+
+.vs-forex-background::after {
+  right: 0;
+  background: linear-gradient(
+    270deg,
+    rgba(2, 4, 10, 0.2) 0%,
+    rgba(2, 4, 10, 0) 100%
+  );
+}
+
+@media (max-width: 900px) {
+  .vs-forex-candles {
+    width: 30vw;
+    height: 52vh;
+  }
+
+  .vs-forex-candles-left {
+    left: -3vw;
+  }
+
+  .vs-forex-candles-right {
+    right: -3vw;
+  }
+
+  .vs-wave-mesh {
+    opacity: 0.94;
+  }
+}
+
+@media (max-width: 640px) {
+  .vs-forex-candles {
+    width: 35vw;
+    height: 46vh;
+    opacity: 0.86;
+  }
+
+  .vs-forex-candles-left {
+    left: -10vw;
+  }
+
+  .vs-forex-candles-right {
+    right: -10vw;
+  }
+
+  .vs-wave-mesh {
+    opacity: 0.62;
+  }
+}
+
+        /* ============================================================
+   VOLSIM-PRO TOP BACKGROUND WORDMARKS
+   ============================================================ */
+
+.vs-top-brand {
+  position: absolute;
+  top: 3.5%;
+  z-index: 3;
+  pointer-events: none;
+  user-select: none;
+
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  font-size: clamp(46px, 6.7vw, 118px);
+  line-height: 0.9;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  white-space: nowrap;
+
+  color: rgba(4, 48, 82, 0.42);
+
+  text-shadow:
+    0 0 28px rgba(0, 96, 150, 0.12),
+    0 0 70px rgba(0, 75, 125, 0.08);
+
+  opacity: 0.9;
+}
+
+.vs-top-brand-left {
+  left: -1.8%;
+  transform: scaleX(0.92);
+  transform-origin: left center;
+}
+
+.vs-top-brand-right {
+  right: -1.8%;
+  transform: scaleX(0.92);
+  transform-origin: right center;
+}
+
+/* Keep the wordmarks subordinate to the login card. */
+.vs-card-wrap {
+  position: relative;
+  z-index: 20;
+}
+      `}</style>
+            <div className="vs-top-brand vs-top-brand-left" aria-hidden="true">
+        VOLSIM-PRO
+      </div>
+
+      <div className="vs-top-brand vs-top-brand-right" aria-hidden="true">
+        VOLSIM-PRO
+      </div>
+<div className="vs-market-background" aria-hidden="true">
+        <ParticleWaveMesh />
+
+        <div className="vs-forex-background">
+          <ForexCandleField side="left" />
+          <ForexCandleField side="right" />
+        </div>
+      </div>
+      <div className="vs-card-wrap">
+        <section
+          className="vs-card"
+          aria-label="VOLSIM-PRO authentication"
+        >
+          <h1 className="vs-brand">VOLSIM-PRO</h1>
+
+          <div className="vs-divider" />
+
+          <div className="vs-tabs" role="tablist" aria-label="Authentication">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'login'}
+              className={`vs-tab ${activeTab === 'login' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('login');
+                setLocalError('');
+              }}
+            >
+              Login
+            </button>
+
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'signup'}
+              className={`vs-tab ${activeTab === 'signup' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('signup');
+                setLocalError('');
+              }}
+            >
+              Sign Up
+            </button>
+          </div>
+
+          <form className="vs-form" onSubmit={handleSubmit}>
+            <div className="vs-field">
+              <Mail className="vs-field-icon" aria-hidden="true" />
+
+              <input
+                className="vs-input"
+                type="email"
+                autoComplete="email"
+                placeholder="Email Address"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                disabled={isLoading}
+                aria-label="Email Address"
+              />
+            </div>
+
+            <div className="vs-field">
+              <LockKeyhole
+                className="vs-field-icon"
+                aria-hidden="true"
+              />
+
+              <input
+                className="vs-input"
+                type="password"
+                autoComplete={
+                  activeTab === 'signup'
+                    ? 'new-password'
+                    : 'current-password'
+                }
+                placeholder="Password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                disabled={isLoading}
+                aria-label="Password"
+              />
+            </div>
+
+            <button
+              className="vs-login-button"
+              type="submit"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <span className="vs-loading">
+                  <span className="vs-spinner" />
+                  {activeTab === 'signup'
+                    ? 'Creating Account...'
+                    : 'Signing In...'}
+                </span>
+              ) : activeTab === 'signup' ? (
+                'Sign Up'
+              ) : (
+                'Login'
+              )}
+            </button>
+
+            {localError && (
+              <div className="vs-error" role="alert">
+                {localError}
+              </div>
+            )}
+          </form>
+
+          <div className="vs-biometric-row">
+            <button
+              type="button"
+              className="vs-fingerprint-button"
+              onClick={handleBiometric}
+              aria-label="Biometric Login"
+            >
+              <Fingerprint
+                className="vs-fingerprint-icon"
+                aria-hidden="true"
+              />
+            </button>
+
+            <div className="vs-biometric-label">
+              <LockKeyhole aria-hidden="true" />
+              <span>Biometric Login</span>
+            </div>
+          </div>
+
+          <div className="vs-bottom">
+            <button
+              type="button"
+              className="vs-bottom-button"
+              onClick={handleForgotPassword}
+            >
+              Forgot Password?
+            </button>
+
+            <span className="vs-bottom-divider" aria-hidden="true" />
+
+            <button
+              type="button"
+              className="vs-bottom-button"
+              onClick={handleAdminPortal}
+            >
+              Sign In with Admin Portal
+            </button>
+          </div>
+
+          <Shield
+            style={{
+              position: 'absolute',
+              width: 0,
+              height: 0,
+              opacity: 0,
+            }}
+            aria-hidden="true"
+          />
+        </section>
+      </div>
+    </main>
+  );
+};
+
+export default LoginScreen;
+

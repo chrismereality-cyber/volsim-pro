@@ -1,0 +1,5 @@
+VOLSIM-PRO FOUNDATION ARCHITECTURE INTEGRATION
+Baseline Inventory
+Generated: 2026-08-29 21:48:45
+
+Repository: C:\volsim-dev

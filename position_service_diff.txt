@@ -1,0 +1,252 @@
+﻿diff --git a/src/services/position_service.py b/src/services/position_service.py
+index 25c4306..d00ee43 100644
+--- a/src/services/position_service.py
++++ b/src/services/position_service.py
+@@ -812,16 +812,23 @@ class PositionService:
+ 
+     async def sync_from_mt5(self):
+         """
+-        Reconcile broker-open MT5 positions into local PositionService state.
++        Reconcile authoritative LIVE broker positions into local state.
+ 
+         This method is READ-ONLY with respect to MT5 trading operations.
+ 
+-        It may:
+-            - read mt5.positions_get()
+-            - create/update local position records
+-            - persist position snapshots
+-
+-        It MUST NOT:
++        Reconciliation rules:
++            - Broker OPEN + local missing:
++                import and persist the broker position.
++            - Broker OPEN + local OPEN:
++                synchronize broker-authoritative values.
++            - Local OPEN + broker missing:
++                flag a reconciliation discrepancy; do NOT fabricate a close.
++            - Successful broker query with zero positions:
++                valid zero-position snapshot.
++            - Broker query failure:
++                abort reconciliation without changing local positions.
++
++        This method MUST NOT:
+             - call mt5.order_send()
+             - call mt5.order_check()
+             - open broker positions
+@@ -829,25 +836,39 @@ class PositionService:
+         """
+ 
+         try:
+-            import MetaTrader5 as mt5
++            broker_result = mt5_service.get_positions_for_reconciliation()
+ 
+-            broker_positions = mt5.positions_get()
++            if not broker_result.get("success"):
++                error = broker_result.get(
++                    "error",
++                    "Unknown MT5 position query failure"
++                )
+ 
+-            if broker_positions is None:
+-                logger.warning(
+-                    "MT5 position reconciliation returned no position data"
++                logger.error(
++                    "MT5 position reconciliation aborted: %s",
++                    error
+                 )
+-                return []
++
++                return {
++                    "status": "BROKER_QUERY_FAILED",
++                    "synchronized": [],
++                    "discrepancies": [],
++                    "error": error,
++                }
++
++            broker_positions = broker_result.get(
++                "positions",
++                []
++            )
+ 
+             synchronized = []
++            discrepancies = []
+             broker_trade_ids = set()
+ 
+             for broker_position in broker_positions:
+ 
+-                broker_position_ticket = getattr(
+-                    broker_position,
+-                    "ticket",
+-                    None
++                broker_position_ticket = broker_position.get(
++                    "ticket"
+                 )
+ 
+                 if broker_position_ticket is None:
+@@ -862,57 +883,54 @@ class PositionService:
+ 
+                 broker_trade_ids.add(trade_id)
+ 
+-                symbol = getattr(
+-                    broker_position,
+-                    "symbol",
+-                    ""
++                symbol = str(
++                    broker_position.get(
++                        "symbol",
++                        ""
++                    )
++                    or ""
+                 )
+ 
+                 volume = float(
+-                    getattr(
+-                        broker_position,
++                    broker_position.get(
+                         "volume",
+                         0.0
+-                    ) or 0.0
++                    )
++                    or 0.0
+                 )
+ 
+                 price_open = float(
+-                    getattr(
+-                        broker_position,
++                    broker_position.get(
+                         "price_open",
+                         0.0
+-                    ) or 0.0
++                    )
++                    or 0.0
+                 )
+ 
+                 price_current = float(
+-                    getattr(
+-                        broker_position,
++                    broker_position.get(
+                         "price_current",
+                         price_open
+-                    ) or price_open
++                    )
++                    or price_open
+                 )
+ 
+                 profit = float(
+-                    getattr(
+-                        broker_position,
++                    broker_position.get(
+                         "profit",
+                         0.0
+-                    ) or 0.0
++                    )
++                    or 0.0
+                 )
+ 
+-                mt5_type = getattr(
+-                    broker_position,
+-                    "type",
+-                    None
++                side = str(
++                    broker_position.get(
++                        "type",
++                        ""
++                    )
++                    or ""
+                 )
+ 
+-                if mt5_type == mt5.POSITION_TYPE_BUY:
+-                    side = "BUY"
+-                elif mt5_type == mt5.POSITION_TYPE_SELL:
+-                    side = "SELL"
+-                else:
+-                    side = str(mt5_type)
+-
+                 existing = self.positions.get(
+                     trade_id
+                 )
+@@ -924,9 +942,7 @@ class PositionService:
+                         "trade_id": trade_id,
+ 
+                         "broker_order_ticket": None,
+-
+                         "broker_deal_ticket": None,
+-
+                         "broker_position_ticket":
+                             broker_position_ticket,
+ 
+@@ -942,7 +958,10 @@ class PositionService:
+ 
+                         "status": "OPEN",
+ 
+-                        "opened_at": time.time(),
++                        "opened_at": (
++                            broker_position.get("time")
++                            or time.time()
++                        ),
+                         "closed_at": None,
+                         "close_price": None,
+                     }
+@@ -991,7 +1010,47 @@ class PositionService:
+                     profit,
+                 )
+ 
+-            return synchronized
++            for trade_id, position in list(
++                self.positions.items()
++            ):
++
++                if position.get("status") != "OPEN":
++                    continue
++
++                if str(trade_id) in broker_trade_ids:
++                    continue
++
++                discrepancy = {
++                    "trade_id": str(trade_id),
++                    "symbol": position.get("symbol"),
++                    "status": "LOCAL_OPEN_BROKER_MISSING",
++                    "broker_position_ticket": position.get(
++                        "broker_position_ticket"
++                    ),
++                }
++
++                discrepancies.append(
++                    discrepancy
++                )
++
++                logger.error(
++                    "MT5 reconciliation discrepancy: "
++                    "local position remains OPEN but broker "
++                    "position is missing: trade_id=%s symbol=%s",
++                    trade_id,
++                    position.get("symbol"),
++                )
++
++            return {
++                "status": (
++                    "RECONCILED"
++                    if not discrepancies
++                    else "RECONCILED_WITH_DISCREPANCIES"
++                ),
++                "synchronized": synchronized,
++                "discrepancies": discrepancies,
++                "error": None,
++            }
+ 
+         except Exception as e:
+ 
+@@ -1000,7 +1059,12 @@ class PositionService:
+                 e
+             )
+ 
+-            return []
++            return {
++                "status": "RECONCILIATION_FAILED",
++                "synchronized": [],
++                "discrepancies": [],
++                "error": str(e),
++            }
+ 
+     async def close_position(
+         self,
