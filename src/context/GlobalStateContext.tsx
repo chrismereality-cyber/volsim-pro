@@ -1,34 +1,200 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { WS_BASE } from '../apiConfig';
+﻿"use client";
 
-const GlobalStateContext = createContext(null);
+import React, {
+  createContext,
+  useContext,
+  useMemo,
+} from "react";
 
-export const GlobalStateProvider = ({ children }) => {
-    const [globalState, setGlobalState] = useState({});
+import { useTradingStore } from "../../store/useTradingStore";
 
-    useEffect(() => {
-        const wsUrl = WS_BASE ? ${WS_BASE}/ws/trading-state : 'ws://127.0.0.1:10000/ws/trading-state';
-        const ws = new WebSocket(wsUrl);
+export interface GlobalStateContextValue {
+  globalState: Record<string, any> & {
+    portfolio?: Record<string, any>;
+    risk?: Record<string, any>;
+  };
+  state: Record<string, any> & {
+    portfolio?: Record<string, any>;
+    risk?: Record<string, any>;
+  };
+  sockets: Record<string, WebSocket | null>;
+  connected: boolean;
+  connectionState: string;
+}
 
-        ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                setGlobalState(data);
-            } catch (err) {
-                console.error("Failed to parse global state WebSocket message", err);
-            }
-        };
+const GlobalStateContext =
+  createContext<GlobalStateContextValue | null>(null);
 
-        return () => {
-            ws.close();
-        };
-    }, []);
+export const GlobalStateProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  const connected = useTradingStore(
+    (state) => state.connected
+  );
 
-    return (
-        <GlobalStateContext.Provider value={globalState}>
-            {children}
-        </GlobalStateContext.Provider>
-    );
+  const balance = useTradingStore(
+    (state) => state.balance
+  );
+
+  const equity = useTradingStore(
+    (state) => state.equity
+  );
+
+  const floatingPl = useTradingStore(
+    (state) => state.floatingPl
+  );
+
+  const positions = useTradingStore(
+    (state) => state.positions
+  );
+
+  const currentDrawdown = useTradingStore(
+    (state) => state.currentDrawdown
+  );
+
+  const maxDrawdown = useTradingStore(
+    (state) => state.maxDrawdown
+  );
+
+  const riskPerTrade = useTradingStore(
+    (state) => state.riskPerTrade
+  );
+
+  const marginUsage = useTradingStore(
+    (state) => state.marginUsage
+  );
+
+  const netExposure = useTradingStore(
+    (state) => state.netExposure
+  );
+
+  const valueAtRisk = useTradingStore(
+    (state) => state.valueAtRisk
+  );
+
+  const riskStatus = useTradingStore(
+    (state) => state.riskStatus
+  );
+
+  const liquidationWarning = useTradingStore(
+    (state) => state.liquidationWarning
+  );
+
+  const portfolioValue = useTradingStore(
+    (state) => state.portfolioValue
+  );
+
+  const winRate = useTradingStore(
+    (state) => state.winRate
+  );
+
+  const profitFactor = useTradingStore(
+    (state) => state.profitFactor
+  );
+
+  const expectancy = useTradingStore(
+    (state) => state.expectancy
+  );
+
+  const sharpeRatio = useTradingStore(
+    (state) => state.sharpeRatio
+  );
+
+  const totalTrades = useTradingStore(
+    (state) => state.totalTrades
+  );
+
+  const hedgingSignals = useTradingStore(
+    (state) => state.hedgingSignals
+  );
+
+  const globalState = useMemo(
+    () => ({
+      balance,
+      equity,
+      floatingPl,
+      positions,
+      currentDrawdown,
+      maxDrawdown,
+      riskPerTrade,
+      marginUsage,
+      netExposure,
+      valueAtRisk,
+      riskStatus,
+      liquidationWarning,
+      portfolioValue,
+      winRate,
+      profitFactor,
+      expectancy,
+      sharpeRatio,
+      totalTrades,
+      hedgingSignals,
+    }),
+    [
+      balance,
+      equity,
+      floatingPl,
+      positions,
+      currentDrawdown,
+      maxDrawdown,
+      riskPerTrade,
+      marginUsage,
+      netExposure,
+      valueAtRisk,
+      riskStatus,
+      liquidationWarning,
+      portfolioValue,
+      winRate,
+      profitFactor,
+      expectancy,
+      sharpeRatio,
+      totalTrades,
+      hedgingSignals,
+    ]
+  );
+
+  const value = useMemo<GlobalStateContextValue>(
+    () => ({
+      globalState,
+      state: globalState,
+
+      /*
+       * WebSocket ownership has moved to TradingStateBridge.
+       *
+       * Legacy components may still expect this property.
+       * They must not create or replace the socket themselves.
+       */
+      sockets: {
+        "trading-state": null,
+      },
+
+      connected,
+
+      connectionState: connected
+        ? "CONNECTED"
+        : "DISCONNECTED",
+    }),
+    [globalState, connected]
+  );
+
+  return (
+    <GlobalStateContext.Provider value={value}>
+      {children}
+    </GlobalStateContext.Provider>
+  );
 };
 
-export const useGlobalState = () => useContext(GlobalStateContext);
+export const useGlobalState = (): GlobalStateContextValue => {
+  const context = useContext(GlobalStateContext);
+
+  if (!context) {
+    throw new Error(
+      "useGlobalState must be used inside GlobalStateProvider"
+    );
+  }
+
+  return context;
+};
+

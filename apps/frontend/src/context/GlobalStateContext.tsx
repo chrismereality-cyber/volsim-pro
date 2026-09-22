@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
@@ -25,12 +25,20 @@ export const GlobalStateProvider = ({
         (state) => state.updateTradingState
     );
 
-    const { isAuthenticated, isLoading } = useAuth();
+    const {
+        isAuthenticated,
+        isLoading,
+        accessToken,
+    } = useAuth();
 
     const [connected, setConnected] = useState(false);
 
     useEffect(() => {
-        if (isLoading || !isAuthenticated) {
+        if (
+            isLoading ||
+            !isAuthenticated ||
+            !accessToken
+        ) {
             tradingSocket.disconnect();
             setConnected(false);
             return;
@@ -73,7 +81,10 @@ export const GlobalStateProvider = ({
             }
         });
 
-        tradingSocket.connect('/ws/trading-state');
+        tradingSocket.connect(
+            '/ws/trading-state',
+            accessToken,
+        );
 
         return () => {
             unsubscribe();
@@ -87,7 +98,7 @@ export const GlobalStateProvider = ({
     }, [
         isAuthenticated,
         isLoading,
-        updateTradingState,
+        accessToken,
     ]);
 
     return (
@@ -98,3 +109,4 @@ export const GlobalStateProvider = ({
 };
 
 export const useGlobalState = () => useContext(GlobalStateContext);
+

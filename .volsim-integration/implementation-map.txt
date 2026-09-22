@@ -1,0 +1,870 @@
+============================================================
+VOLSIM-PRO FOUNDATION ARCHITECTURE
+STEP 2 — IMPLEMENTATION MAP
+Generated: 2026-08-29 21:52:28
+============================================================
+
+SOURCE OF TRUTH
+Backend/domain state authoritative
+WebSocket: /ws/trading-state
+Shared manager: TradingSocketManager
+Application provider: GlobalStateProvider
+Canonical client store candidate: Zustand/useTradingStore
+Vault allocation: 70% Trading Equity / 30% Immutable Vault
+Roles: USER / ADMIN
+
+============================================================
+1. AUTH / RBAC INVENTORY
+============================================================
+
+============================================================
+2. WEBSOCKET INVENTORY
+============================================================
+
+Path                                                                                                    LineNumber Line                                  
+----                                                                                                    ---------- ----                                  
+C:\volsim-dev\apps\frontend\fix_regime_icons.py                                                                 16 target = 'import { tradingSocket } ...
+C:\volsim-dev\apps\frontend\fix_risk_effect.py                                                                  14     tradingSocket.connect(            
+C:\volsim-dev\apps\frontend\fix_risk_effect.py                                                                  15         "/ws/trading-state",          
+C:\volsim-dev\apps\frontend\fix_risk_effect.py                                                                  31         tradingSocket.disconnect();   
+C:\volsim-dev\apps\frontend\fix_risk_effect.py                                                                  42 print("RiskManagementPanel websocke...
+C:\volsim-dev\apps\frontend\migrate_regime_socket.py                                                            10 'import React\nimport { tradingSock...
+C:\volsim-dev\apps\frontend\migrate_regime_socket.py                                                            16 "tradingSocket.connect('/ws/trading...
+C:\volsim-dev\apps\frontend\migrate_regime_socket.py                                                            22 "tradingSocket.connect('/ws/trading...
+C:\volsim-dev\apps\frontend\migrate_regime_socket.py                                                            28 "tradingSocket.disconnect();"         
+C:\volsim-dev\apps\frontend\migrate_risk_panel.py                                                                9 'import React\nimport { tradingSock...
+C:\volsim-dev\apps\frontend\migrate_risk_panel.py                                                               13 start = text.find("let ws: WebSocke...
+C:\volsim-dev\apps\frontend\migrate_risk_panel.py                                                               18         "let ws: WebSocket | null =...
+C:\volsim-dev\apps\frontend\migrate_risk_panel.py                                                               25 "// websocket handled by TradingSoc...
+C:\volsim-dev\apps\frontend\migrate_risk_panel.py                                                               46 "tradingSocket.disconnect();"         
+C:\volsim-dev\apps\frontend\patch_global_socket.py                                                               9 const ws = new WebSocket(             
+C:\volsim-dev\apps\frontend\patch_global_socket.py                                                              10             "ws://127.0.0.1:10000/w...
+C:\volsim-dev\apps\frontend\patch_global_socket.py                                                              14 const ws = TradingSocketManager.con...
+C:\volsim-dev\apps\frontend\patch_global_socket.py                                                              18 if "TradingSocketManager" not in text:
+C:\volsim-dev\apps\frontend\patch_global_socket.py                                                              21         "import TradingSocketManage...
+C:\volsim-dev\apps\frontend\patch_risk_socket_usage.py                                                           9 let ws: WebSocket | null = null;      
+C:\volsim-dev\apps\frontend\patch_risk_socket_usage.py                                                          12 let ws: WebSocket | null = null;      
+C:\volsim-dev\apps\frontend\patch_risk_socket_usage.py                                                          18 ws = TradingSocketManager.connect();  
+C:\volsim-dev\apps\frontend\patch_risk_socket_usage.py                                                          21 TradingSocketManager.connect();       
+C:\volsim-dev\apps\frontend\patch_risk_socket_usage.py                                                          29 print("RiskManagementPanel socket o...
+C:\volsim-dev\apps\frontend\patch_socket_compat.py                                                               3 path = Path("lib/TradingSocketManag...
+C:\volsim-dev\apps\frontend\patch_socket_compat.py                                                               9         endpoint: string = "/ws/tra...
+C:\volsim-dev\apps\frontend\patch_socket_compat.py                                                              12         endpoint: string = "/ws/tra...
+C:\volsim-dev\apps\frontend\patch_socket_compat.py                                                              23 print("TradingSocketManager compati...
+C:\volsim-dev\apps\frontend\repair_regime_effect.py                                                             15     tradingSocket.connect(            
+C:\volsim-dev\apps\frontend\repair_regime_effect.py                                                             16         "/ws/trading-state",          
+C:\volsim-dev\apps\frontend\repair_regime_effect.py                                                             53         tradingSocket.disconnect();   
+C:\volsim-dev\apps\frontend\repair_regime_imports.py                                                            13     if 'TradingSocketManager' in line:
+C:\volsim-dev\apps\frontend\repair_regime_imports.py                                                            21             'import { tradingSocket...
+C:\volsim-dev\apps\frontend\repair_risk_imports.py                                                              13     if "TradingSocketManager" in line:
+C:\volsim-dev\apps\frontend\repair_risk_imports.py                                                              24             'import { tradingSocket...
+C:\volsim-dev\apps\frontend\tsconfig.tsbuildinfo                                                                 1 {"fileNames":["./node_modules/types...
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                            3 path = Path("lib/TradingSocketManag...
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                           12 export class TradingSocketManager {   
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                           14     private socket: WebSocket | nul...
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                           20         endpoint: string = "/ws/tra...
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                           25             this.socket &&            
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                           27                 this.socket.readySt...
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                           28                 this.socket.readySt...
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                           37         this.socket = new WebSocket(  
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                           42         this.socket.onopen = () => {  
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                           51         this.socket.onmessage = (ev...
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                           65         this.socket.onerror = (erro...
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                           68                 "[VOLSIM] WebSocket...
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                           75         this.socket.onclose = () => { 
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                           81             this.socket = null;       
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                          116         if(this.socket) {             
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                          118             this.socket.close();      
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                          123         this.socket = null;           
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                          134 export const tradingSocket =          
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                          135 new TradingSocketManager();           
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                                          139 print("TradingSocketManager upgraded")
+C:\volsim-dev\apps\frontend\app\layout.tsx                                                                       3 import { GlobalStateProvider } from...
+C:\volsim-dev\apps\frontend\app\layout.tsx                                                                      13                 <GlobalStateProvider> 
+C:\volsim-dev\apps\frontend\app\layout.tsx                                                                      15                 </GlobalStateProvider>
+C:\volsim-dev\apps\frontend\app\page.tsx.backup                                                                  9 import { useDataStream } from '../h...
+C:\volsim-dev\apps\frontend\app\page.tsx.backup                                                                 32   // Initialize background streamin...
+C:\volsim-dev\apps\frontend\app\page.tsx.backup                                                                 33   useDataStream();                    
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\components\views\RegimeRobustnessView.tsx          6 import { tradingSocket } from "../....
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\components\views\RegimeRobustnessView.tsx         39     tradingSocket.connect("/ws/trad...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\components\views\RegimeRobustnessView.tsx         41     const unsubscribe = tradingSock...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\hooks\useDataStream.ts                             4 import { tradingSocket } from "../l...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\hooks\useDataStream.ts                             7 export function useDataStream() {     
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\hooks\useDataStream.ts                            16             "[DATA STREAM] Connecti...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\hooks\useDataStream.ts                            19         tradingSocket.connect("/ws/...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\hooks\useDataStream.ts                            21         const unsubscribe = trading...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\hooks\useDataStream.ts                            49                 "[DATA STREAM] Shar...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                        5 export class TradingSocketManager {   
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                        6     private socket: WebSocket | nul...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                       10     private endpoint = "/ws/trading...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                       21         endpoint: string = "/ws/tra...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                       27             this.socket &&            
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                       29                 this.socket.readySt...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                       30                 this.socket.readySt...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                       44         this.socket = new WebSocket(  
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                       48         this.socket.onopen = () => {  
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                       58                         __socket_st...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                       62                         "[VOLSIM] S...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                       69         this.socket.onmessage = (ev...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                       85                     "[VOLSIM] Inval...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                       91         this.socket.onerror = (erro...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                       93                 "[VOLSIM] WebSocket...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                       98         this.socket.onclose = () => { 
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                      103             this.socket = null;       
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                      108                         __socket_st...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                      168         if (this.socket) {            
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                      169             this.socket.close();      
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                      172         this.socket = null;           
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                      176 export const tradingSocket =          
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\lib\TradingSocketManager.ts                      177     new TradingSocketManager();       
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\components\RiskManagementPanel.tsx             4 import { tradingSocket } from "../....
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\components\RiskManagementPanel.tsx            32             "[RISK PANEL] Connectin...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\components\RiskManagementPanel.tsx            35         tradingSocket.connect("/ws/...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\components\RiskManagementPanel.tsx            37         const unsubscribe = trading...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\components\RiskManagementPanel.tsx            78                 "[RISK PANEL] Share...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\context\GlobalStateContext.tsx                10 import { tradingSocket } from "../....
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\context\GlobalStateContext.tsx                22 export const GlobalStateProvider = ({ 
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\context\GlobalStateContext.tsx                35             "[GLOBAL STATE] Connect...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\context\GlobalStateContext.tsx                38         const unsubscribe = trading...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\context\GlobalStateContext.tsx                52         tradingSocket.connect(        
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\context\GlobalStateContext.tsx                53             "/ws/trading-state"       
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\context\GlobalStateContext.tsx                60                 "[GLOBAL STATE] Sha...
+C:\volsim-dev\apps\frontend\backup_ws_migration\GlobalStateContext.tsx                                           8 const globalSockets: Record<string,...
+C:\volsim-dev\apps\frontend\backup_ws_migration\GlobalStateContext.tsx                                          10 export const GlobalStateProvider = ...
+C:\volsim-dev\apps\frontend\backup_ws_migration\GlobalStateContext.tsx                                          21       const ws = new WebSocket(Trad...
+C:\volsim-dev\apps\frontend\backup_ws_migration\GlobalStateContext.tsx                                          26       globalSockets[channel] = ws;    
+C:\volsim-dev\apps\frontend\backup_ws_migration\GlobalStateContext.tsx                                          31     <GlobalStateContext.Provider va...
+C:\volsim-dev\apps\frontend\backup_ws_migration\ImmutableVaultView.tsx                                          29     const ws = new WebSocket(Tradin...
+C:\volsim-dev\apps\frontend\backup_ws_migration\ImmutableVaultView.tsx                                          35         console.error("Vault socket...
+C:\volsim-dev\apps\frontend\backup_ws_migration\LivePositionsView.tsx                                           24     let ws: WebSocket | null = null;  
+C:\volsim-dev\apps\frontend\backup_ws_migration\LivePositionsView.tsx                                           28         ws = new WebSocket(TradingA...
+C:\volsim-dev\apps\frontend\backup_ws_migration\LivePositionsView.tsx                                           43             console.error("Error br...
+C:\volsim-dev\apps\frontend\backup_ws_migration\LivePositionsView.tsx                                           47         console.error("WebSocket co...
+C:\volsim-dev\apps\frontend\backup_ws_migration\LivePositionsView.tsx                                           84             // VOLSIM BRIDGE FINAL ...
+C:\volsim-dev\apps\frontend\backup_ws_migration\LivePositionsView.tsx                                          111                   NO ACTIVE POSITIO...
+C:\volsim-dev\apps\frontend\backup_ws_migration\RegimeRobustnessView.tsx                                        28     const ws = new WebSocket(Tradin...
+C:\volsim-dev\apps\frontend\backup_ws_migration\RiskManagementPanel.tsx                                         22         let ws: WebSocket | null = ...
+C:\volsim-dev\apps\frontend\backup_ws_migration\RiskManagementPanel.tsx                                         25         const connectWebSocket = ()...
+C:\volsim-dev\apps\frontend\backup_ws_migration\RiskManagementPanel.tsx                                         26             try {                ws...
+C:\volsim-dev\apps\frontend\backup_ws_migration\RiskManagementPanel.tsx                                         65                         // Trigger ...
+C:\volsim-dev\apps\frontend\backup_ws_migration\RiskManagementPanel.tsx                                        106         connectWebSocket();           
+C:\volsim-dev\apps\frontend\backup_ws_migration\RiskManagementView.tsx                                          30     const socket = new WebSocket(Tr...
+C:\volsim-dev\apps\frontend\backup_ws_migration\RiskManagementView.tsx                                          32     socket.onopen = () => setConnec...
+C:\volsim-dev\apps\frontend\backup_ws_migration\RiskManagementView.tsx                                          33     socket.onclose = () => setConne...
+C:\volsim-dev\apps\frontend\backup_ws_migration\RiskManagementView.tsx                                          35     socket.onmessage = (event) => {   
+C:\volsim-dev\apps\frontend\backup_ws_migration\RiskManagementView.tsx                                          46     return () => socket.close();      
+C:\volsim-dev\apps\frontend\components\SocketProvider.tsx                                                        3 export const SocketProvider = ({ ch...
+C:\volsim-dev\apps\frontend\components\SocketProvider.tsx                                                        4   // SocketProvider is deprecated. ...
+C:\volsim-dev\apps\frontend\components\views\ImmutableVaultView.tsx                                             31     // Do not create a dedicated We...
+C:\volsim-dev\apps\frontend\components\views\ImmutableVaultView.tsx                                             32     // Data will arrive through the...
+C:\volsim-dev\apps\frontend\components\views\MarketOverviewView.tsx                                             62     'Initialized full-duplex WebSoc...
+C:\volsim-dev\apps\frontend\components\views\RegimeRobustnessView.tsx.backup                                     6 import { tradingSocket } from "../....
+C:\volsim-dev\apps\frontend\components\views\RegimeRobustnessView.tsx.backup                                    39     tradingSocket.connect("/ws/trad...
+C:\volsim-dev\apps\frontend\components\views\RegimeRobustnessView.tsx.backup                                    41     const unsubscribe = tradingSock...
+C:\volsim-dev\apps\frontend\components\views\RegimeRobustnessView.tsx.bak                                        6 import { tradingSocket } from "../....
+C:\volsim-dev\apps\frontend\components\views\RegimeRobustnessView.tsx.bak                                       39     tradingSocket.connect("/ws/trad...
+C:\volsim-dev\apps\frontend\components\views\RegimeRobustnessView.tsx.bak                                       41     const unsubscribe = tradingSock...
+C:\volsim-dev\apps\frontend\components\views\SystemTelemetryView.tsx                                            51             Real-time visual monito...
+C:\volsim-dev\apps\frontend\components\views\SystemTelemetryView.tsx                                           149               <span className="text...
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts                                                               5 export function useDataStream() {     
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts.backup                                                        4 import { tradingSocket } from "../l...
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts.backup                                                        7 export function useDataStream() {     
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts.backup                                                       16             "[DATA STREAM] Connecti...
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts.backup                                                       19         tradingSocket.connect("/ws/...
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts.backup                                                       21         const unsubscribe = trading...
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts.backup                                                       49                 "[DATA STREAM] Shar...
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts.bak                                                           4 import { tradingSocket } from "../l...
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts.bak                                                           7 export function useDataStream() {     
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts.bak                                                          16             "[DATA STREAM] Connecti...
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts.bak                                                          19         tradingSocket.connect("/ws/...
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts.bak                                                          21         const unsubscribe = trading...
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts.bak                                                          49                 "[DATA STREAM] Shar...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                          5 type SocketStatus =                   
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                          9 export class TradingSocketManager {   
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         10     private socket: WebSocket | nul...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         13     private endpoint = "/ws/trading...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         22     connect(endpoint: string = "/ws...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         31             this.socket &&            
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         33                 this.socket.readySt...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         34                 this.socket.readySt...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         51         const socket = new WebSocke...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         53         this.socket = socket;         
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         55         socket.onopen = () => {       
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         56             if (this.socket !== soc...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         57                 socket.close();       
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         68                 __socket_status: "C...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         72         socket.onmessage = (event) ...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         73             if (this.socket !== soc...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         83                     "[VOLSIM] Inval...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         89         socket.onerror = (error) => { 
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         91                 "[VOLSIM] WebSocket...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         96         socket.onclose = () => {      
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         97             if (this.socket === soc...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                         98                 this.socket = null;   
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                        106                 __socket_status: "D...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                        176         const socket = this.socket;   
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                        178         this.socket = null;           
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                        180         if (socket) {                 
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                        181             socket.close();           
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                        190 export const tradingSocket =          
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                                        191     new TradingSocketManager();       
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                   5 export class TradingSocketManager {   
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                   6     private socket: WebSocket | nul...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                  10     private endpoint = "/ws/trading...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                  21         endpoint: string = "/ws/tra...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                  27             this.socket &&            
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                  29                 this.socket.readySt...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                  30                 this.socket.readySt...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                  44         this.socket = new WebSocket(  
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                  48         this.socket.onopen = () => {  
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                  58                         __socket_st...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                  62                         "[VOLSIM] S...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                  69         this.socket.onmessage = (ev...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                  85                     "[VOLSIM] Inval...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                  91         this.socket.onerror = (erro...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                  93                 "[VOLSIM] WebSocket...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                  98         this.socket.onclose = () => { 
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                 103             this.socket = null;       
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                 108                         __socket_st...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                 168         if (this.socket) {            
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                 169             this.socket.close();      
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                 172         this.socket = null;           
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                 176 export const tradingSocket =          
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                                                 177     new TradingSocketManager();       
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                      5 export class TradingSocketManager {   
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                      6     private socket: WebSocket | nul...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                     10     private endpoint = "/ws/trading...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                     21         endpoint: string = "/ws/tra...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                     27             this.socket &&            
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                     29                 this.socket.readySt...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                     30                 this.socket.readySt...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                     44         this.socket = new WebSocket(  
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                     48         this.socket.onopen = () => {  
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                     58                         __socket_st...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                     62                         "[VOLSIM] S...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                     69         this.socket.onmessage = (ev...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                     85                     "[VOLSIM] Inval...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                     91         this.socket.onerror = (erro...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                     93                 "[VOLSIM] WebSocket...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                     98         this.socket.onclose = () => { 
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                    103             this.socket = null;       
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                    108                         __socket_st...
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                    168         if (this.socket) {            
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                    169             this.socket.close();      
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                    172         this.socket = null;           
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                    176 export const tradingSocket =          
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                                    177     new TradingSocketManager();       
+C:\volsim-dev\apps\frontend\src\components\RiskManagementPanel.tsx.backup                                        4 import { tradingSocket } from "../....
+C:\volsim-dev\apps\frontend\src\components\RiskManagementPanel.tsx.backup                                       32             "[RISK PANEL] Connectin...
+C:\volsim-dev\apps\frontend\src\components\RiskManagementPanel.tsx.backup                                       35         tradingSocket.connect("/ws/...
+C:\volsim-dev\apps\frontend\src\components\RiskManagementPanel.tsx.backup                                       37         const unsubscribe = trading...
+C:\volsim-dev\apps\frontend\src\components\RiskManagementPanel.tsx.backup                                       78                 "[RISK PANEL] Share...
+C:\volsim-dev\apps\frontend\src\components\RiskManagementPanel.tsx.bak                                           4 import { tradingSocket } from "../....
+C:\volsim-dev\apps\frontend\src\components\RiskManagementPanel.tsx.bak                                          32             "[RISK PANEL] Connectin...
+C:\volsim-dev\apps\frontend\src\components\RiskManagementPanel.tsx.bak                                          35         tradingSocket.connect("/ws/...
+C:\volsim-dev\apps\frontend\src\components\RiskManagementPanel.tsx.bak                                          37         const unsubscribe = trading...
+C:\volsim-dev\apps\frontend\src\components\RiskManagementPanel.tsx.bak                                          78                 "[RISK PANEL] Share...
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.before-socket-manager.txt                            11 import { tradingSocket } from "../....
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.before-socket-manager.txt                            22 export const GlobalStateProvider = ({ 
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.before-socket-manager.txt                            39             tradingSocket.subscribe(  
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.before-socket-manager.txt                            50         tradingSocket.connect(        
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.before-socket-manager.txt                            51             "/ws/trading-state"       
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                                  10 import { tradingSocket } from "../....
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                                  22 export const GlobalStateProvider = ({ 
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                                  35             "[GLOBAL STATE] Startin...
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                                  38         const unsubscribe = trading...
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                                  44                 if (payload.__socke...
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                                  46                         "[GLOBAL ST...
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                                  53                 if (payload.__socke...
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                                  55                         "[GLOBAL ST...
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                                  74         tradingSocket.connect("/ws/...
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                                  80                 "[GLOBAL STATE] Sha...
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.backup                                           10 import { tradingSocket } from "../....
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.backup                                           22 export const GlobalStateProvider = ({ 
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.backup                                           35             "[GLOBAL STATE] Connect...
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.backup                                           38         const unsubscribe = trading...
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.backup                                           52         tradingSocket.connect(        
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.backup                                           53             "/ws/trading-state"       
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.backup                                           60                 "[GLOBAL STATE] Sha...
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.bak                                              10 import { tradingSocket } from "../....
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.bak                                              22 export const GlobalStateProvider = ({ 
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.bak                                              35             "[GLOBAL STATE] Connect...
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.bak                                              38         const unsubscribe = trading...
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.bak                                              52         tradingSocket.connect(        
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.bak                                              53             "/ws/trading-state"       
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.bak                                              60                 "[GLOBAL STATE] Sha...
+C:\volsim-dev\apps\frontend\src\pages\SystemTelemetry.jsx                                                       55             Real-time visual monito...
+C:\volsim-dev\apps\frontend\src\pages\SystemTelemetry.jsx                                                      164               <span className="text...
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                                           183             // Socket lifecycle eve...
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                                           184             // by useDataStream.      
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                                           185             if (payload.__socket_st...
+
+
+
+============================================================
+3. STATE INVENTORY
+============================================================
+
+Path                                                                                             LineNumber Line                                         
+----                                                                                             ---------- ----                                         
+C:\volsim-dev\apps\frontend\fix_global_context_import.py                                                  3 path = Path("src/context/GlobalStateContex...
+C:\volsim-dev\apps\frontend\fix_global_context_import.py                                                 14 print("GlobalStateContext import path fixed")
+C:\volsim-dev\apps\frontend\package-lock.json                                                            17         "zustand": "^5.0.14"                 
+C:\volsim-dev\apps\frontend\package-lock.json                                                          1747     "node_modules/zustand": {                
+C:\volsim-dev\apps\frontend\package-lock.json                                                          1749       "resolved": "https://registry.npmjs....
+C:\volsim-dev\apps\frontend\package.json                                                                 17     "zustand": "^5.0.14"                     
+C:\volsim-dev\apps\frontend\patch_global_socket.py                                                        3 path = Path("context/GlobalStateContext.tsx")
+C:\volsim-dev\apps\frontend\patch_global_socket.py                                                       27 print("GlobalStateContext patched")          
+C:\volsim-dev\apps\frontend\tsconfig.tsbuildinfo                                                          1 {"fileNames":["./node_modules/typescript/l...
+C:\volsim-dev\apps\frontend\app\layout.tsx                                                                3 import { GlobalStateProvider } from "../sr...
+C:\volsim-dev\apps\frontend\app\layout.tsx                                                               13                 <GlobalStateProvider>        
+C:\volsim-dev\apps\frontend\app\layout.tsx                                                               15                 </GlobalStateProvider>       
+C:\volsim-dev\apps\frontend\app\page.tsx.backup                                                           9 import { useDataStream } from '../hooks/us...
+C:\volsim-dev\apps\frontend\app\page.tsx.backup                                                          33   useDataStream();                           
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\hooks\useDataStream.ts                      7 export function useDataStream() {            
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\context\GlobalStateContext.tsx          4     createContext,                           
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\context\GlobalStateContext.tsx          5     useContext,                              
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\context\GlobalStateContext.tsx         13 type GlobalStateContextValue = {             
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\context\GlobalStateContext.tsx         17 const GlobalStateContext =                   
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\context\GlobalStateContext.tsx         18     createContext<GlobalStateContextValue>({ 
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\context\GlobalStateContext.tsx         22 export const GlobalStateProvider = ({        
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\context\GlobalStateContext.tsx         66         <GlobalStateContext.Provider         
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\context\GlobalStateContext.tsx         72         </GlobalStateContext.Provider>       
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\src\context\GlobalStateContext.tsx         77     useContext(GlobalStateContext);          
+C:\volsim-dev\apps\frontend\backup_ws_migration\GlobalStateContext.tsx                                    5 import React, { createContext, useContext,...
+C:\volsim-dev\apps\frontend\backup_ws_migration\GlobalStateContext.tsx                                    7 const GlobalStateContext = createContext<a...
+C:\volsim-dev\apps\frontend\backup_ws_migration\GlobalStateContext.tsx                                   10 export const GlobalStateProvider = ({ chil...
+C:\volsim-dev\apps\frontend\backup_ws_migration\GlobalStateContext.tsx                                   31     <GlobalStateContext.Provider value={{ ...
+C:\volsim-dev\apps\frontend\backup_ws_migration\GlobalStateContext.tsx                                   33     </GlobalStateContext.Provider>           
+C:\volsim-dev\apps\frontend\backup_ws_migration\GlobalStateContext.tsx                                   37 export const useGlobalState = () => useCon...
+C:\volsim-dev\apps\frontend\components\SocketProvider.tsx                                                 4   // SocketProvider is deprecated. Use Glo...
+C:\volsim-dev\apps\frontend\components\views\ImmutableVaultView.tsx                                      30     // This view should consume the centra...
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts                                                        5 export function useDataStream() {            
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts.backup                                                 7 export function useDataStream() {            
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts.bak                                                    7 export function useDataStream() {            
+C:\volsim-dev\apps\frontend\src\app\page.tsx.legacy                                                       6 import { useGlobalState } from "../context...
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.before-socket-manager.txt                      4     createContext,                           
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.before-socket-manager.txt                      5     useContext,                              
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.before-socket-manager.txt                     13 type GlobalStateContextValue = {             
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.before-socket-manager.txt                     17 const GlobalStateContext =                   
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.before-socket-manager.txt                     18     createContext<GlobalStateContextValue>({ 
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.before-socket-manager.txt                     22 export const GlobalStateProvider = ({        
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.before-socket-manager.txt                     63         <GlobalStateContext.Provider         
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.before-socket-manager.txt                     69         </GlobalStateContext.Provider>       
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.before-socket-manager.txt                     74     useContext(GlobalStateContext);          
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                            4     createContext,                           
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                            5     useContext,                              
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                           13 type GlobalStateContextValue = {             
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                           17 const GlobalStateContext =                   
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                           18     createContext<GlobalStateContextValue>({ 
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                           22 export const GlobalStateProvider = ({        
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                           86         <GlobalStateContext.Provider         
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                           92         </GlobalStateContext.Provider>       
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                                           97     useContext(GlobalStateContext);          
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.backup                                     4     createContext,                           
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.backup                                     5     useContext,                              
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.backup                                    13 type GlobalStateContextValue = {             
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.backup                                    17 const GlobalStateContext =                   
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.backup                                    18     createContext<GlobalStateContextValue>({ 
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.backup                                    22 export const GlobalStateProvider = ({        
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.backup                                    66         <GlobalStateContext.Provider         
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.backup                                    72         </GlobalStateContext.Provider>       
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.backup                                    77     useContext(GlobalStateContext);          
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.bak                                        4     createContext,                           
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.bak                                        5     useContext,                              
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.bak                                       13 type GlobalStateContextValue = {             
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.bak                                       17 const GlobalStateContext =                   
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.bak                                       18     createContext<GlobalStateContextValue>({ 
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.bak                                       22 export const GlobalStateProvider = ({        
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.bak                                       66         <GlobalStateContext.Provider         
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.bak                                       72         </GlobalStateContext.Provider>       
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.bak                                       77     useContext(GlobalStateContext);          
+C:\volsim-dev\apps\frontend\store\TradingStateInterface.txt                                               3 import { create } from "zustand";            
+C:\volsim-dev\apps\frontend\store\useTradingStore.active-backup.txt                                       3 import { create } from "zustand";            
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup.backup.txt                                       3 import { create } from "zustand";            
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_global_state_fix.backup.txt               3 import { create } from "zustand";            
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_state_fix.backup.txt                      3 import { create } from "zustand";            
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-interface-repair.txt                             3 import { create } from "zustand";            
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-structural-repair.txt                            3 import { create } from "zustand";            
+C:\volsim-dev\apps\frontend\store\useTradingStore.before_cleanup.backup.txt                               3 import { create } from "zustand";            
+C:\volsim-dev\apps\frontend\store\useTradingStore.corrupted-backup.backup.txt                             3 import { create } from "zustand";            
+C:\volsim-dev\apps\frontend\store\useTradingStore.pre-repair.backup.txt                                   3 import { create } from "zustand";            
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                                      1 import { create } from "zustand";            
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                                    184             // by useDataStream.             
+
+
+
+============================================================
+4. VAULT INVENTORY
+============================================================
+
+Path                                                                                                    LineNumber Line                                  
+----                                                                                                    ---------- ----                                  
+C:\volsim-dev\apps\frontend\tsconfig.tsbuildinfo                                                                 1 {"fileNames":["./node_modules/types...
+C:\volsim-dev\apps\frontend\app\page.tsx                                                                        22 import ImmutableVaultView from '../...
+C:\volsim-dev\apps\frontend\app\page.tsx                                                                       165         {activeTab === "vault" && <...
+C:\volsim-dev\apps\frontend\app\page.tsx.backup                                                                 23 import ImmutableVault from '../src/...
+C:\volsim-dev\apps\frontend\app\page.tsx.backup                                                                118         {activeTab === "vault" && <...
+C:\volsim-dev\apps\frontend\backup_socket_fix_20260820_174847\components\views\RegimeRobustnessView.tsx        137                 <td className="p-3 ...
+C:\volsim-dev\apps\frontend\backup_ws_migration\ImmutableVaultView.tsx                                          10   equity_percentage: number;          
+C:\volsim-dev\apps\frontend\backup_ws_migration\ImmutableVaultView.tsx                                          17 export default function ImmutableVa...
+C:\volsim-dev\apps\frontend\backup_ws_migration\ImmutableVaultView.tsx                                          21     equity_percentage: 68.22,         
+C:\volsim-dev\apps\frontend\backup_ws_migration\ImmutableVaultView.tsx                                          22     next_tier_allocation: "50% / 50%",
+C:\volsim-dev\apps\frontend\backup_ws_migration\ImmutableVaultView.tsx                                          78           <div className="text-[10p...
+C:\volsim-dev\apps\frontend\backup_ws_migration\ImmutableVaultView.tsx                                          85           <span>Trading Capital Rat...
+C:\volsim-dev\apps\frontend\backup_ws_migration\ImmutableVaultView.tsx                                          86           <span>Vault Reserve Ratio...
+C:\volsim-dev\apps\frontend\backup_ws_migration\ImmutableVaultView.tsx                                          89           <div className="bg-white ...
+C:\volsim-dev\apps\frontend\backup_ws_migration\ImmutableVaultView.tsx                                          90           <div className="bg-emeral...
+C:\volsim-dev\apps\frontend\backup_ws_migration\RegimeRobustnessView.tsx                                       103                 <td className="p-3 ...
+C:\volsim-dev\apps\frontend\components\views\ImmutableVaultView.tsx                                              9   equity_percentage: number;          
+C:\volsim-dev\apps\frontend\components\views\ImmutableVaultView.tsx                                             16 export default function ImmutableVa...
+C:\volsim-dev\apps\frontend\components\views\ImmutableVaultView.tsx                                             20     equity_percentage: 68.22,         
+C:\volsim-dev\apps\frontend\components\views\ImmutableVaultView.tsx                                             21     next_tier_allocation: "50% / 50%",
+C:\volsim-dev\apps\frontend\components\views\ImmutableVaultView.tsx                                            101             // Equity Capital Weigh...
+C:\volsim-dev\apps\frontend\components\views\ImmutableVaultView.tsx                                            109             Trading Capital Ratio B...
+C:\volsim-dev\apps\frontend\components\views\ImmutableVaultView.tsx                                            114             {(100 - data.equity_per...
+C:\volsim-dev\apps\frontend\components\views\ImmutableVaultView.tsx                                            121             style={{ width: `${data...
+C:\volsim-dev\apps\frontend\components\views\ImmutableVaultView.tsx                                            126             style={{ width: `${100 ...
+C:\volsim-dev\apps\frontend\components\views\RegimeRobustnessView.tsx                                          185                                    ...
+C:\volsim-dev\apps\frontend\components\views\RegimeRobustnessView.tsx.backup                                   137                 <td className="p-3 ...
+C:\volsim-dev\apps\frontend\components\views\RegimeRobustnessView.tsx.bak                                      137                 <td className="p-3 ...
+
+
+
+============================================================
+5. HARDCODED DATA INVENTORY
+============================================================
+
+Path                                                                                      LineNumber Line                                                
+----                                                                                      ---------- ----                                                
+C:\volsim-dev\apps\frontend\backup_ws_migration\ImmutableVaultView.tsx                             8   trading_equity: number;                           
+C:\volsim-dev\apps\frontend\backup_ws_migration\ImmutableVaultView.tsx                             9   vault_balance: number;                            
+C:\volsim-dev\apps\frontend\backup_ws_migration\ImmutableVaultView.tsx                            19     trading_equity: 1074.44,                        
+C:\volsim-dev\apps\frontend\backup_ws_migration\ImmutableVaultView.tsx                            20     vault_balance: 500.00,                          
+C:\volsim-dev\apps\frontend\components\views\ImmutableVaultView.tsx                                7   trading_equity: number;                           
+C:\volsim-dev\apps\frontend\components\views\ImmutableVaultView.tsx                                8   vault_balance: number;                            
+C:\volsim-dev\apps\frontend\components\views\ImmutableVaultView.tsx                               18     trading_equity: 1074.44,                        
+C:\volsim-dev\apps\frontend\components\views\ImmutableVaultView.tsx                               19     vault_balance: 500.0,                           
+C:\volsim-dev\apps\frontend\components\views\MainChartView.corrupted_20260828_163957.tsx          55     profit: number;                                 
+C:\volsim-dev\apps\frontend\components\views\MainChartView.tsx                                    24   basePrice: number;                                
+C:\volsim-dev\apps\frontend\components\views\MainChartView.tsx                                    35     basePrice: 4167.50 // Updated to recent 2026 ...
+C:\volsim-dev\apps\frontend\components\views\MainChartView.tsx                                    44     basePrice: 172450.00                            
+C:\volsim-dev\apps\frontend\components\views\MainChartView.tsx                                    53     basePrice: 4181.44                              
+C:\volsim-dev\apps\frontend\components\views\MarketOverviewView.tsx                               10   basePrice: number;                                
+C:\volsim-dev\apps\frontend\components\views\MarketOverviewView.tsx                               15   bid: number;                                      
+C:\volsim-dev\apps\frontend\components\views\MarketOverviewView.tsx                               16   ask: number;                                      
+C:\volsim-dev\apps\frontend\components\views\MarketOverviewView.tsx                               24     basePrice: 4165.50,                             
+C:\volsim-dev\apps\frontend\components\views\MarketOverviewView.tsx                               29     bid: 4165.50,                                   
+C:\volsim-dev\apps\frontend\components\views\MarketOverviewView.tsx                               30     ask: 4165.62                                    
+C:\volsim-dev\apps\frontend\components\views\MarketOverviewView.tsx                               36     basePrice: 4181.44,                             
+C:\volsim-dev\apps\frontend\components\views\MarketOverviewView.tsx                               41     bid: 4181.44,                                   
+C:\volsim-dev\apps\frontend\components\views\MarketOverviewView.tsx                               42     ask: 4181.79                                    
+C:\volsim-dev\apps\frontend\components\views\MarketOverviewView.tsx                               48     basePrice: 172450.00,                           
+C:\volsim-dev\apps\frontend\components\views\MarketOverviewView.tsx                               53     bid: 172450.00,                                 
+C:\volsim-dev\apps\frontend\components\views\MarketOverviewView.tsx                               54     ask: 172454.80                                  
+C:\volsim-dev\apps\frontend\components\views\MarketOverviewView.tsx                               83             bid: nextBid,                           
+C:\volsim-dev\apps\frontend\components\views\MarketOverviewView.tsx                               84             ask: nextAsk,                           
+C:\volsim-dev\apps\frontend\components\views\OrderBookView.tsx                                     9   basePrice: number;                                
+C:\volsim-dev\apps\frontend\components\views\OrderBookView.tsx                                    21     basePrice: 4165.50,                             
+C:\volsim-dev\apps\frontend\components\views\OrderBookView.tsx                                    31     basePrice: 172450.00,                           
+C:\volsim-dev\apps\frontend\components\views\OrderBookView.tsx                                    41     basePrice: 4181.44,                             
+C:\volsim-dev\apps\frontend\components\views\PerformanceAnalyticsView.tsx                         55     profit: number;                                 
+C:\volsim-dev\apps\frontend\components\views\SystemTelemetryView.tsx                               8   const currentBalance = useTradingStore((state: ...
+C:\volsim-dev\apps\frontend\components\views\TradeJournalView.tsx                                  9   profit: number;                                   
+C:\volsim-dev\apps\frontend\components\views\TradeJournalView.tsx.before_api_response_fix          9   profit: number;                                   
+C:\volsim-dev\apps\frontend\lib\math\statsEngine.ts                                               20   equity: number;                                   
+C:\volsim-dev\apps\frontend\lib\math\statsEngine.ts                                               28   totalNetProfit: number;                           
+C:\volsim-dev\apps\frontend\lib\math\statsEngine.ts                                               29   grossProfit: number;                              
+C:\volsim-dev\apps\frontend\lib\math\statsEngine.ts                                               51   startingBalance: number = 1000,                   
+C:\volsim-dev\apps\frontend\lib\math\statsEngine.ts                                               86   const profitFactor = grossLoss === 0 ? grossPro...
+C:\volsim-dev\apps\frontend\lib\math\statsEngine.ts                                              101   const recoveryFactor = maxDrawdownAbsolute === ...
+C:\volsim-dev\apps\frontend\lib\math\statsEngine.ts                                              122     winRate: 0, profitFactor: 0, riskRewardRatio:...
+C:\volsim-dev\apps\frontend\lib\math\statsEngine.ts                                              123     grossProfit: 0, grossLoss: 0, maxDrawdownAbso...
+C:\volsim-dev\apps\frontend\src\hooks\useTelemetry.ts                                              5     account_state: { balance: 0, equity: 0, free_...
+C:\volsim-dev\apps\frontend\src\hooks\useTelemetry.ts                                              6     market_state: { bid: 0, ask: 0, spread: 0, ma...
+C:\volsim-dev\apps\frontend\src\hooks\useTelemetry.ts                                              8     position_state: { open_positions: [], total_e...
+C:\volsim-dev\apps\frontend\src\hooks\useTelemetry.ts                                              9     portfolio_state: { total_balance: 0, total_eq...
+C:\volsim-dev\apps\frontend\src\hooks\useTelemetry.ts                                             12     vault_state: { vault_balance: 0, blockchain_s...
+C:\volsim-dev\apps\frontend\src\pages\SystemTelemetry.jsx                                          8   const currentBalance = useTradingStore((state) ...
+C:\volsim-dev\apps\frontend\store\TradingStateInterface.txt                                       20     balance:number;                                 
+C:\volsim-dev\apps\frontend\store\TradingStateInterface.txt                                       21     equity:number;                                  
+C:\volsim-dev\apps\frontend\store\TradingStateInterface.txt                                       39     totalNetProfit:number;                          
+C:\volsim-dev\apps\frontend\store\TradingStateInterface.txt                                       44     positions:any[];                                
+C:\volsim-dev\apps\frontend\store\updateTradingState.txt                                          26         balance:                                    
+C:\volsim-dev\apps\frontend\store\updateTradingState.txt                                          30         equity:                                     
+C:\volsim-dev\apps\frontend\store\updateTradingState.txt                                          50         positions:                                  
+C:\volsim-dev\apps\frontend\store\useTradingStore.active-backup.txt                               23     balance:number;                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.active-backup.txt                               24     equity:number;                                  
+C:\volsim-dev\apps\frontend\store\useTradingStore.active-backup.txt                               47     totalNetProfit:number;                          
+C:\volsim-dev\apps\frontend\store\useTradingStore.active-backup.txt                               54     positions:any[];                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.active-backup.txt                              102         balance:                                    
+C:\volsim-dev\apps\frontend\store\useTradingStore.active-backup.txt                              106         equity:                                     
+C:\volsim-dev\apps\frontend\store\useTradingStore.active-backup.txt                              126         positions:                                  
+C:\volsim-dev\apps\frontend\store\useTradingStore.active-backup.txt                              208     balance:0,                                      
+C:\volsim-dev\apps\frontend\store\useTradingStore.active-backup.txt                              209     equity:0,                                       
+C:\volsim-dev\apps\frontend\store\useTradingStore.active-backup.txt                              232     totalNetProfit:0,                               
+C:\volsim-dev\apps\frontend\store\useTradingStore.active-backup.txt                              239     positions:[],                                   
+C:\volsim-dev\apps\frontend\store\useTradingStore.active-backup.txt                              296             balance:                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.active-backup.txt                              300             equity:                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.active-backup.txt                              322             positions:                              
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup.backup.txt                               23     balance:number;                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup.backup.txt                               24     equity:number;                                  
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup.backup.txt                               47     totalNetProfit:number;                          
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup.backup.txt                               54     positions:any[];                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup.backup.txt                               97     balance:0,                                      
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup.backup.txt                               98     equity:0,                                       
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup.backup.txt                              121     totalNetProfit:0,                               
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup.backup.txt                              128     positions:[],                                   
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup.backup.txt                              185             balance:                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup.backup.txt                              189             equity:                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup.backup.txt                              211             positions:                              
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_global_state_fix.backu...         22     balance:number;                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_global_state_fix.backu...         23     equity:number;                                  
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_global_state_fix.backu...         41     totalNetProfit:number;                          
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_global_state_fix.backu...         46     positions:any[];                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_global_state_fix.backu...         79     balance:0,                                      
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_global_state_fix.backu...         80     equity:0,                                       
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_global_state_fix.backu...        102     totalNetProfit:0,                               
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_global_state_fix.backu...        109     positions:[],                                   
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_global_state_fix.backu...        136             balance:                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_global_state_fix.backu...        140             equity:                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_global_state_fix.backu...        148             positions:                              
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_state_fix.backup.txt              22     balance:number;                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_state_fix.backup.txt              23     equity:number;                                  
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_state_fix.backup.txt              41     totalNetProfit:number;                          
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_state_fix.backup.txt              46     positions:any[];                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_state_fix.backup.txt              79     balance:0,                                      
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_state_fix.backup.txt              80     equity:0,                                       
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_state_fix.backup.txt             102     totalNetProfit:0,                               
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_state_fix.backup.txt             109     positions:[],                                   
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_state_fix.backup.txt             136             balance:                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_state_fix.backup.txt             140             equity:                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_state_fix.backup.txt             148             positions:                              
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-interface-repair.txt                     23     balance:number;                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-interface-repair.txt                     24     equity:number;                                  
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-interface-repair.txt                     47     totalNetProfit:number;                          
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-interface-repair.txt                     54     positions:any[];                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-interface-repair.txt                     93     balance:0,                                      
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-interface-repair.txt                     94     equity:0,                                       
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-interface-repair.txt                    117     totalNetProfit:0,                               
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-interface-repair.txt                    124     positions:[],                                   
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-interface-repair.txt                    181             balance:                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-interface-repair.txt                    185             equity:                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-interface-repair.txt                    207             positions:                              
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-structural-repair.txt                    23     balance:number;                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-structural-repair.txt                    24     equity:number;                                  
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-structural-repair.txt                    47     totalNetProfit:number;                          
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-structural-repair.txt                    54     positions:any[];                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-structural-repair.txt                   102         balance:                                    
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-structural-repair.txt                   106         equity:                                     
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-structural-repair.txt                   126         positions:                                  
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-structural-repair.txt                   208     balance:0,                                      
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-structural-repair.txt                   209     equity:0,                                       
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-structural-repair.txt                   232     totalNetProfit:0,                               
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-structural-repair.txt                   239     positions:[],                                   
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-structural-repair.txt                   296             balance:                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-structural-repair.txt                   300             equity:                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-structural-repair.txt                   322             positions:                              
+C:\volsim-dev\apps\frontend\store\useTradingStore.before_cleanup.backup.txt                       23     balance:number;                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.before_cleanup.backup.txt                       24     equity:number;                                  
+C:\volsim-dev\apps\frontend\store\useTradingStore.before_cleanup.backup.txt                       47     totalNetProfit:number;                          
+C:\volsim-dev\apps\frontend\store\useTradingStore.before_cleanup.backup.txt                       54     positions:any[];                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.before_cleanup.backup.txt                      101         balance:                                    
+C:\volsim-dev\apps\frontend\store\useTradingStore.before_cleanup.backup.txt                      105         equity:                                     
+C:\volsim-dev\apps\frontend\store\useTradingStore.before_cleanup.backup.txt                      125         positions:                                  
+C:\volsim-dev\apps\frontend\store\useTradingStore.before_cleanup.backup.txt                      208     balance:0,                                      
+C:\volsim-dev\apps\frontend\store\useTradingStore.before_cleanup.backup.txt                      209     equity:0,                                       
+C:\volsim-dev\apps\frontend\store\useTradingStore.before_cleanup.backup.txt                      232     totalNetProfit:0,                               
+C:\volsim-dev\apps\frontend\store\useTradingStore.before_cleanup.backup.txt                      239     positions:[],                                   
+C:\volsim-dev\apps\frontend\store\useTradingStore.before_cleanup.backup.txt                      296             balance:                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.before_cleanup.backup.txt                      300             equity:                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.before_cleanup.backup.txt                      322             positions:                              
+C:\volsim-dev\apps\frontend\store\useTradingStore.corrupted-backup.backup.txt                     23     balance:number;                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.corrupted-backup.backup.txt                     24     equity:number;                                  
+C:\volsim-dev\apps\frontend\store\useTradingStore.corrupted-backup.backup.txt                     47     totalNetProfit:number;                          
+C:\volsim-dev\apps\frontend\store\useTradingStore.corrupted-backup.backup.txt                     54     positions:any[];                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.corrupted-backup.backup.txt                    103         balance:                                    
+C:\volsim-dev\apps\frontend\store\useTradingStore.corrupted-backup.backup.txt                    107         equity:                                     
+C:\volsim-dev\apps\frontend\store\useTradingStore.corrupted-backup.backup.txt                    127         positions:                                  
+C:\volsim-dev\apps\frontend\store\useTradingStore.corrupted-backup.backup.txt                    210     balance:0,                                      
+C:\volsim-dev\apps\frontend\store\useTradingStore.corrupted-backup.backup.txt                    211     equity:0,                                       
+C:\volsim-dev\apps\frontend\store\useTradingStore.corrupted-backup.backup.txt                    234     totalNetProfit:0,                               
+C:\volsim-dev\apps\frontend\store\useTradingStore.corrupted-backup.backup.txt                    241     positions:[],                                   
+C:\volsim-dev\apps\frontend\store\useTradingStore.corrupted-backup.backup.txt                    298             balance:                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.corrupted-backup.backup.txt                    302             equity:                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.corrupted-backup.backup.txt                    324             positions:                              
+C:\volsim-dev\apps\frontend\store\useTradingStore.pre-repair.backup.txt                           23     balance:number;                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.pre-repair.backup.txt                           24     equity:number;                                  
+C:\volsim-dev\apps\frontend\store\useTradingStore.pre-repair.backup.txt                           47     totalNetProfit:number;                          
+C:\volsim-dev\apps\frontend\store\useTradingStore.pre-repair.backup.txt                           54     positions:any[];                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.pre-repair.backup.txt                          103         balance:                                    
+C:\volsim-dev\apps\frontend\store\useTradingStore.pre-repair.backup.txt                          107         equity:                                     
+C:\volsim-dev\apps\frontend\store\useTradingStore.pre-repair.backup.txt                          127         positions:                                  
+C:\volsim-dev\apps\frontend\store\useTradingStore.pre-repair.backup.txt                          210     balance:0,                                      
+C:\volsim-dev\apps\frontend\store\useTradingStore.pre-repair.backup.txt                          211     equity:0,                                       
+C:\volsim-dev\apps\frontend\store\useTradingStore.pre-repair.backup.txt                          234     totalNetProfit:0,                               
+C:\volsim-dev\apps\frontend\store\useTradingStore.pre-repair.backup.txt                          241     positions:[],                                   
+C:\volsim-dev\apps\frontend\store\useTradingStore.pre-repair.backup.txt                          298             balance:                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.pre-repair.backup.txt                          302             equity:                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.pre-repair.backup.txt                          324             positions:                              
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                              27     balance: number;                                
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                              28     equity: number;                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                              50     totalNetProfit: number;                         
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                              54     positions: TradingPosition[];                   
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                             131         balance: 0,                                 
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                             132         equity: 0,                                  
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                             154         totalNetProfit: 0,                          
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                             158         positions: [],                              
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                             229                 balance: numberOrZero(              
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                             233                 equity: numberOrZero(               
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                             250                 positions: arrayValue<TradingPosi...
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                             312                 totalNetProfit: numberOrZero(       
+C:\volsim-dev\apps\frontend\_recovery_mainchart_20260828\MainChartView.current.tsx                24   basePrice: number;                                
+C:\volsim-dev\apps\frontend\_recovery_mainchart_20260828\MainChartView.current.tsx                35     basePrice: 4167.50 // Updated to recent 2026 ...
+C:\volsim-dev\apps\frontend\_recovery_mainchart_20260828\MainChartView.current.tsx                44     basePrice: 172450.00                            
+C:\volsim-dev\apps\frontend\_recovery_mainchart_20260828\MainChartView.current.tsx                53     basePrice: 4181.44                              
+C:\volsim-dev\apps\frontend\_recovery_mainchart_20260828\MainChartView.recovered.tsx              24   basePrice: number;                                
+C:\volsim-dev\apps\frontend\_recovery_mainchart_20260828\MainChartView.recovered.tsx              35     basePrice: 4167.50 // Updated to recent 2026 ...
+C:\volsim-dev\apps\frontend\_recovery_mainchart_20260828\MainChartView.recovered.tsx              44     basePrice: 172450.00                            
+C:\volsim-dev\apps\frontend\_recovery_mainchart_20260828\MainChartView.recovered.tsx              53     basePrice: 4181.44                              
+C:\volsim-dev\apps\frontend\_step3_11_backup_20260828_161528\MainChartView.tsx                    24   basePrice: number;                                
+C:\volsim-dev\apps\frontend\_step3_11_backup_20260828_161528\MainChartView.tsx                    35     basePrice: 4167.50 // Updated to recent 2026 ...
+C:\volsim-dev\apps\frontend\_step3_11_backup_20260828_161528\MainChartView.tsx                    44     basePrice: 172450.00                            
+C:\volsim-dev\apps\frontend\_step3_11_backup_20260828_161528\MainChartView.tsx                    53     basePrice: 4181.44                              
+C:\volsim-dev\apps\frontend\_step3_11_backup_20260828_161528\PerformanceAnalyticsView.tsx         54     profit: number;                                 
+C:\volsim-dev\apps\frontend\_step3_16A_backup_20260828_162506\MainChartView.tsx                   55     profit: number;                                 
+
+
+
+============================================================
+6. SETTINGS INVENTORY
+============================================================
+
+Path                                                                               LineNumber Line                                                       
+----                                                                               ---------- ----                                                       
+C:\volsim-dev\apps\frontend\tsconfig.tsbuildinfo                                            1 {"fileNames":["./node_modules/typescript/lib/lib.es5.d.t...
+C:\volsim-dev\apps\frontend\app\page.tsx                                                    5   TrendingUp, Wallet, Cpu, Activity, Settings as Setting...
+C:\volsim-dev\apps\frontend\app\page.tsx                                                   24 import SystemSettingsView from '../components/views/Syst...
+C:\volsim-dev\apps\frontend\app\page.tsx                                                   50     { id: "settings", name: "System Settings", icon: Set...
+C:\volsim-dev\apps\frontend\app\page.tsx                                                  167         {activeTab === "settings" && <SystemSettingsView...
+C:\volsim-dev\apps\frontend\app\page.tsx.backup                                             5   TrendingUp, Wallet, Cpu, Activity, Settings as Setting...
+C:\volsim-dev\apps\frontend\app\page.tsx.backup                                            25 import SystemSettingsView from '../components/views/Syst...
+C:\volsim-dev\apps\frontend\app\page.tsx.backup                                            48     { id: "settings", name: "System Settings", icon: Set...
+C:\volsim-dev\apps\frontend\app\page.tsx.backup                                           120         {activeTab === "settings" && <SystemSettingsView...
+C:\volsim-dev\apps\frontend\components\views\MainChartView.tsx                             12   Settings,                                                
+C:\volsim-dev\apps\frontend\components\views\MainChartView.tsx                            326                 <Settings className="w-3.5 h-3.5 text-zi...
+C:\volsim-dev\apps\frontend\components\views\SystemSettingsView.tsx                         4 import { Settings, Sliders, Palette, Shield, Check } fro...
+C:\volsim-dev\apps\frontend\components\views\SystemSettingsView.tsx                         7 export default function SystemSettingsView() {             
+C:\volsim-dev\apps\frontend\components\views\SystemSettingsView.tsx                        13     pollingInterval: 100,                                  
+C:\volsim-dev\apps\frontend\components\views\SystemSettingsView.tsx                        14     maxSlippage: 0.5,                                      
+C:\volsim-dev\apps\frontend\components\views\SystemSettingsView.tsx                        28             <Settings className="w-5 h-5 text-emerald-50...
+C:\volsim-dev\apps\frontend\components\views\SystemSettingsView.tsx                        85               <input type="number" value={config.polling...
+C:\volsim-dev\apps\frontend\components\views\SystemSettingsView.tsx                        89               <input type="number" step="0.1" value={con...
+C:\volsim-dev\apps\frontend\_recovery_mainchart_20260828\MainChartView.current.tsx         12   Settings,                                                
+C:\volsim-dev\apps\frontend\_recovery_mainchart_20260828\MainChartView.current.tsx        326                 <Settings className="w-3.5 h-3.5 text-zi...
+C:\volsim-dev\apps\frontend\_recovery_mainchart_20260828\MainChartView.recovere...         12   Settings,                                                
+C:\volsim-dev\apps\frontend\_recovery_mainchart_20260828\MainChartView.recovere...        326                 <Settings className="w-3.5 h-3.5 text-zi...
+C:\volsim-dev\apps\frontend\_step3_11_backup_20260828_161528\MainChartView.tsx             12   Settings,                                                
+C:\volsim-dev\apps\frontend\_step3_11_backup_20260828_161528\MainChartView.tsx            326                 <Settings className="w-3.5 h-3.5 text-zi...
+
+
+
+============================================================
+7. ACTIVE FRONTEND SOURCE FILES
+============================================================
+
+FullName                                                                                   
+--------                                                                                   
+C:\volsim-dev\apps\frontend\.env.local                                                     
+C:\volsim-dev\apps\frontend\__pycache__\main.cpython-311.pyc                               
+C:\volsim-dev\apps\frontend\_step3_11_backup_20260828_161528\MainChartView.tsx             
+C:\volsim-dev\apps\frontend\_step3_11_backup_20260828_161528\PerformanceAnalyticsView.tsx  
+C:\volsim-dev\apps\frontend\_step3_16A_backup_20260828_162506\MainChartView.tsx            
+C:\volsim-dev\apps\frontend\add_theme_type.py                                              
+C:\volsim-dev\apps\frontend\app\globals.css                                                
+C:\volsim-dev\apps\frontend\app\layout.tsx                                                 
+C:\volsim-dev\apps\frontend\app\page.tsx                                                   
+C:\volsim-dev\apps\frontend\clean_regime_file.py                                           
+C:\volsim-dev\apps\frontend\clean_risk_file.py                                             
+C:\volsim-dev\apps\frontend\components\ClientOnly.tsx                                      
+C:\volsim-dev\apps\frontend\components\SocketProvider.tsx                                  
+C:\volsim-dev\apps\frontend\components\views\CostAnalysisView.tsx                          
+C:\volsim-dev\apps\frontend\components\views\ImmutableVaultView.tsx                        
+C:\volsim-dev\apps\frontend\components\views\LivePositionsView.tsx                         
+C:\volsim-dev\apps\frontend\components\views\MainChartView.tsx                             
+C:\volsim-dev\apps\frontend\components\views\MarketOverviewView.tsx                        
+C:\volsim-dev\apps\frontend\components\views\OrderBookView.tsx                             
+C:\volsim-dev\apps\frontend\components\views\PerformanceAnalyticsView.tsx                  
+C:\volsim-dev\apps\frontend\components\views\PortfolioOverviewView.tsx                     
+C:\volsim-dev\apps\frontend\components\views\RegimeRobustnessView.tsx                      
+C:\volsim-dev\apps\frontend\components\views\RiskManagementView.tsx                        
+C:\volsim-dev\apps\frontend\components\views\SystemSettingsView.tsx                        
+C:\volsim-dev\apps\frontend\components\views\SystemTelemetryView.tsx                       
+C:\volsim-dev\apps\frontend\components\views\TradeJournalView.tsx                          
+C:\volsim-dev\apps\frontend\components\views\TradeJournalView.tsx.before_api_response_fix  
+C:\volsim-dev\apps\frontend\fix_global_context_import.py                                   
+C:\volsim-dev\apps\frontend\fix_page_client.py                                             
+C:\volsim-dev\apps\frontend\fix_page_client_import.py                                      
+C:\volsim-dev\apps\frontend\fix_regime_icons.py                                            
+C:\volsim-dev\apps\frontend\fix_risk_effect.py                                             
+C:\volsim-dev\apps\frontend\fix_risk_panel_jsx.py                                          
+C:\volsim-dev\apps\frontend\fix_tradejournal.py                                            
+C:\volsim-dev\apps\frontend\fix_tsconfig_backup.py                                         
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts                                         
+C:\volsim-dev\apps\frontend\lib\config.ts                                                  
+C:\volsim-dev\apps\frontend\lib\math\statsEngine.ts                                        
+C:\volsim-dev\apps\frontend\lib\TradingApiClient.ts                                        
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                    
+C:\volsim-dev\apps\frontend\main.py                                                        
+C:\volsim-dev\apps\frontend\migrate_regime_socket.py                                       
+C:\volsim-dev\apps\frontend\migrate_risk_panel.py                                          
+C:\volsim-dev\apps\frontend\next.config.mjs                                                
+C:\volsim-dev\apps\frontend\next-env.d.ts                                                  
+C:\volsim-dev\apps\frontend\package.json                                                   
+C:\volsim-dev\apps\frontend\package-lock.json                                              
+C:\volsim-dev\apps\frontend\patch_global_socket.py                                         
+C:\volsim-dev\apps\frontend\patch_risk_socket_usage.py                                     
+C:\volsim-dev\apps\frontend\patch_socket_compat.py                                         
+C:\volsim-dev\apps\frontend\postcss.config.js                                              
+C:\volsim-dev\apps\frontend\repair_regime_effect.py                                        
+C:\volsim-dev\apps\frontend\repair_regime_imports.py                                       
+C:\volsim-dev\apps\frontend\repair_risk_imports.py                                         
+C:\volsim-dev\apps\frontend\src\apiConfig.js                                               
+C:\volsim-dev\apps\frontend\src\app\api\proxy-telemetry\route.ts                           
+C:\volsim-dev\apps\frontend\src\app\page.tsx.legacy                                        
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.before-socket-manager.txt       
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                             
+C:\volsim-dev\apps\frontend\src\hooks\useTelemetry.ts                                      
+C:\volsim-dev\apps\frontend\src\pages\SystemTelemetry.jsx                                  
+C:\volsim-dev\apps\frontend\store\TradingStateInterface.txt                                
+C:\volsim-dev\apps\frontend\store\updateTradingState.txt                                   
+C:\volsim-dev\apps\frontend\store\useTradingStore.active-backup.txt                        
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup.backup.txt                        
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_global_state_fix.backup.txt
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_state_fix.backup.txt       
+C:\volsim-dev\apps\frontend\store\useTradingStore.before_cleanup.backup.txt                
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-interface-repair.txt              
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-structural-repair.txt             
+C:\volsim-dev\apps\frontend\store\useTradingStore.corrupted-backup.backup.txt              
+C:\volsim-dev\apps\frontend\store\useTradingStore.pre-repair.backup.txt                    
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                       
+C:\volsim-dev\apps\frontend\tailwind.config.js                                             
+C:\volsim-dev\apps\frontend\tsconfig.json                                                  
+C:\volsim-dev\apps\frontend\tsconfig.tsbuildinfo                                           
+C:\volsim-dev\apps\frontend\upgrade_socket_manager.py                                      
+C:\volsim-dev\apps\frontend\vercel.json                                                    
+
+
+
+
+============================================================
+8. ACTIVE FRONTEND VIEWS
+============================================================
+
+Name                                         FullName                                                                                 
+----                                         --------                                                                                 
+CostAnalysisView.tsx                         C:\volsim-dev\apps\frontend\components\views\CostAnalysisView.tsx                        
+ImmutableVaultView.tsx                       C:\volsim-dev\apps\frontend\components\views\ImmutableVaultView.tsx                      
+LivePositionsView.tsx                        C:\volsim-dev\apps\frontend\components\views\LivePositionsView.tsx                       
+MainChartView.tsx                            C:\volsim-dev\apps\frontend\components\views\MainChartView.tsx                           
+MarketOverviewView.tsx                       C:\volsim-dev\apps\frontend\components\views\MarketOverviewView.tsx                      
+OrderBookView.tsx                            C:\volsim-dev\apps\frontend\components\views\OrderBookView.tsx                           
+PerformanceAnalyticsView.tsx                 C:\volsim-dev\apps\frontend\components\views\PerformanceAnalyticsView.tsx                
+PortfolioOverviewView.tsx                    C:\volsim-dev\apps\frontend\components\views\PortfolioOverviewView.tsx                   
+RegimeRobustnessView.tsx                     C:\volsim-dev\apps\frontend\components\views\RegimeRobustnessView.tsx                    
+RiskManagementView.tsx                       C:\volsim-dev\apps\frontend\components\views\RiskManagementView.tsx                      
+SystemSettingsView.tsx                       C:\volsim-dev\apps\frontend\components\views\SystemSettingsView.tsx                      
+SystemTelemetryView.tsx                      C:\volsim-dev\apps\frontend\components\views\SystemTelemetryView.tsx                     
+TradeJournalView.tsx                         C:\volsim-dev\apps\frontend\components\views\TradeJournalView.tsx                        
+TradeJournalView.tsx.before_api_response_fix C:\volsim-dev\apps\frontend\components\views\TradeJournalView.tsx.before_api_response_fix
+
+
+
+
+============================================================
+9. ACTIVE STATE / SOCKET FILES
+============================================================
+
+FullName                                                                                   
+--------                                                                                   
+C:\volsim-dev\apps\frontend\components\SocketProvider.tsx                                  
+C:\volsim-dev\apps\frontend\fix_global_context_import.py                                   
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts                                         
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts.backup                                  
+C:\volsim-dev\apps\frontend\hooks\useDataStream.ts.bak                                     
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts                                    
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.backup                             
+C:\volsim-dev\apps\frontend\lib\TradingSocketManager.ts.bak                                
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.before-socket-manager.txt       
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx                             
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.backup                      
+C:\volsim-dev\apps\frontend\src\context\GlobalStateContext.tsx.bak                         
+C:\volsim-dev\apps\frontend\store\useTradingStore.active-backup.txt                        
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup.backup.txt                        
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_global_state_fix.backup.txt
+C:\volsim-dev\apps\frontend\store\useTradingStore.backup_before_state_fix.backup.txt       
+C:\volsim-dev\apps\frontend\store\useTradingStore.before_cleanup.backup.txt                
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-interface-repair.txt              
+C:\volsim-dev\apps\frontend\store\useTradingStore.before-structural-repair.txt             
+C:\volsim-dev\apps\frontend\store\useTradingStore.corrupted-backup.backup.txt              
+C:\volsim-dev\apps\frontend\store\useTradingStore.pre-repair.backup.txt                    
+C:\volsim-dev\apps\frontend\store\useTradingStore.ts                                       
+
+
+
+
+============================================================
+10. ACTIVE ROUTES
+============================================================
+
+FullName                                       
+--------                                       
+C:\volsim-dev\apps\frontend\app\globals.css    
+C:\volsim-dev\apps\frontend\app\layout.tsx     
+C:\volsim-dev\apps\frontend\app\page.tsx       
+C:\volsim-dev\apps\frontend\app\page.tsx.backup
+
+
+
+
+============================================================
+11. IMPLEMENTATION DECISION
+============================================================
+
+DO NOT redesign VolSim-Pro.
+
+DO NOT delete working trading functionality.
+
+DO NOT create another WebSocket.
+
+DO NOT create another global state system.
+
+DO NOT make frontend authorization authoritative.
+
+DO NOT use frontend-calculated vault allocation as source of truth.
+
+DO NOT migrate backup/recovery files into production.
+
+NEXT IMPLEMENTATION ORDER:
+
+A. Establish authentication/identity/RBAC boundary.
+B. Establish protected USER and ADMIN route spaces.
+C. Establish backend authorization enforcement.
+D. Confirm one TradingSocketManager.
+E. Make Zustand/useTradingStore the canonical trading client state IF
+   the existing implementation supports this without duplicating
+   GlobalStateProvider state.
+F. Make GlobalStateProvider an application integration/provider boundary,
+   not a second competing trading-state store.
+G. Connect all production views to canonical state.
+H. Replace fake market/account/vault data.
+I. Integrate authoritative vault state with 70/30 allocation.
+J. Reorganize the 13 views into the eight architectural domains.
+K. Upgrade SystemSettingsView into USER/TRADING/SYSTEM/ADMIN settings.
+L. Add security gates around sensitive trading actions.
+M. Run complete validation suite.
+N. Only after validation succeeds prepare Git commit/push.
+
+============================================================
+END IMPLEMENTATION MAP
+============================================================

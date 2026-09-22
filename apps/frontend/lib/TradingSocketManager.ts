@@ -1,4 +1,4 @@
-import { TradingApiClient } from "./TradingApiClient";
+﻿import { TradingApiClient } from "./TradingApiClient";
 
 type Listener = (payload: any) => void;
 
@@ -19,9 +19,22 @@ export class TradingSocketManager {
 
     private manuallyClosed = false;
 
-    connect(endpoint: string = "/ws/trading-state") {
+    private currentAccessToken: string | null = null;
+
+    connect(
+        endpoint: string = "/ws/trading-state",
+        accessToken: string,
+    ) {
         this.endpoint = endpoint;
         this.manuallyClosed = false;
+        this.currentAccessToken = accessToken;
+
+        if (!accessToken) {
+            console.error(
+                "[VOLSIM] WebSocket authentication token is missing"
+            );
+            return;
+        }
 
         if (typeof window === "undefined") {
             return;
@@ -64,9 +77,13 @@ export class TradingSocketManager {
 
             this.reconnectDelay = 1000;
 
-            this.emit({
-                __socket_status: "CONNECTED" as SocketStatus
-            });
+            socket.send(
+                JSON.stringify({
+                    type: "authenticate",
+                    token: accessToken,
+                })
+            );
+
         };
 
         socket.onmessage = (event) => {
@@ -93,13 +110,15 @@ export class TradingSocketManager {
             );
         };
 
-        socket.onclose = () => {
+        socket.onclose = (event) => {
+            const eventCode = event.code;
+            const eventReason = event.reason;
             if (this.socket === socket) {
                 this.socket = null;
             }
 
             console.log(
-                "[VOLSIM] Global Trading State Closed"
+                `[VOLSIM] Global Trading State Closed | code=${eventCode} | reason=${eventReason}`
             );
 
             this.emit({
@@ -146,7 +165,9 @@ export class TradingSocketManager {
                 return;
             }
 
-            this.connect(this.endpoint);
+            if (this.currentAccessToken) {
+                this.connect(this.endpoint, this.currentAccessToken);
+            }
 
             this.reconnectDelay = Math.min(
                 this.reconnectDelay * 2,
@@ -167,6 +188,7 @@ export class TradingSocketManager {
 
     disconnect() {
         this.manuallyClosed = true;
+        this.currentAccessToken = null;
 
         if (this.reconnectTimer) {
             clearTimeout(this.reconnectTimer);
@@ -189,3 +211,6 @@ export class TradingSocketManager {
 
 export const tradingSocket =
     new TradingSocketManager();
+
+
+

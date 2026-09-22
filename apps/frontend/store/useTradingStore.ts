@@ -406,23 +406,23 @@ export const useTradingStore = create<TradingState>(
 
                 // ACCOUNT
                 balance: numberOrZero(
-                    account.balance
+                    payload.balance ?? account.balance
                 ),
 
                 equity: numberOrZero(
-                    account.equity
+                    payload.equity ?? account.equity
                 ),
 
                 // PORTFOLIO
                 floatingPl: numberOrZero(
-                    portfolio.floating_pl ??
+                    payload.floatingPl ?? portfolio.floating_pl ??
                     portfolio.floatingPl
                 ),
 
                 portfolioValue: numberOrZero(
                     portfolio.equity ??
                     portfolio.portfolio_value ??
-                    account.equity
+                    payload.equity ?? account.equity
                 ),
 
                 // POSITIONS
@@ -438,22 +438,22 @@ export const useTradingStore = create<TradingState>(
 
                 // PERFORMANCE
                 winRate: numberOrZero(
-                    statistics.win_rate ??
+                    payload.winRate ?? statistics.win_rate ??
                     performance.win_rate
                 ),
 
                 profitFactor: numberOrZero(
-                    statistics.profit_factor ??
+                    payload.profitFactor ?? statistics.profit_factor ??
                     performance.profit_factor
                 ),
 
                 expectancy: numberOrZero(
-                    statistics.expectancy ??
+                    payload.expectancy ?? statistics.expectancy ??
                     performance.expectancy
                 ),
 
                 sharpeRatio: numberOrZero(
-                    statistics.sharpe_ratio ??
+                    payload.sharpeRatio ?? statistics.sharpe_ratio ??
                     performance.sharpe_ratio
                 ),
 
@@ -500,11 +500,11 @@ export const useTradingStore = create<TradingState>(
 
                 // RISK
                 currentDrawdown: numberOrZero(
-                    risk.current_drawdown
+                    payload.currentDrawdown ?? risk.current_drawdown
                 ),
 
                 maxDrawdown: numberOrZero(
-                    risk.maximum_drawdown ??
+                    payload.maxDrawdown ?? risk.maximum_drawdown ??
                     risk.max_drawdown ??
                     statistics.maximum_drawdown
                 ),
@@ -514,27 +514,27 @@ export const useTradingStore = create<TradingState>(
                 ),
 
                 riskPerTrade: numberOrZero(
-                    risk.risk_per_trade
+                    payload.riskPerTrade ?? risk.risk_per_trade
                 ),
 
                 marginUsage: numberOrZero(
-                    risk.margin_usage
+                    payload.marginUsage ?? risk.margin_usage
                 ),
 
                 liquidationWarning:
                     booleanValue(
-                        risk.liquidation_warning
+                        payload.liquidationWarning ?? risk.liquidation_warning
                     ),
 
                 valueAtRisk: numberOrZero(
-                    risk.value_at_risk ??
+                    payload.valueAtRisk ?? risk.value_at_risk ??
                     risk.var_1d_95 ??
                     risk.var
                 ),
 
                 riskStatus:
                     String(
-                        risk.status ??
+                        payload.riskStatus ?? risk.status ??
                         "UNKNOWN"
                     ),
 
@@ -566,4 +566,5 @@ export const useTradingStore = create<TradingState>(
         },
     })
 );
+
 

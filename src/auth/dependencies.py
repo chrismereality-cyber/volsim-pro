@@ -5,8 +5,8 @@ from typing import Callable
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from .models import AuthorizationContext, Identity
-from .rbac import require_permission
+from .models import AuthorizationContext
+from .rbac import AuthorizationError, require_permission
 from .service import AuthorizationService, IdentityService
 from .tokens import decode_access_token
 
@@ -43,7 +43,9 @@ def get_authorization_context(
         )
 
     try:
-        payload = decode_access_token(credentials.credentials)
+        payload = decode_access_token(
+            credentials.credentials
+        )
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -85,6 +87,9 @@ def get_authorization_context(
 def permission_guard(permission: str) -> Callable:
     """
     FastAPI dependency factory for RBAC-protected routes.
+
+    Authentication failures return HTTP 401.
+    Authorization failures return HTTP 403.
     """
 
     def guard(
@@ -92,10 +97,18 @@ def permission_guard(permission: str) -> Callable:
             get_authorization_context
         ),
     ) -> AuthorizationContext:
-        require_permission(
-            context,
-            permission,
-        )
+
+        try:
+            require_permission(
+                context,
+                permission,
+            )
+
+        except AuthorizationError:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permission denied: {permission}",
+            ) from None
 
         return context
 

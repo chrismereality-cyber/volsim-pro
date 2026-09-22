@@ -29,6 +29,146 @@ class MT5Service:
         return self.initialized
 
 
+    def discover_symbols(self):
+        """
+        Discover the complete MT5 instrument universe exposed by the
+        connected terminal.
+
+        This is discovery only. It does not select symbols, submit orders,
+        or change broker/account state.
+        """
+        if not self.connect():
+            return []
+
+        try:
+            symbols = mt5.symbols_get()
+        except Exception:
+            return []
+
+        if symbols is None:
+            return []
+
+        return list(symbols)
+
+
+    def get_instrument_registry(self):
+        """
+        Return the authoritative MT5 instrument registry.
+
+        Discovery, visibility, quote availability, and execution readiness
+        are deliberately represented as separate states.
+
+        This method is read-only:
+        - no orders are submitted
+        - no database state is changed
+        - no vault/treasury state is touched
+        - symbols are not automatically selected
+        """
+        symbols = self.discover_symbols()
+
+        registry = []
+
+        for info in symbols:
+            symbol = str(getattr(info, "name", "") or "").strip()
+
+            if not symbol:
+                continue
+
+            try:
+                tick = mt5.symbol_info_tick(symbol)
+            except Exception:
+                tick = None
+
+            visible = bool(getattr(info, "visible", False))
+            trade_mode = int(getattr(info, "trade_mode", 0) or 0)
+
+            bid = float(getattr(tick, "bid", 0.0) or 0.0) if tick else 0.0
+            ask = float(getattr(tick, "ask", 0.0) or 0.0) if tick else 0.0
+            last = float(getattr(tick, "last", 0.0) or 0.0) if tick else 0.0
+            tick_timestamp = int(getattr(tick, "time", 0) or 0) if tick else 0
+
+            quoteable = bool(
+                tick
+                and bid > 0
+                and ask > 0
+                and ask >= bid
+            )
+
+            trade_enabled = (
+                trade_mode != mt5.SYMBOL_TRADE_MODE_DISABLED
+            )
+
+            execution_ready = bool(
+                visible
+                and quoteable
+                and trade_enabled
+            )
+
+            path_value = str(
+                getattr(info, "path", "") or ""
+            )
+
+            category = (
+                path_value.split("\\")[1]
+                if len(path_value.split("\\")) > 1
+                else ""
+            )
+
+            registry.append({
+                "symbol": symbol,
+                "path": path_value,
+                "category": category,
+                "description": str(
+                    getattr(info, "description", "") or ""
+                ),
+                "visible": visible,
+                "trade_mode": trade_mode,
+                "quoteable": quoteable,
+                "bid": bid,
+                "ask": ask,
+                "last": last,
+                "tick_timestamp": tick_timestamp,
+                "volume_min": float(
+                    getattr(info, "volume_min", 0.0) or 0.0
+                ),
+                "volume_max": float(
+                    getattr(info, "volume_max", 0.0) or 0.0
+                ),
+                "volume_step": float(
+                    getattr(info, "volume_step", 0.0) or 0.0
+                ),
+                "digits": int(
+                    getattr(info, "digits", 0) or 0
+                ),
+                "point": float(
+                    getattr(info, "point", 0.0) or 0.0
+                ),
+                "trade_tick_size": float(
+                    getattr(info, "trade_tick_size", 0.0) or 0.0
+                ),
+                "trade_tick_value": float(
+                    getattr(info, "trade_tick_value", 0.0) or 0.0
+                ),
+                "trade_contract_size": float(
+                    getattr(info, "trade_contract_size", 0.0) or 0.0
+                ),
+                "trade_stops_level": int(
+                    getattr(info, "trade_stops_level", 0) or 0
+                ),
+                "trade_freeze_level": int(
+                    getattr(info, "trade_freeze_level", 0) or 0
+                ),
+                "filling_mode": int(
+                    getattr(info, "filling_mode", 0) or 0
+                ),
+                "execution_ready": execution_ready,
+            })
+
+        registry.sort(key=lambda item: item["symbol"])
+
+        return registry
+
+
     def get_account_info(self):
 
         if not self.connect():
@@ -866,6 +1006,177 @@ class MT5Service:
         }
 
 
+    def get_position_close_deals(self, position_ticket):
+        """
+        Return broker closing deals associated with an MT5 position.
+
+        This method is strictly read-only.
+
+        MT5 position.ticket is used as the authoritative
+        DEAL_POSITION_ID lookup key.
+
+        Closing deal types:
+            - DEAL_ENTRY_OUT
+            - DEAL_ENTRY_INOUT
+            - DEAL_ENTRY_OUT_BY
+
+        No broker execution operation is performed.
+        """
+
+        if position_ticket is None:
+            return {
+                "success": False,
+                "position_ticket": None,
+                "deals": [],
+                "error": "Position ticket is required.",
+            }
+
+        if not self.connect():
+            error = mt5.last_error()
+            return {
+                "success": False,
+                "position_ticket": position_ticket,
+                "deals": [],
+                "error": f"MT5 initialization failed: {error}",
+            }
+
+        try:
+            deals = mt5.history_deals_get(
+                position=int(position_ticket)
+            )
+
+            if deals is None:
+                error = mt5.last_error()
+
+                return {
+                    "success": False,
+                    "position_ticket": int(position_ticket),
+                    "deals": [],
+                    "error": (
+                        "MT5 history_deals_get returned None: "
+                        f"{error}"
+                    ),
+                }
+
+            closing_entries = {
+                getattr(
+                    mt5,
+                    "DEAL_ENTRY_OUT",
+                    1,
+                ),
+                getattr(
+                    mt5,
+                    "DEAL_ENTRY_INOUT",
+                    2,
+                ),
+                getattr(
+                    mt5,
+                    "DEAL_ENTRY_OUT_BY",
+                    3,
+                ),
+            }
+
+            result = []
+
+            for deal in deals:
+                entry = getattr(
+                    deal,
+                    "entry",
+                    None,
+                )
+
+                if entry not in closing_entries:
+                    continue
+
+                result.append({
+                    "ticket": getattr(
+                        deal,
+                        "ticket",
+                        None,
+                    ),
+                    "order": getattr(
+                        deal,
+                        "order",
+                        None,
+                    ),
+                    "position_id": getattr(
+                        deal,
+                        "position_id",
+                        None,
+                    ),
+                    "symbol": getattr(
+                        deal,
+                        "symbol",
+                        "",
+                    ),
+                    "type": getattr(
+                        deal,
+                        "type",
+                        None,
+                    ),
+                    "entry": entry,
+                    "volume": float(
+                        getattr(
+                            deal,
+                            "volume",
+                            0.0,
+                        )
+                        or 0.0
+                    ),
+                    "price": float(
+                        getattr(
+                            deal,
+                            "price",
+                            0.0,
+                        )
+                        or 0.0
+                    ),
+                    "profit": float(
+                        getattr(
+                            deal,
+                            "profit",
+                            0.0,
+                        )
+                        or 0.0
+                    ),
+                    "swap": float(
+                        getattr(
+                            deal,
+                            "swap",
+                            0.0,
+                        )
+                        or 0.0
+                    ),
+                    "commission": float(
+                        getattr(
+                            deal,
+                            "commission",
+                            0.0,
+                        )
+                        or 0.0
+                    ),
+                    "time": getattr(
+                        deal,
+                        "time",
+                        None,
+                    ),
+                })
+
+            return {
+                "success": True,
+                "position_ticket": int(position_ticket),
+                "deals": result,
+                "error": None,
+            }
+
+        except Exception as exc:
+            return {
+                "success": False,
+                "position_ticket": int(position_ticket),
+                "deals": [],
+                "error": str(exc),
+            }
+
     def get_realized_trading_pl(self, start_timestamp=None, end_timestamp=None):
         """
         Return realized trading P/L from MT5 deal history.
@@ -1023,4 +1334,5 @@ class MT5Service:
             }
 
 mt5_service = MT5Service()
+
 

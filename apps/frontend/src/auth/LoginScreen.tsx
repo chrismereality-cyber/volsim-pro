@@ -1,4 +1,5 @@
 ﻿import React, { FormEvent, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from './AuthProvider';
 import {
   Mail,
@@ -75,8 +76,10 @@ export const LoginScreen: React.FC = () => {
     setLocalError('Password recovery is not available yet.');
   };
 
+  const router = useRouter();
+
   const handleAdminPortal = () => {
-    setLocalError('Admin Portal is not available yet.');
+    router.push('/admin');
   };
 
   return (
@@ -1223,6 +1226,8 @@ export const LoginScreen: React.FC = () => {
 };
 
 export default LoginScreen;
+
+
 
 
 

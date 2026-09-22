@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import time
 import uuid
@@ -40,8 +40,8 @@ class VaultService:
 
     Allocation policy:
 
-        50% -> Trading Equity
-        50% -> Immutable Vault
+        70% -> Trading Equity
+        30% -> Immutable Vault
 
     The vault portion is protected from becoming trading margin.
     """
@@ -52,8 +52,8 @@ class VaultService:
     #     src/config/allocation_policy.py
     #
     # Current policy:
-    #     50% -> Trading Equity
-    #     50% -> Immutable Vault
+    #     70% -> Trading Equity
+    #     30% -> Immutable Vault
 
     EQUITY_ALLOCATION_PERCENT = ALLOCATION_POLICY.equity_percentage
     VAULT_ALLOCATION_PERCENT = ALLOCATION_POLICY.vault_percentage
@@ -74,6 +74,8 @@ class VaultService:
         # Vault accounting
         # --------------------------------------------------------------
 
+        self.trading_equity_balance = 0.0
+
         self.vault_balance = 0.0
 
         self.pending_allocation = 0.0
@@ -86,13 +88,26 @@ class VaultService:
         # Persistent database state
         # --------------------------------------------------------------
 
-        self.database_state_id = 1
+        # The durable singleton row determines the database identity
+        # during successful startup recovery. Never assume a physical
+        # database ID such as 1.
+        self.database_state_id = None
 
         self.persistence_enabled = True
 
         self.last_persist_time = None
 
         self.last_persist_error = None
+
+        # Explicit lifecycle state.
+        #
+        # False = durable financial state has NOT been recovered.
+        # True  = durable financial state has been successfully restored.
+        #
+        # The numeric accounting values above are construction-time
+        # placeholders only and must never be treated as live financial
+        # state before PostgreSQL recovery succeeds.
+        self._state_loaded = False
 
         self._database_load_attempted = False
 
@@ -148,6 +163,25 @@ class VaultService:
                 self.VAULT_ALLOCATION_PERCENT,
 
         }
+
+    # ------------------------------------------------------------------
+    # Financial state lifecycle
+    # ------------------------------------------------------------------
+
+    def _require_state_loaded(self) -> None:
+        """
+        Require successful PostgreSQL state recovery before any operation
+        that reads or mutates durable financial state.
+
+        Constructor accounting values are placeholders only.
+        """
+
+        if not self._state_loaded:
+            raise RuntimeError(
+                "Immutable vault state has not been recovered from "
+                "PostgreSQL. Financial operations are blocked until "
+                "startup state recovery succeeds."
+            )
 
     # ------------------------------------------------------------------
     # Profit allocation calculation
@@ -269,10 +303,14 @@ class VaultService:
         if self._database_load_attempted:
             return self.snapshot()
 
-        self._database_load_attempted = True
-
         if not self.persistence_enabled:
-            return self.snapshot()
+            self._state_loaded = False
+
+            raise RuntimeError(
+                "Immutable vault persistence is disabled. "
+                "Financial state cannot be considered recovered "
+                "without durable PostgreSQL persistence."
+            )
 
         try:
 
@@ -292,7 +330,8 @@ class VaultService:
                     wallet_address,
                     blockchain_network,
                     last_tx_hash,
-                    last_sync_time
+                    last_sync_time,
+                    last_realized_profit
                 FROM public.immutable_vault_state
                 ORDER BY id
                 LIMIT 1
@@ -300,23 +339,17 @@ class VaultService:
             )
 
             if not rows:
-                logger_warning = getattr(
-                    self,
-                    "_logger_warning",
-                    print
+                raise RuntimeError(
+                    "Immutable vault state is not initialized: "
+                    "no row exists in public.immutable_vault_state. "
+                    "Production startup requires an explicit vault "
+                    "bootstrap before financial state can be loaded."
                 )
-
-                logger_warning(
-                    "No immutable_vault_state row found; "
-                    "using application defaults."
-                )
-
-                return self.snapshot()
 
             row = rows[0]
 
             # ----------------------------------------------------------
-            # Only restore compatible 70/30 policy state.
+            # Only restore state compatible with the canonical 70/30 policy.
             # ----------------------------------------------------------
 
             db_profile = row["allocation_profile"]
@@ -351,6 +384,10 @@ class VaultService:
                 )
 
             self.database_state_id = row["id"]
+
+            self.trading_equity_balance = float(
+                row["trading_equity_balance"] or 0.0
+            )
 
             self.vault_balance = float(
                 row["vault_balance"] or 0.0
@@ -391,6 +428,24 @@ class VaultService:
                 else None
             )
 
+            # Durable cumulative-realized-profit watermark.
+            #
+            # This prevents a process restart from interpreting the
+            # already-processed cumulative P/L as brand-new profit.
+            #
+            # Older schemas may not have this field. In that case,
+            # preserve the in-memory default of 0.0.
+            try:
+                self.last_realized_profit = float(
+                    row["last_realized_profit"] or 0.0
+                )
+            except (KeyError, TypeError, ValueError):
+                self.last_realized_profit = getattr(
+                    self,
+                    "last_realized_profit",
+                    0.0,
+                )
+
             print(
                 "VaultService persistent state restored:",
                 {
@@ -414,9 +469,18 @@ class VaultService:
                 }
             )
 
+            # Financial state is considered operational only after
+            # the complete durable state has been restored and validated.
+            self._state_loaded = True
+            self._database_load_attempted = True
+
             return self.snapshot()
 
         except Exception as exc:
+
+            # Recovery failure is fail-closed. Constructor placeholders
+            # must never become usable financial state.
+            self._state_loaded = False
 
             self.last_persist_error = str(exc)
 
@@ -425,7 +489,7 @@ class VaultService:
                 str(exc)
             )
 
-            return self.snapshot()
+            raise
 
 
     async def persist_state(
@@ -437,192 +501,473 @@ class VaultService:
         create_ledger: bool = False,
     ):
         """
-        Persist current vault state and optionally create a vault ledger
-        allocation record.
+        Persist vault state atomically.
 
-        The database remains the durable state layer.
+        Profit allocations are decided from the durable PostgreSQL
+        watermark while the immutable_vault_state row is locked.
+
+        The method receives immutable event values from the caller and
+        never uses mutable in-memory financial state to determine the
+        allocation delta.
         """
 
+        self._require_state_loaded()
+
+
         if not self.persistence_enabled:
-            return self.snapshot()
+            self.last_persist_error = (
+                "Immutable vault persistence is disabled. "
+                "Financial persistence cannot proceed."
+            )
+            self.sync_status = "PERSISTENCE_ERROR"
 
-        try:
-
-            # ----------------------------------------------------------
-            # Deterministic allocation identity
-            #
-            # The same realized-profit event must produce the same
-            # trade_id on every retry. This allows the existing UNIQUE
-            # vault_ledger.trade_id constraint to provide idempotency.
-            # ----------------------------------------------------------
-
-            import hashlib
-
-            allocation_source = (
-                f"{self.ALLOCATION_PROFILE}|"
-                f"{float(realized_profit or 0.0):.8f}|"
-                f"{float(equity_amount):.8f}|"
-                f"{float(vault_amount):.8f}"
+            raise RuntimeError(
+                "Immutable vault persistence is disabled. "
+                "Financial persistence cannot proceed."
             )
 
-            allocation_key = hashlib.sha256(
-                allocation_source.encode("utf-8")
-            ).hexdigest()[:32]
+        try:
+            current_realized_profit = max(
+                float(realized_profit or 0.0),
+                0.0,
+            )
 
-            trade_id = "VAULT-PROFIT-" + allocation_key
+            requested_equity_amount = round(
+                max(float(equity_amount), 0.0),
+                2,
+            )
 
-            # ----------------------------------------------------------
-            # ATOMIC DATABASE TRANSACTION
-            #
-            # Allocation lookup, ledger insertion, and immutable state
-            # update all execute on the SAME PostgreSQL connection.
-            # ----------------------------------------------------------
+            requested_vault_amount = round(
+                max(float(vault_amount), 0.0),
+                2,
+            )
 
             async with database_service.transaction() as conn:
 
-                existing = await conn.fetch(
+                # ------------------------------------------------------
+                # The durable vault row is the authority.
+                # ------------------------------------------------------
+                state_rows = await conn.fetch(
                     """
                     SELECT
                         id,
-                        equity_amount,
-                        vault_amount
-                    FROM public.vault_ledger
-                    WHERE trade_id = $1
-                    LIMIT 1
+                        trading_equity_balance,
+                        vault_balance,
+                        allocation_profile,
+                        equity_percentage,
+                        vault_percentage,
+                        pending_vault_allocation,
+                        total_allocated,
+                        total_transferred,
+                        sync_status,
+                        wallet_address,
+                        blockchain_network,
+                        last_tx_hash,
+                        last_realized_profit
+                    FROM public.immutable_vault_state
+                    WHERE id = $1
+                    FOR UPDATE
                     """,
-                    trade_id,
+                    self.database_state_id,
                 )
 
-                allocation_already_persisted = bool(existing)
-
-                if not allocation_already_persisted:
-
-                    audit_hash = self._generate_audit_hash(
-                        realized_profit or 0.0,
-                        equity_amount,
-                        vault_amount,
-                        trade_id,
+                if not state_rows:
+                    raise RuntimeError(
+                        "Immutable vault state row not found: "
+                        f"id={self.database_state_id}"
                     )
 
-                    insert_result = await conn.execute(
+                state = state_rows[0]
+
+                db_profile = state["allocation_profile"]
+                db_equity_percent = (
+                    float(state["equity_percentage"])
+                    if state["equity_percentage"] is not None
+                    else None
+                )
+                db_vault_percent = (
+                    float(state["vault_percentage"])
+                    if state["vault_percentage"] is not None
+                    else None
+                )
+
+                if (
+                    db_profile != self.ALLOCATION_PROFILE
+                    or db_equity_percent != self.EQUITY_ALLOCATION_PERCENT
+                    or db_vault_percent != self.VAULT_ALLOCATION_PERCENT
+                ):
+                    raise RuntimeError(
+                        "Database allocation policy mismatch: "
+                        f"profile={db_profile!r}, "
+                        f"equity={db_equity_percent!r}, "
+                        f"vault={db_vault_percent!r}; "
+                        "application policy is "
+                        f"{self.ALLOCATION_PROFILE} "
+                        f"{self.EQUITY_ALLOCATION_PERCENT}/"
+                        f"{self.VAULT_ALLOCATION_PERCENT}"
+                    )
+
+                durable_watermark = float(
+                    state["last_realized_profit"] or 0.0
+                )
+
+                # ------------------------------------------------------
+                # State-only persistence.
+                #
+                # This path is intentionally based on the durable row
+                # rather than mutable in-memory financial values.
+                # ------------------------------------------------------
+                if not create_ledger:
+                    await conn.execute(
                         """
-                        INSERT INTO public.vault_ledger
-                        (
-                            balance,
-                            allocated_from,
-                            trade_id,
-                            audit_hash,
-                            equity_amount,
-                            vault_amount,
-                            allocation_profile,
-                            blockchain_status,
-                            tx_hash,
-                            confirmation_count
-                        )
-                        VALUES
-                        (
-                            $1,
-                            $2,
-                            $3,
-                            $4,
-                            $5,
-                            $6,
-                            $7,
-                            'PENDING',
-                            NULL,
-                            0
-                        )
-                        ON CONFLICT (trade_id) DO NOTHING
+                        UPDATE public.immutable_vault_state
+                        SET
+                            allocation_profile = $1,
+                            equity_percentage = $2,
+                            vault_percentage = $3,
+                            pending_vault_allocation = $4,
+                            total_allocated = $5,
+                            total_transferred = $6,
+                            sync_status = $7,
+                            wallet_address = $8,
+                            blockchain_network = $9,
+                            last_tx_hash = $10,
+                            last_updated = NOW(),
+                            last_sync_time = NOW()
+                        WHERE id = $11
                         """,
-
-                        float(self.vault_balance),
-                        float(realized_profit or 0.0),
-                        trade_id,
-                        audit_hash,
-                        float(equity_amount),
-                        float(vault_amount),
                         self.ALLOCATION_PROFILE,
+                        float(self.EQUITY_ALLOCATION_PERCENT),
+                        float(self.VAULT_ALLOCATION_PERCENT),
+                        float(state["pending_vault_allocation"] or 0.0),
+                        float(state["total_allocated"] or 0.0),
+                        float(state["total_transferred"] or 0.0),
+                        state["sync_status"] or "PENDING",
+                        state["wallet_address"],
+                        state["blockchain_network"],
+                        state["last_tx_hash"],
+                        state["id"],
                     )
 
-                    allocation_inserted = insert_result.endswith("1")
-
-                    if allocation_inserted:
-
-                        await conn.execute(
-                            """
-                            UPDATE public.immutable_vault_state
-                            SET
-                                trading_equity_balance = COALESCE(
-                                    trading_equity_balance,
-                                    0
-                                ) + $1,
-
-                                vault_balance = $2,
-
-                                allocation_profile = $3,
-
-                                equity_percentage = $4,
-
-                                vault_percentage = $5,
-
-                                pending_vault_allocation = $6,
-
-                                total_allocated = $7,
-
-                                total_transferred = $8,
-
-                                sync_status = $9,
-
-                                wallet_address = $10,
-
-                                blockchain_network = $11,
-
-                                last_tx_hash = $12,
-
-                                last_updated = NOW(),
-
-                                last_sync_time = NOW()
-
-                            WHERE id = $13
-                            """,
-
-                            float(equity_amount),
-                            float(self.vault_balance),
-                            self.ALLOCATION_PROFILE,
-                            float(self.EQUITY_ALLOCATION_PERCENT),
-                            float(self.VAULT_ALLOCATION_PERCENT),
-                            float(self.pending_allocation),
-                            float(self.total_allocated),
-                            float(self.total_transferred),
-                            self.sync_status,
-                            self.wallet_address,
-                            self.blockchain_network,
-                            self.last_tx_hash,
-                            self.database_state_id,
-                        )
-
-                        print(
-                            "VaultService atomic persistence: "
-                            f"allocation committed ({trade_id})"
-                        )
-
-                    else:
-
-                        print(
-                            "VaultService idempotency: "
-                            f"allocation already persisted ({trade_id})"
-                        )
+                    committed_state = {
+                        "trading_equity_balance":
+                            float(state["trading_equity_balance"] or 0.0),
+                        "vault_balance":
+                            float(state["vault_balance"] or 0.0),
+                        "pending_allocation":
+                            float(state["pending_vault_allocation"] or 0.0),
+                        "total_allocated":
+                            float(state["total_allocated"] or 0.0),
+                        "total_transferred":
+                            float(state["total_transferred"] or 0.0),
+                        "sync_status":
+                            state["sync_status"] or "PENDING",
+                        "last_realized_profit":
+                            durable_watermark,
+                    }
 
                 else:
+                    # --------------------------------------------------
+                    # Determine the allocation from the DURABLE
+                    # watermark while holding FOR UPDATE.
+                    # --------------------------------------------------
+                    if current_realized_profit < durable_watermark:
+                        # Never move a durable cumulative watermark
+                        # backwards. This protects against an older
+                        # asynchronous snapshot arriving after a newer one.
+                        print(
+                            "VaultService stale/reset observation ignored: "
+                            f"current={current_realized_profit:.2f} "
+                            f"durable={durable_watermark:.2f}"
+                        )
 
-                    print(
-                        "VaultService idempotency: "
-                        f"allocation already persisted ({trade_id})"
-                    )
+                        committed_state = {
+                            "trading_equity_balance":
+                                float(state["trading_equity_balance"] or 0.0),
+                            "vault_balance":
+                                float(state["vault_balance"] or 0.0),
+                            "pending_allocation":
+                                float(state["pending_vault_allocation"] or 0.0),
+                            "total_allocated":
+                                float(state["total_allocated"] or 0.0),
+                            "total_transferred":
+                                float(state["total_transferred"] or 0.0),
+                            "sync_status":
+                                state["sync_status"] or "PENDING",
+                            "last_realized_profit":
+                                durable_watermark,
+                        }
 
+                    else:
+                        new_profit = round(
+                            current_realized_profit - durable_watermark,
+                            2,
+                        )
+
+                        if new_profit <= 0:
+                            committed_state = {
+                                "trading_equity_balance":
+                                    float(state["trading_equity_balance"] or 0.0),
+                                "vault_balance":
+                                    float(state["vault_balance"] or 0.0),
+                                "pending_allocation":
+                                    float(state["pending_vault_allocation"] or 0.0),
+                                "total_allocated":
+                                    float(state["total_allocated"] or 0.0),
+                                "total_transferred":
+                                    float(state["total_transferred"] or 0.0),
+                                "sync_status":
+                                    state["sync_status"] or "PENDING",
+                                "last_realized_profit":
+                                    durable_watermark,
+                            }
+
+                        else:
+                            allocation = self.calculate_allocation(
+                                new_profit
+                            )
+
+                            durable_equity_amount = round(
+                                float(allocation["equity_amount"]),
+                                2,
+                            )
+
+                            durable_vault_amount = round(
+                                float(allocation["vault_amount"]),
+                                2,
+                            )
+
+                            # --------------------------------------------------
+                            # The ledger identity is derived from the actual
+                            # durable allocation event.
+                            # --------------------------------------------------
+                            allocation_source = (
+                                f"{self.ALLOCATION_PROFILE}|"
+                                f"{current_realized_profit:.8f}|"
+                                f"{new_profit:.8f}|"
+                                f"{durable_equity_amount:.8f}|"
+                                f"{durable_vault_amount:.8f}"
+                            )
+
+                            allocation_key = hashlib.sha256(
+                                allocation_source.encode("utf-8")
+                            ).hexdigest()[:32]
+
+                            trade_id = (
+                                "VAULT-PROFIT-" + allocation_key
+                            )
+
+                            existing = await conn.fetchrow(
+                                """
+                                SELECT
+                                    id,
+                                    equity_amount,
+                                    vault_amount
+                                FROM public.vault_ledger
+                                WHERE trade_id = $1
+                                LIMIT 1
+                                """,
+                                trade_id,
+                            )
+
+                            if existing:
+                                # The ledger event already exists. The
+                                # durable state should already have been
+                                # committed with it, so do not add the
+                                # allocation again.
+                                print(
+                                    "VaultService idempotency: "
+                                    f"allocation already persisted "
+                                    f"({trade_id})"
+                                )
+
+                                committed_state = {
+                                    "trading_equity_balance":
+                                        float(state["trading_equity_balance"] or 0.0),
+                                    "vault_balance":
+                                        float(state["vault_balance"] or 0.0),
+                                    "pending_allocation":
+                                        float(state["pending_vault_allocation"] or 0.0),
+                                    "total_allocated":
+                                        float(state["total_allocated"] or 0.0),
+                                    "total_transferred":
+                                        float(state["total_transferred"] or 0.0),
+                                    "sync_status":
+                                        state["sync_status"] or "PENDING",
+                                    "last_realized_profit":
+                                        durable_watermark,
+                                }
+
+                            else:
+                                audit_hash = self._generate_audit_hash(
+                                    new_profit,
+                                    durable_equity_amount,
+                                    durable_vault_amount,
+                                    trade_id,
+                                )
+
+                                await conn.execute(
+                                    """
+                                    INSERT INTO public.vault_ledger
+                                    (
+                                        balance,
+                                        allocated_from,
+                                        trade_id,
+                                        audit_hash,
+                                        equity_amount,
+                                        vault_amount,
+                                        allocation_profile,
+                                        blockchain_status,
+                                        tx_hash,
+                                        confirmation_count
+                                    )
+                                    VALUES
+                                    (
+                                        $1,
+                                        $2,
+                                        $3,
+                                        $4,
+                                        $5,
+                                        $6,
+                                        $7,
+                                        'PENDING',
+                                        NULL,
+                                        0
+                                    )
+                                    """,
+                                    float(state["vault_balance"] or 0.0),
+                                    new_profit,
+                                    trade_id,
+                                    audit_hash,
+                                    durable_equity_amount,
+                                    durable_vault_amount,
+                                    self.ALLOCATION_PROFILE,
+                                )
+
+                                old_equity = float(
+                                    state["trading_equity_balance"] or 0.0
+                                )
+                                old_vault = float(
+                                    state["vault_balance"] or 0.0
+                                )
+                                old_pending = float(
+                                    state["pending_vault_allocation"] or 0.0
+                                )
+                                old_total_allocated = float(
+                                    state["total_allocated"] or 0.0
+                                )
+                                old_total_transferred = float(
+                                    state["total_transferred"] or 0.0
+                                )
+
+                                new_equity_balance = round(
+                                    old_equity + durable_equity_amount,
+                                    2,
+                                )
+
+                                new_vault_balance = round(
+                                    old_vault + durable_vault_amount,
+                                    2,
+                                )
+
+                                new_pending = round(
+                                    old_pending + durable_vault_amount,
+                                    2,
+                                )
+
+                                new_total_allocated = round(
+                                    old_total_allocated + durable_vault_amount,
+                                    2,
+                                )
+
+                                await conn.execute(
+                                    """
+                                    UPDATE public.immutable_vault_state
+                                    SET
+                                        trading_equity_balance = $1,
+                                        vault_balance = $2,
+                                        allocation_profile = $3,
+                                        equity_percentage = $4,
+                                        vault_percentage = $5,
+                                        pending_vault_allocation = $6,
+                                        total_allocated = $7,
+                                        total_transferred = $8,
+                                        sync_status = $9,
+                                        wallet_address = $10,
+                                        blockchain_network = $11,
+                                        last_tx_hash = $12,
+                                        last_updated = NOW(),
+                                        last_sync_time = NOW(),
+                                        last_realized_profit = $13
+                                    WHERE id = $14
+                                    """,
+                                    new_equity_balance,
+                                    new_vault_balance,
+                                    self.ALLOCATION_PROFILE,
+                                    float(self.EQUITY_ALLOCATION_PERCENT),
+                                    float(self.VAULT_ALLOCATION_PERCENT),
+                                    new_pending,
+                                    new_total_allocated,
+                                    old_total_transferred,
+                                    "PENDING",
+                                    state["wallet_address"],
+                                    state["blockchain_network"],
+                                    state["last_tx_hash"],
+                                    current_realized_profit,
+                                    state["id"],
+                                )
+
+                                print(
+                                    "VaultService durable allocation committed: "
+                                    f"trade_id={trade_id} "
+                                    f"new_profit={new_profit:.2f} "
+                                    f"equity={durable_equity_amount:.2f} "
+                                    f"vault={durable_vault_amount:.2f}"
+                                )
+
+                                committed_state = {
+                                    "trading_equity_balance":
+                                        new_equity_balance,
+                                    "vault_balance":
+                                        new_vault_balance,
+                                    "pending_allocation":
+                                        new_pending,
+                                    "total_allocated":
+                                        new_total_allocated,
+                                    "total_transferred":
+                                        old_total_transferred,
+                                    "sync_status":
+                                        "PENDING",
+                                    "last_realized_profit":
+                                        current_realized_profit,
+                                }
+
+            # ----------------------------------------------------------
+            # Synchronize memory ONLY after the DB transaction committed.
+            # ----------------------------------------------------------
+            self.trading_equity_balance = committed_state[
+                "trading_equity_balance"
+            ]
+            self.vault_balance = committed_state[
+                "vault_balance"
+            ]
+            self.pending_allocation = committed_state[
+                "pending_allocation"
+            ]
+            self.total_allocated = committed_state[
+                "total_allocated"
+            ]
+            self.total_transferred = committed_state[
+                "total_transferred"
+            ]
+            self.sync_status = committed_state[
+                "sync_status"
+            ]
+            self.last_realized_profit = committed_state[
+                "last_realized_profit"
+            ]
 
             self.last_persist_time = time.time()
-
             self.last_persist_error = None
 
             return self.snapshot()
@@ -630,7 +975,6 @@ class VaultService:
         except Exception as exc:
 
             self.last_persist_error = str(exc)
-
             self.sync_status = "PERSISTENCE_ERROR"
 
             print(
@@ -650,31 +994,42 @@ class VaultService:
         create_ledger: bool = False,
     ):
         """
-        Schedule asynchronous persistence when a running event loop exists.
+        Schedule immutable vault persistence.
 
-        This preserves the existing synchronous service API.
+        The arguments are copied into the coroutine at scheduling time.
+        No later mutation of VaultService financial state can change the
+        event being persisted.
         """
 
-        try:
+        if not self.persistence_enabled:
+            return False
 
+        try:
             loop = asyncio.get_running_loop()
 
         except RuntimeError:
-
             return False
+
+        event_realized_profit = (
+            None
+            if realized_profit is None
+            else float(realized_profit)
+        )
+
+        event_equity_amount = float(equity_amount)
+        event_vault_amount = float(vault_amount)
+        event_create_ledger = bool(create_ledger)
 
         loop.create_task(
             self.persist_state(
-                realized_profit=realized_profit,
-                equity_amount=equity_amount,
-                vault_amount=vault_amount,
-                create_ledger=create_ledger,
+                realized_profit=event_realized_profit,
+                equity_amount=event_equity_amount,
+                vault_amount=event_vault_amount,
+                create_ledger=event_create_ledger,
             )
         )
 
         return True
-
-
     def register_profit(
         self,
         realized_profit: float,
@@ -682,84 +1037,51 @@ class VaultService:
         """
         Register cumulative realized P/L.
 
-        Only NEW positive realized profit is allocated.
+        The synchronous API remains intact, but financial state is NOT
+        advanced optimistically in memory.
 
-        Example:
+        PostgreSQL is the authority for:
+        - the cumulative realized-profit watermark
+        - allocation idempotency
+        - vault balances
+        - pending allocation
+        - total allocation
 
-            register_profit(100)
-                -> allocate 100
-
-            register_profit(100)
-                -> allocate 0
-
-            register_profit(125)
-                -> allocate 25
-
-        This makes the operation safe for repeated global-state
-        snapshots.
+        The durable transaction is scheduled asynchronously when a
+        running event loop exists.
         """
+
+        self._require_state_loaded()
+
 
         current_realized_profit = max(
             float(realized_profit),
-            0.0
+            0.0,
         )
 
-        previous_realized_profit = (
+        previous_realized_profit = float(
             self.last_realized_profit
         )
 
-        # --------------------------------------------------------------
-        # Detect a realized-profit reset.
-        #
-        # This can happen when the trading session/day/account context
-        # resets its cumulative realized P/L.
-        #
-        # We do not create a negative vault allocation.
-        # --------------------------------------------------------------
-
         if current_realized_profit < previous_realized_profit:
-
-            self.last_realized_profit = (
-                current_realized_profit
-            )
-
             return {
-
                 "realized_profit":
-                    round(
-                        current_realized_profit,
-                        2
-                    ),
-
+                    round(current_realized_profit, 2),
                 "previous_realized_profit":
-                    round(
-                        previous_realized_profit,
-                        2
-                    ),
-
+                    round(previous_realized_profit, 2),
                 "new_profit":
                     0.0,
-
                 "equity_amount":
                     0.0,
-
                 "vault_amount":
                     0.0,
-
                 "equity_percentage":
                     self.EQUITY_ALLOCATION_PERCENT,
-
                 "vault_percentage":
                     self.VAULT_ALLOCATION_PERCENT,
-
                 "status":
-                    "RESET_DETECTED",
-
+                    "RESET_OR_STALE_OBSERVATION",
             }
-
-        # --------------------------------------------------------------
-        # Calculate NEW profit only.
-        # --------------------------------------------------------------
 
         new_profit = round(
             current_realized_profit
@@ -767,53 +1089,25 @@ class VaultService:
             2,
         )
 
-        # Update watermark BEFORE returning.
-        #
-        # This makes repeated calls against the same cumulative
-        # realized P/L idempotent.
-        self.last_realized_profit = (
-            current_realized_profit
-        )
-
         if new_profit <= 0:
-
             return {
-
                 "realized_profit":
-                    round(
-                        current_realized_profit,
-                        2
-                    ),
-
+                    round(current_realized_profit, 2),
                 "previous_realized_profit":
-                    round(
-                        previous_realized_profit,
-                        2
-                    ),
-
+                    round(previous_realized_profit, 2),
                 "new_profit":
                     0.0,
-
                 "equity_amount":
                     0.0,
-
                 "vault_amount":
                     0.0,
-
                 "equity_percentage":
                     self.EQUITY_ALLOCATION_PERCENT,
-
                 "vault_percentage":
                     self.VAULT_ALLOCATION_PERCENT,
-
                 "status":
                     "NO_NEW_PROFIT",
-
             }
-
-        # --------------------------------------------------------------
-        # Apply canonical allocation policy to NEW profit.
-        # --------------------------------------------------------------
 
         allocation = self.calculate_allocation(
             new_profit
@@ -827,40 +1121,7 @@ class VaultService:
             "vault_amount"
         ]
 
-        # --------------------------------------------------------------
-        # Vault side.
-        #
-        # The 70% equity amount is deliberately NOT added to the vault.
-        # It remains part of the trading/equity accounting layer.
-        # --------------------------------------------------------------
-
-        if vault_amount > 0:
-
-            self.pending_allocation = round(
-                self.pending_allocation
-                + vault_amount,
-                2,
-            )
-
-            self.total_allocated = round(
-                self.total_allocated
-                + vault_amount,
-                2,
-            )
-
-            self.sync_status = "PENDING"
-
-        # --------------------------------------------------------------
-        # Persist the allocation.
-        #
-        # The 70% equity portion is recorded in the ledger as part of
-        # the allocation event but is NOT added to the immutable vault.
-        #
-        # The 30% vault portion becomes pending until explicitly
-        # transferred by record_transfer().
-        # --------------------------------------------------------------
-
-        self.schedule_persist(
+        scheduled = self.schedule_persist(
             realized_profit=current_realized_profit,
             equity_amount=equity_amount,
             vault_amount=vault_amount,
@@ -868,43 +1129,25 @@ class VaultService:
         )
 
         return {
-
             "realized_profit":
-                round(
-                    current_realized_profit,
-                    2
-                ),
-
+                round(current_realized_profit, 2),
             "previous_realized_profit":
-                round(
-                    previous_realized_profit,
-                    2
-                ),
-
+                round(previous_realized_profit, 2),
             "new_profit":
                 new_profit,
-
             "equity_amount":
                 equity_amount,
-
             "vault_amount":
                 vault_amount,
-
             "equity_percentage":
                 self.EQUITY_ALLOCATION_PERCENT,
-
             "vault_percentage":
                 self.VAULT_ALLOCATION_PERCENT,
-
             "status":
-                "ALLOCATED",
-
+                "ALLOCATING"
+                if scheduled
+                else "PERSISTENCE_NOT_SCHEDULED",
         }
-
-    # ------------------------------------------------------------------
-    # Mark vault transfer
-    # ------------------------------------------------------------------
-
     async def record_transfer(
         self,
         amount: float,
@@ -928,6 +1171,8 @@ class VaultService:
 
         Idempotency is enforced using tx_hash.
         """
+
+        self._require_state_loaded()
 
         transfer_amount = max(
             float(amount),
@@ -956,6 +1201,13 @@ class VaultService:
         # ATOMIC DATABASE TRANSACTION
         # --------------------------------------------------------------
 
+        # Post-commit state container.
+        #
+        # None means that no durable transfer has been committed.
+        # Financial in-memory state is synchronized only after the
+        # transaction context exits successfully.
+        committed_state = None
+
         try:
 
             async with database_service.transaction() as conn:
@@ -978,6 +1230,7 @@ class VaultService:
                         wallet_address,
                         last_tx_hash,
                         blockchain_network,
+                        last_sync_time,
                         sync_status
                     FROM public.immutable_vault_state
                     WHERE id = $1
@@ -1032,254 +1285,252 @@ class VaultService:
                         f"transaction already persisted ({tx_hash})"
                     )
 
-                    # Restore the in-memory state from the durable row
-                    # rather than applying the transfer again.
+                    # The transfer already exists durably.
+                    #
+                    # Do NOT mutate in-memory financial state or return
+                    # while the database transaction is still open.
+                    # Prepare the durable state for post-commit
+                    # synchronization instead.
 
-                    self.vault_balance = database_vault_balance
-                    self.pending_allocation = database_pending
-                    self.total_transferred = (
-                        database_total_transferred
-                    )
+                    committed_state = {
+                        "vault_balance": database_vault_balance,
+                        "pending_allocation": database_pending,
+                        "total_transferred": database_total_transferred,
+                        "last_tx_hash": state["last_tx_hash"],
+                        "blockchain_network": state["blockchain_network"],
+                        "last_sync_time": state["last_sync_time"],
+                        "sync_status": state["sync_status"] or "PENDING",
+                    }
 
-                    self.last_tx_hash = state["last_tx_hash"]
 
-                    self.blockchain_network = (
-                        state["blockchain_network"]
-                    )
+                if committed_state is None:
+                    # ------------------------------------------------------
+                    # Validate available pending allocation.
+                    # ------------------------------------------------------
 
-                    self.sync_status = (
-                        state["sync_status"] or "PENDING"
-                    )
-
-                    return self.snapshot()
-
-                # ------------------------------------------------------
-                # Validate available pending allocation.
-                # ------------------------------------------------------
-
-                if transfer_amount > database_pending:
-                    raise ValueError(
-                        "Transfer amount exceeds pending vault "
-                        f"allocation: requested={transfer_amount}, "
-                        f"pending={database_pending}"
-                    )
-
-                # ------------------------------------------------------
-                # Generate deterministic transfer identity.
-                #
-                # tx_hash is the external idempotency identity.
-                # The transfer_id gives the database event its own
-                # internal namespace.
-                # ------------------------------------------------------
-
-                import hashlib
-
-                transfer_source = (
-                    f"{self.ALLOCATION_PROFILE}|"
-                    f"{tx_hash}|"
-                    f"{transfer_amount:.8f}"
-                )
-
-                transfer_key = hashlib.sha256(
-                    transfer_source.encode("utf-8")
-                ).hexdigest()[:32]
-
-                transfer_id = (
-                    "VAULT-TRANSFER-"
-                    + transfer_key
-                )
-
-                audit_payload = {
-                    "transfer_id": transfer_id,
-                    "tx_hash": tx_hash,
-                    "amount": round(
-                        transfer_amount,
-                        8,
-                    ),
-                    "blockchain_network":
-                        blockchain_network,
-                    "allocation_profile":
-                        self.ALLOCATION_PROFILE,
-                }
-
-                audit_hash = hashlib.sha256(
-                    str(
-                        sorted(
-                            audit_payload.items()
+                    if transfer_amount > database_pending:
+                        raise ValueError(
+                            "Transfer amount exceeds pending vault "
+                            f"allocation: requested={transfer_amount}, "
+                            f"pending={database_pending}"
                         )
-                    ).encode("utf-8")
-                ).hexdigest()
 
-                # ------------------------------------------------------
-                # Find the most recent allocation associated with the
-                # pending vault balance.
-                #
-                # This is a reference only. Transfer accounting itself
-                # is maintained at the aggregate vault-state level.
-                # ------------------------------------------------------
+                    # ------------------------------------------------------
+                    # Generate deterministic transfer identity.
+                    #
+                    # tx_hash is the external idempotency identity.
+                    # The transfer_id gives the database event its own
+                    # internal namespace.
+                    # ------------------------------------------------------
 
-                allocation_row = await conn.fetchrow(
-                    """
-                    SELECT trade_id
-                    FROM public.vault_ledger
-                    WHERE vault_amount > 0
-                      AND allocation_profile = $1
-                    ORDER BY created_at DESC, id DESC
-                    LIMIT 1
-                    """,
-                    self.ALLOCATION_PROFILE,
-                )
+                    import hashlib
 
-                allocation_trade_id = (
-                    allocation_row["trade_id"]
-                    if allocation_row
-                    else "VAULT-PENDING-POOL"
-                )
+                    transfer_source = (
+                        f"{self.ALLOCATION_PROFILE}|"
+                        f"{tx_hash}|"
+                        f"{transfer_amount:.8f}"
+                    )
 
-                # ------------------------------------------------------
-                # Create durable transfer event.
-                # ------------------------------------------------------
+                    transfer_key = hashlib.sha256(
+                        transfer_source.encode("utf-8")
+                    ).hexdigest()[:32]
 
-                insert_result = await conn.execute(
-                    """
-                    INSERT INTO public.vault_transfer
-                    (
+                    transfer_id = (
+                        "VAULT-TRANSFER-"
+                        + transfer_key
+                    )
+
+                    audit_payload = {
+                        "transfer_id": transfer_id,
+                        "tx_hash": tx_hash,
+                        "amount": round(
+                            transfer_amount,
+                            8,
+                        ),
+                        "blockchain_network":
+                            blockchain_network,
+                        "allocation_profile":
+                            self.ALLOCATION_PROFILE,
+                    }
+
+                    audit_hash = hashlib.sha256(
+                        str(
+                            sorted(
+                                audit_payload.items()
+                            )
+                        ).encode("utf-8")
+                    ).hexdigest()
+
+                    # ------------------------------------------------------
+                    # Find the most recent allocation associated with the
+                    # pending vault balance.
+                    #
+                    # This is a reference only. Transfer accounting itself
+                    # is maintained at the aggregate vault-state level.
+                    # ------------------------------------------------------
+
+                    allocation_row = await conn.fetchrow(
+                        """
+                        SELECT trade_id
+                        FROM public.vault_ledger
+                        WHERE vault_amount > 0
+                          AND allocation_profile = $1
+                        ORDER BY created_at DESC, id DESC
+                        LIMIT 1
+                        """,
+                        self.ALLOCATION_PROFILE,
+                    )
+
+                    allocation_trade_id = (
+                        allocation_row["trade_id"]
+                        if allocation_row
+                        else "VAULT-PENDING-POOL"
+                    )
+
+                    # ------------------------------------------------------
+                    # Create durable transfer event.
+                    # ------------------------------------------------------
+
+                    insert_result = await conn.execute(
+                        """
+                        INSERT INTO public.vault_transfer
+                        (
+                            transfer_id,
+                            allocation_trade_id,
+                            amount,
+                            blockchain_network,
+                            wallet_address,
+                            tx_hash,
+                            blockchain_status,
+                            confirmation_count,
+                            audit_hash
+                        )
+                        VALUES
+                        (
+                            $1,
+                            $2,
+                            $3,
+                            $4,
+                            $5,
+                            $6,
+                            $7,
+                            $8,
+                            $9
+                        )
+                        ON CONFLICT (transfer_id) DO NOTHING
+                        """,
                         transfer_id,
                         allocation_trade_id,
-                        amount,
+                        transfer_amount,
                         blockchain_network,
-                        wallet_address,
+                        state["wallet_address"],
                         tx_hash,
                         blockchain_status,
                         confirmation_count,
-                        audit_hash
-                    )
-                    VALUES
-                    (
-                        $1,
-                        $2,
-                        $3,
-                        $4,
-                        $5,
-                        $6,
-                        $7,
-                        $8,
-                        $9
-                    )
-                    ON CONFLICT (transfer_id) DO NOTHING
-                    """,
-                    transfer_id,
-                    allocation_trade_id,
-                    transfer_amount,
-                    blockchain_network,
-                    state["wallet_address"],
-                    tx_hash,
-                    blockchain_status,
-                    confirmation_count,
-                    audit_hash,
-                )
-
-                transfer_inserted = (
-                    insert_result.endswith("1")
-                )
-
-                if not transfer_inserted:
-
-                    print(
-                        "VaultService transfer idempotency: "
-                        f"transfer already exists ({transfer_id})"
+                        audit_hash,
                     )
 
-                    self.vault_balance = database_vault_balance
-                    self.pending_allocation = database_pending
-                    self.total_transferred = (
-                        database_total_transferred
+                    transfer_inserted = (
+                        insert_result.endswith("1")
                     )
 
-                    return self.snapshot()
+                    if not transfer_inserted:
 
-                # ------------------------------------------------------
-                # Calculate new durable state.
-                # ------------------------------------------------------
+                        print(
+                            "VaultService transfer idempotency: "
+                            f"transfer already exists ({transfer_id})"
+                        )
 
-                new_pending = round(
-                    database_pending
-                    - transfer_amount,
-                    2,
-                )
+                        # The transfer already exists durably.
+                        #
+                        # Do NOT mutate in-memory financial state or return
+                        # while the database transaction is still open.
+                        # Prepare the durable state for post-commit
+                        # synchronization instead.
 
-                new_vault_balance = round(
-                    database_vault_balance
-                    + transfer_amount,
-                    2,
-                )
+                        committed_state = {
+                            "vault_balance": database_vault_balance,
+                            "pending_allocation": database_pending,
+                            "total_transferred": database_total_transferred,
+                            "last_tx_hash": state["last_tx_hash"],
+                            "blockchain_network": state["blockchain_network"],
+                            "last_sync_time": None,
+                            "sync_status": state["sync_status"] or "PENDING",
+                        }
 
-                new_total_transferred = round(
-                    database_total_transferred
-                    + transfer_amount,
-                    2,
-                )
+                    if committed_state is None:
+                        # ------------------------------------------------------
+                        # Calculate new durable state.
+                        # ------------------------------------------------------
 
-                new_sync_status = (
-                    "SYNCED"
-                    if new_pending <= 0
-                    else "PENDING"
-                )
+                        new_pending = round(
+                            database_pending
+                            - transfer_amount,
+                            2,
+                        )
 
-                # ------------------------------------------------------
-                # Persist immutable vault state.
-                # ------------------------------------------------------
+                        new_vault_balance = round(
+                            database_vault_balance
+                            + transfer_amount,
+                            2,
+                        )
 
-                await conn.execute(
-                    """
-                    UPDATE public.immutable_vault_state
-                    SET
-                        vault_balance = $1,
-                        pending_vault_allocation = $2,
-                        total_transferred = $3,
-                        sync_status = $4,
-                        last_tx_hash = $5,
-                        blockchain_network = $6,
-                        last_sync_time = NOW(),
-                        last_updated = NOW()
-                    WHERE id = $7
-                    """,
-                    new_vault_balance,
-                    new_pending,
-                    new_total_transferred,
-                    new_sync_status,
-                    tx_hash,
-                    blockchain_network,
-                    self.database_state_id,
-                )
+                        new_total_transferred = round(
+                            database_total_transferred
+                            + transfer_amount,
+                            2,
+                        )
 
-                # ------------------------------------------------------
-                # Update in-memory state only after both DB operations
-                # have succeeded.
-                # ------------------------------------------------------
+                        new_sync_status = (
+                            "SYNCED"
+                            if new_pending <= 0
+                            else "PENDING"
+                        )
 
-                self.vault_balance = new_vault_balance
-                self.pending_allocation = new_pending
-                self.total_transferred = (
-                    new_total_transferred
-                )
+                        # ------------------------------------------------------
+                        # Persist immutable vault state.
+                        # ------------------------------------------------------
 
-                self.last_tx_hash = tx_hash
-                self.blockchain_network = (
-                    blockchain_network
-                )
+                        await conn.execute(
+                            """
+                            UPDATE public.immutable_vault_state
+                            SET
+                                vault_balance = $1,
+                                pending_vault_allocation = $2,
+                                total_transferred = $3,
+                                sync_status = $4,
+                                last_tx_hash = $5,
+                                blockchain_network = $6,
+                                last_sync_time = NOW(),
+                                last_updated = NOW()
+                            WHERE id = $7
+                            """,
+                            new_vault_balance,
+                            new_pending,
+                            new_total_transferred,
+                            new_sync_status,
+                            tx_hash,
+                            blockchain_network,
+                            self.database_state_id,
+                        )
 
-                self.last_sync_time = time.time()
+                        # ------------------------------------------------------
+                        # Prepare committed state.
+                        #
+                        # Do NOT mutate in-memory financial state here.
+                        # The transaction has not committed until the
+                        # transaction context exits successfully.
+                        # ------------------------------------------------------
 
-                self.sync_status = new_sync_status
-
-                print(
-                    "VaultService transfer committed: "
-                    f"{transfer_amount:.2f} "
-                    f"tx={tx_hash}"
-                )
-
-                return self.snapshot()
+                        committed_state = {
+                            "vault_balance": new_vault_balance,
+                            "pending_allocation": new_pending,
+                            "total_transferred": new_total_transferred,
+                            "last_tx_hash": tx_hash,
+                            "blockchain_network": blockchain_network,
+                            "last_sync_time": time.time(),
+                            "sync_status": new_sync_status,
+                        }
 
         except Exception as exc:
 
@@ -1292,6 +1543,31 @@ class VaultService:
 
             raise
 
+        # --------------------------------------------------------------
+        # POST-COMMIT IN-MEMORY SYNCHRONIZATION
+        #
+        # The transaction context has exited successfully, so the
+        # database changes are now committed. Only now synchronize
+        # Python financial state with the durable state.
+        # --------------------------------------------------------------
+
+        if committed_state is not None:
+            self.vault_balance = committed_state["vault_balance"]
+            self.pending_allocation = committed_state["pending_allocation"]
+            self.total_transferred = committed_state["total_transferred"]
+            self.last_tx_hash = committed_state["last_tx_hash"]
+            self.blockchain_network = committed_state["blockchain_network"]
+            self.last_sync_time = committed_state["last_sync_time"]
+            self.sync_status = committed_state["sync_status"]
+
+            print(
+                "VaultService transfer committed: "
+                f"{transfer_amount:.2f} "
+                f"tx={tx_hash}"
+            )
+
+            return self.snapshot()
+
     # ------------------------------------------------------------------
     # Snapshot
     # ------------------------------------------------------------------
@@ -1302,6 +1578,15 @@ class VaultService:
 
             "status":
                 self.status,
+
+            "allocation_profile":
+                self.ALLOCATION_PROFILE,
+
+            "trading_equity_balance":
+                round(
+                    self.trading_equity_balance,
+                    2
+                ),
 
             "vault_balance":
                 round(
@@ -1370,3 +1655,9 @@ class VaultService:
 
 
 vault_service = VaultService()
+
+
+
+
+
+

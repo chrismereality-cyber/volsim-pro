@@ -1,5 +1,5 @@
-import React from 'react';
-import { GlobalStateProvider } from '../context/GlobalStateContext';
+﻿import React from 'react';
+import Providers from './providers';
 import './globals.css';
 
 export default function RootLayout({
@@ -10,9 +10,9 @@ export default function RootLayout({
   return (
     <html lang='en'>
       <body>
-        <GlobalStateProvider>
+        <Providers>
           {children}
-        </GlobalStateProvider>
+        </Providers>
       </body>
     </html>
   );
