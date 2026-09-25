@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import os
 from contextlib import asynccontextmanager
 
@@ -27,6 +27,7 @@ from src.services.position_service import position_service
 from src.services.vault_service import vault_service
 from src.services.mt5_service import mt5_service
 from src.providers.registry import provider_registry
+from src.services.statistics_service import statistics_service
 
 
 
@@ -164,7 +165,145 @@ async def lifespan(app: FastAPI):
 
         raise
 
+    reconciliation_task = None
+    statistics_task = None
+
+    async def statistics_worker():
+        while True:
+            try:
+                await statistics_service.refresh_durable_history()
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                print(
+                    f"[STATISTICS] Durable history refresh failed: {exc}"
+                )
+
+            await asyncio.sleep(5)
+    async def reconciliation_worker():
+        """
+        Continuously reconcile authoritative LIVE broker positions.
+
+        This worker is strictly read-only with respect to broker
+        trading operations. It never opens, modifies, or closes
+        broker positions.
+
+        Startup reconciliation remains strict and is handled above.
+        Runtime reconciliation failures and discrepancies are logged
+        and retried on the next cycle.
+        """
+
+        interval_seconds = 5
+
+        print(
+            "MT5 reconciliation worker: START"
+        )
+
+        try:
+            while True:
+                try:
+                    reconciliation = (
+                        await position_service.sync_from_mt5()
+                    )
+
+                    reconciliation_status = (
+                        reconciliation.get("status")
+                    )
+
+                    discrepancies = (
+                        reconciliation.get(
+                            "discrepancies",
+                            [],
+                        )
+                    )
+
+                    if reconciliation_status == "RECONCILED":
+                        print(
+                            "MT5 reconciliation worker: "
+                            "RECONCILED"
+                        )
+
+                    elif (
+                        reconciliation_status
+                        == "RECONCILED_WITH_DISCREPANCIES"
+                    ):
+                        print(
+                            "MT5 reconciliation worker: "
+                            f"DISCREPANCIES={len(discrepancies)}"
+                        )
+
+                    elif reconciliation_status == "BROKER_QUERY_FAILED":
+                        print(
+                            "MT5 reconciliation worker: "
+                            "BROKER_QUERY_FAILED "
+                            f"error={reconciliation.get('error')}"
+                        )
+
+                    elif (
+                        reconciliation_status
+                        == "RECONCILIATION_FAILED"
+                    ):
+                        print(
+                            "MT5 reconciliation worker: "
+                            "RECONCILIATION_FAILED "
+                            f"error={reconciliation.get('error')}"
+                        )
+
+                    else:
+                        print(
+                            "MT5 reconciliation worker: "
+                            f"UNEXPECTED_STATUS={reconciliation_status}"
+                        )
+
+                except asyncio.CancelledError:
+                    raise
+
+                except Exception as exc:
+                    print(
+                        "MT5 reconciliation worker cycle failed: "
+                        f"{type(exc).__name__}: {exc}"
+                    )
+
+                await asyncio.sleep(
+                    interval_seconds
+                )
+
+        except asyncio.CancelledError:
+            print(
+                "MT5 reconciliation worker: STOP"
+            )
+            raise
+
+    execution_mode = os.getenv(
+        "VOLSIM_EXECUTION_MODE",
+        "PAPER",
+    ).strip().upper()
+
+    if execution_mode == "LIVE":
+        reconciliation_task = asyncio.create_task(
+            reconciliation_worker()
+        )
+
+    await statistics_service.refresh_durable_history()
+    statistics_task = asyncio.create_task(
+        statistics_worker()
+    )
+
     yield
+
+    if statistics_task is not None:
+        statistics_task.cancel()
+        try:
+            await statistics_task
+        except asyncio.CancelledError:
+            pass
+    if reconciliation_task is not None:
+        reconciliation_task.cancel()
+
+        try:
+            await reconciliation_task
+        except asyncio.CancelledError:
+            pass
 
     print("=== VOLSIM-PRO APPLICATION SHUTDOWN ===")
 
@@ -429,3 +568,4 @@ async def trading_state_socket(
             await websocket.close()
         except Exception:
             pass
+
