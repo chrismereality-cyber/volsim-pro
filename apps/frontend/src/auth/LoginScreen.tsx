@@ -258,16 +258,16 @@ export const LoginScreen: React.FC = () => {
   .vs-watermark span {
     display: block;
     white-space: nowrap;
-    color: rgba(14, 165, 233, 0.14);
-    font-size: clamp(38px, 4.6vw, 76px);
+    color: rgba(0, 126, 235, 0.11);
+    font-size: clamp(32px, 3.75vw, 62px);
     line-height: 0.82;
     font-weight: 800;
-    letter-spacing: -0.065em;
-    filter: blur(0.25px);
+    letter-spacing: -0.060em;
+    filter: blur(0.20px);
     text-shadow:
-      0 0 20px rgba(0, 191, 255, 0.16),
-      0 0 42px rgba(14, 165, 233, 0.10),
-      0 0 80px rgba(0, 120, 255, 0.06);
+      0 0 16px rgba(0, 126, 235, 0.11),
+      0 0 34px rgba(0, 105, 220, 0.07),
+      0 0 64px rgba(0, 90, 190, 0.04);
   }
 
   .vs-watermark span:nth-child(1) {
@@ -297,7 +297,67 @@ export const LoginScreen: React.FC = () => {
     stroke-width: 1.25;
     vector-effect: non-scaling-stroke;
   }
-  .vs-network-fine-mesh {
+  .vs-pyramid-net-refinement {
+  fill: none;
+  pointer-events: none;
+  vector-effect: non-scaling-stroke;
+}
+
+.vs-pyramid-net-deep {
+  fill: none;
+  stroke: rgba(0, 58, 145, 0.27);
+  stroke-width: 0.50;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vs-pyramid-net-mid {
+  fill: none;
+  stroke: rgba(0, 126, 235, 0.40);
+  stroke-width: 0.60;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter:
+    drop-shadow(0 0 2px rgba(0, 126, 235, 0.10))
+    drop-shadow(0 0 5px rgba(0, 105, 220, 0.05));
+}
+
+.vs-pyramid-net-bright {
+  fill: none;
+  stroke: rgba(0, 183, 255, 0.55);
+  stroke-width: 0.70;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter:
+    drop-shadow(0 0 2px rgba(0, 183, 255, 0.22))
+    drop-shadow(0 0 5px rgba(0, 140, 255, 0.10));
+}
+.vs-cosmic-terrain {
+  pointer-events: none;
+}
+
+.vs-cosmic-dust-deep {
+  fill: rgba(0, 105, 220, 0.34);
+  filter: drop-shadow(0 0 2px rgba(0, 105, 220, 0.20));
+}
+
+.vs-cosmic-dust-mid {
+  fill: rgba(0, 183, 255, 0.58);
+  filter:
+    drop-shadow(0 0 2px rgba(0, 183, 255, 0.34))
+    drop-shadow(0 0 5px rgba(0, 126, 235, 0.16));
+}
+
+.vs-cosmic-energy {
+  fill: rgba(103, 232, 249, 0.76);
+  filter:
+    drop-shadow(0 0 3px rgba(34, 211, 238, 0.65))
+    drop-shadow(0 0 8px rgba(0, 139, 255, 0.38));
+}
+.vs-network-fine-mesh {
     fill: none;
     stroke: rgba(0, 105, 220, 0.48);
     stroke-width: 0.60;
@@ -998,7 +1058,51 @@ export const LoginScreen: React.FC = () => {
     <path className="vs-network-fine-mesh-deep" d="M1320 537.8 Q1307.4 553.6 1294.8 569.3 Q1282.2 583.6 1269.5 597.8 Q1256.8 608.2 1244.2 618.5 Q1231.6 624.2 1219 630 Q1206.4 632.8 1193.8 635.7 Q1181.2 638.7 1168.5 641.6 Q1155.8 647.8 1143.2 653.9 Q1130.6 664.6 1118 675.3" />
     <path className="vs-network-fine-mesh-deep" d="M1370 564.9 Q1356.6 578.6 1343.2 592.4 Q1329.8 601.6 1316.5 610.7 Q1303.2 614.6 1289.8 618.4 Q1276.4 618.9 1263 619.4 Q1249.6 620 1236.2 620.6 Q1222.8 624.9 1209.5 629.2 Q1196.2 638.8 1182.8 648.3 Q1169.4 662.3 1156 676.3" />
     <path className="vs-network-fine-mesh-deep" d="M1420 501.4 Q1405.9 515.1 1391.8 528.8 Q1377.6 536.4 1363.5 544.1 Q1349.4 547.9 1335.2 551.7 Q1321.1 555.7 1307 559.7 Q1292.9 567.8 1278.8 575.8 Q1264.6 589.9 1250.5 604 Q1236.4 623.2 1222.2 642.3 Q1208.1 663 1194 683.8" />
-  </g>
+  
+    <g className="vs-pyramid-net-refinement" aria-hidden="true">
+
+      {/* LEFT PYRAMID — curved rising ribs */}
+      <path className="vs-pyramid-net-deep" d="M40 705 Q105 650 150 565 Q195 650 255 710" />
+      <path className="vs-pyramid-net-mid" d="M75 680 Q125 625 150 565 Q175 625 225 685" />
+      <path className="vs-pyramid-net-deep" d="M105 705 Q138 655 150 610 Q165 655 195 705" />
+
+      {/* LEFT-CENTER PYRAMID */}
+      <path className="vs-pyramid-net-deep" d="M235 720 Q330 625 430 475 Q525 630 615 720" />
+      <path className="vs-pyramid-net-mid" d="M285 700 Q355 620 430 515 Q505 625 570 705" />
+      <path className="vs-pyramid-net-bright" d="M335 680 Q385 610 430 545 Q475 610 525 685" />
+
+      {/* CENTER PYRAMID */}
+      <path className="vs-pyramid-net-deep" d="M500 720 Q595 600 690 430 Q785 605 885 720" />
+      <path className="vs-pyramid-net-mid" d="M555 700 Q625 585 690 475 Q755 585 830 705" />
+      <path className="vs-pyramid-net-bright" d="M610 680 Q655 570 690 510 Q730 570 775 685" />
+
+      {/* RIGHT-CENTER PYRAMID */}
+      <path className="vs-pyramid-net-deep" d="M785 720 Q895 585 990 405 Q1090 590 1185 720" />
+      <path className="vs-pyramid-net-mid" d="M840 700 Q920 575 990 450 Q1060 575 1135 705" />
+      <path className="vs-pyramid-net-bright" d="M900 680 Q950 555 990 495 Q1035 555 1090 685" />
+
+      {/* RIGHT PYRAMID */}
+      <path className="vs-pyramid-net-deep" d="M1080 720 Q1160 575 1240 380 Q1325 575 1425 720" />
+      <path className="vs-pyramid-net-mid" d="M1125 700 Q1185 560 1240 430 Q1300 565 1380 705" />
+      <path className="vs-pyramid-net-bright" d="M1180 680 Q1215 550 1240 475 Q1275 550 1335 685" />
+
+      {/* CURVED CROSS-THREADS — creates the woven pyramid-net character */}
+      <path className="vs-pyramid-net-deep" d="M55 650 Q155 615 265 635 Q350 650 430 610 Q520 565 615 595 Q710 625 805 585 Q900 545 990 570 Q1085 600 1180 535 Q1290 465 1405 520" />
+
+      <path className="vs-pyramid-net-mid" d="M70 690 Q175 650 275 675 Q365 700 450 655 Q535 610 625 640 Q715 665 805 625 Q900 585 1000 610 Q1090 635 1185 580 Q1290 520 1390 555" />
+
+      <path className="vs-pyramid-net-bright" d="M105 610 Q190 575 275 600 Q360 625 445 585 Q535 540 620 570 Q705 600 795 555 Q890 510 980 540 Q1070 570 1160 515 Q1260 455 1360 500" />
+
+      <path className="vs-pyramid-net-deep" d="M120 720 Q220 675 320 700 Q410 720 505 675 Q600 630 690 665 Q780 700 875 650 Q965 605 1060 635 Q1150 665 1240 605 Q1330 545 1410 580" />
+
+      {/* OPPOSING CURVED THREADS — breaks parallel repetition */}
+      <path className="vs-pyramid-net-mid" d="M180 710 Q225 635 300 575 Q370 520 445 545 Q520 570 590 520 Q665 465 740 500 Q815 535 885 480 Q955 425 1030 455 Q1110 490 1185 430 Q1260 370 1350 420" />
+
+      <path className="vs-pyramid-net-deep" d="M95 705 Q180 655 250 575 Q320 495 395 515 Q470 535 540 475 Q610 415 685 455 Q760 495 835 430 Q910 365 985 405 Q1060 445 1135 385 Q1210 325 1300 375 Q1360 405 1415 395" />
+
+      <path className="vs-pyramid-net-mid" d="M260 720 Q315 665 375 600 Q435 535 500 555 Q565 575 630 520 Q695 465 760 490 Q825 515 890 455 Q955 395 1020 420 Q1085 445 1150 395 Q1215 345 1280 365 Q1350 390 1400 350" />
+
+    </g></g>
 
           {[
             [120, 540],
@@ -1021,7 +1125,79 @@ export const LoginScreen: React.FC = () => {
               r={index % 3 === 0 ? 2.3 : 1.5}
             />
           ))}
-        </svg>
+        
+    <g className="vs-cosmic-terrain" aria-hidden="true">
+
+      {/* DEEP COSMIC DUST */}
+      <g className="vs-cosmic-dust-deep">
+        <circle cx="70" cy="690" r="1.1" />
+        <circle cx="118" cy="640" r="0.8" />
+        <circle cx="165" cy="705" r="1.0" />
+        <circle cx="205" cy="625" r="0.7" />
+        <circle cx="252" cy="680" r="1.2" />
+        <circle cx="295" cy="590" r="0.8" />
+        <circle cx="338" cy="700" r="0.9" />
+        <circle cx="382" cy="625" r="1.1" />
+        <circle cx="425" cy="560" r="0.7" />
+        <circle cx="468" cy="690" r="1.0" />
+        <circle cx="515" cy="610" r="0.8" />
+        <circle cx="555" cy="700" r="1.2" />
+        <circle cx="600" cy="555" r="0.7" />
+        <circle cx="640" cy="650" r="1.0" />
+        <circle cx="685" cy="515" r="0.8" />
+        <circle cx="730" cy="690" r="1.1" />
+        <circle cx="775" cy="590" r="0.8" />
+        <circle cx="820" cy="675" r="1.0" />
+        <circle cx="865" cy="535" r="0.7" />
+        <circle cx="910" cy="650" r="1.1" />
+        <circle cx="955" cy="570" r="0.8" />
+        <circle cx="1000" cy="690" r="1.2" />
+        <circle cx="1045" cy="535" r="0.7" />
+        <circle cx="1090" cy="625" r="1.0" />
+        <circle cx="1135" cy="500" r="0.8" />
+        <circle cx="1180" cy="660" r="1.1" />
+        <circle cx="1225" cy="550" r="0.7" />
+        <circle cx="1270" cy="635" r="1.0" />
+        <circle cx="1315" cy="475" r="0.8" />
+        <circle cx="1360" cy="610" r="1.1" />
+        <circle cx="1410" cy="690" r="0.9" />
+      </g>
+
+      {/* MID-DEPTH COSMIC PARTICLES */}
+      <g className="vs-cosmic-dust-mid">
+        <circle cx="105" cy="665" r="1.5" />
+        <circle cx="185" cy="600" r="1.2" />
+        <circle cx="275" cy="650" r="1.6" />
+        <circle cx="350" cy="555" r="1.1" />
+        <circle cx="445" cy="625" r="1.5" />
+        <circle cx="530" cy="535" r="1.2" />
+        <circle cx="615" cy="610" r="1.6" />
+        <circle cx="700" cy="470" r="1.2" />
+        <circle cx="785" cy="620" r="1.5" />
+        <circle cx="875" cy="500" r="1.1" />
+        <circle cx="965" cy="600" r="1.6" />
+        <circle cx="1050" cy="480" r="1.2" />
+        <circle cx="1140" cy="570" r="1.5" />
+        <circle cx="1230" cy="450" r="1.1" />
+        <circle cx="1320" cy="570" r="1.6" />
+        <circle cx="1390" cy="635" r="1.2" />
+      </g>
+
+      {/* SELECTED ENERGY NODES */}
+      <g className="vs-cosmic-energy">
+        <circle cx="150" cy="565" r="1.9" />
+        <circle cx="430" cy="475" r="2.0" />
+        <circle cx="690" cy="430" r="2.2" />
+        <circle cx="990" cy="405" r="2.0" />
+        <circle cx="1240" cy="380" r="2.1" />
+        <circle cx="300" cy="575" r="1.5" />
+        <circle cx="560" cy="520" r="1.6" />
+        <circle cx="820" cy="555" r="1.5" />
+        <circle cx="1080" cy="500" r="1.7" />
+        <circle cx="1330" cy="515" r="1.5" />
+      </g>
+
+    </g></svg>
   <svg
     className="vs-candle-field"
     viewBox="0 0 1440 900"
@@ -1371,6 +1547,11 @@ export const LoginScreen: React.FC = () => {
 };
 
 export default LoginScreen;
+
+
+
+
+
 
 
 
