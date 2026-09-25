@@ -432,6 +432,9 @@ export const useTradingStore = create<TradingState>(
                 ),
 
                 netExposure: numberOrZero(
+                    payload.netExposure ??
+                    portfolio.exposure ??
+                    risk.exposure ??
                     positions.total_exposure ??
                     positions.net_exposure
                 ),
@@ -566,5 +569,6 @@ export const useTradingStore = create<TradingState>(
         },
     })
 );
+
 
 

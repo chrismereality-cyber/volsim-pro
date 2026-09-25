@@ -1,12 +1,12 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Activity, Server, Database, Radio, Cpu, HardDrive, ShieldAlert } from 'lucide-react';
 import { useTradingStore } from '../../store/useTradingStore';
 
 export default function SystemTelemetry() {
-  const currentBalance = useTradingStore((state) => state.balance) || 1126.60;
-  const floatingPl = useTradingStore((state) => state.floating_pl) || 0.00;
+  const currentBalance = useTradingStore((state) => state.balance);
+  const floatingPl = useTradingStore((state) => state.floatingPl);
   const activePositionsCount = useTradingStore((state) => state.positions)?.length || 0;
 
   // Local state for system monitoring simulations matching the live stream heartbeat
@@ -196,3 +196,5 @@ export default function SystemTelemetry() {
     </div>
   );
 }
+
+

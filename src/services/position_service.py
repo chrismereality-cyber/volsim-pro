@@ -3,6 +3,7 @@ import time
 
 from src.services.database_service import database_service
 from src.services.mt5_service import mt5_service
+from src.services.oms_service import oms_service
 
 logger = logging.getLogger("volsim.position")
 
@@ -1283,6 +1284,66 @@ class PositionService:
                 position["floating_pl"] = 0.0
                 position["current_price"] = close_price
                 position["status"] = "CLOSED"
+                # OMS close bridge
+                #
+                # The existing position.oms_order_id is the authoritative
+                # local identity. Do not infer an OMS order from broker
+                # tickets, symbol, volume, or timestamps.
+
+                oms_order_id = position.get(
+                    "oms_order_id"
+                )
+
+                if oms_order_id:
+                    oms_order = oms_service.get_order(
+                        oms_order_id
+                    )
+
+                    if oms_order is None:
+                        logger.error(
+                            "OMS close bridge failed: "
+                            "OMS order not found: "
+                            "trade_id=%s oms_order_id=%s",
+                            trade_id,
+                            oms_order_id,
+                        )
+
+                    if oms_order is not None:
+                        oms_close_result = {
+                            "success": True,
+                            "oms_order_id": oms_order_id,
+                            "trade_id": str(trade_id),
+                            "position_ticket": broker_position_ticket,
+                            "order_ticket": broker_order_ticket,
+                            "deal_ticket": broker_deal_ticket,
+                            "close_price": close_price,
+                            "realized_pl": realized_pl,
+                        }
+
+                        oms_service.update_status(
+                            oms_order_id,
+                            "CLOSED",
+                            oms_close_result,
+                        )
+
+                        logger.info(
+                            "OMS close bridged: "
+                            "trade_id=%s oms_order_id=%s "
+                            "realized_pl=%.2f close_price=%.5f",
+                            trade_id,
+                            oms_order_id,
+                            realized_pl,
+                            close_price,
+                        )
+
+                if not oms_order_id:
+                    logger.error(
+                        "OMS close bridge skipped: "
+                        "position has no oms_order_id: "
+                        "trade_id=%s symbol=%s",
+                        trade_id,
+                        position.get("symbol"),
+                    )
                 position["closed_at"] = closed_at
 
                 await self.persist_position(
