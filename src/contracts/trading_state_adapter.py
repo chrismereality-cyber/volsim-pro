@@ -100,7 +100,10 @@ def build_trading_state_contract(
     # These metrics are not currently produced by the active backend.
     # Do NOT copy stale values from retired/historical engines.
     total_trades = _int(
-        statistics.get("total_trades", 0)
+        statistics.get(
+            "trade_count",
+            statistics.get("total_trades", 0),
+        )
     )
 
     value_at_risk = _float(
@@ -195,3 +198,4 @@ def build_trading_state_contract(
         oms=state.get("oms"),
         statistics=statistics,
     )
+
