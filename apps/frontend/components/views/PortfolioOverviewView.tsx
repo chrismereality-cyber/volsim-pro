@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { useTradingStore } from '../../store/useTradingStore';
@@ -26,7 +26,7 @@ export default function PortfolioOverviewView() {
           </div>
 
           <div className="text-lg font-bold text-white">
-            $0.00
+            {`$${state.netExposure.toFixed(2)}`}
           </div>
         </div>
       </div>
@@ -199,3 +199,4 @@ function Row({
     </div>
   );
 }
+
