@@ -1,0 +1,140 @@
+﻿import base64
+import os
+import secrets
+from datetime import datetime, timedelta
+
+from dotenv import load_dotenv
+from sqlalchemy.orm import Session
+
+from webauthn import (
+    AuthenticatorSelectionCriteria,
+    PublicKeyCredentialDescriptor,
+    UserVerificationRequirement,
+    generate_authentication_options,
+    generate_registration_options,
+    options_to_json,
+)
+
+from auth_models import User, WebAuthnCredential
+from .repository import AuthRepository
+
+
+load_dotenv(dotenv_path=r"C:\volsim-dev\.env")
+
+
+WEBAUTHN_RP_ID = os.getenv("WEBAUTHN_RP_ID")
+WEBAUTHN_RP_NAME = os.getenv("WEBAUTHN_RP_NAME", "VolSim-Pro")
+WEBAUTHN_ORIGIN = os.getenv("WEBAUTHN_ORIGIN")
+WEBAUTHN_CHALLENGE_TTL_SECONDS = 120
+
+
+if not WEBAUTHN_RP_ID:
+    raise RuntimeError("CRITICAL: WEBAUTHN_RP_ID is missing from the environment.")
+
+if not WEBAUTHN_ORIGIN:
+    raise RuntimeError("CRITICAL: WEBAUTHN_ORIGIN is missing from the environment.")
+
+
+def _challenge_to_string(challenge: bytes) -> str:
+    return base64.urlsafe_b64encode(challenge).rstrip(b"=").decode("ascii")
+
+
+class WebAuthnService:
+    """WebAuthn ceremony orchestration for registration and authentication."""
+
+    @staticmethod
+    def _new_challenge() -> bytes:
+        return secrets.token_bytes(32)
+
+    @staticmethod
+    def _challenge_expiry() -> datetime:
+        return datetime.utcnow() + timedelta(
+            seconds=WEBAUTHN_CHALLENGE_TTL_SECONDS
+        )
+
+    @staticmethod
+    def create_registration_options(
+        db: Session,
+        *,
+        user: User,
+    ) -> str:
+        challenge = WebAuthnService._new_challenge()
+
+        existing_credentials = db.query(WebAuthnCredential).filter(
+            WebAuthnCredential.user_id == user.id
+        ).all()
+
+        exclude_credentials = [
+            PublicKeyCredentialDescriptor(
+                id=base64.urlsafe_b64decode(
+                    credential.credential_id
+                    + "=" * (-len(credential.credential_id) % 4)
+                )
+            )
+            for credential in existing_credentials
+        ]
+
+        options = generate_registration_options(
+            rp_id=WEBAUTHN_RP_ID,
+            rp_name=WEBAUTHN_RP_NAME,
+            user_name=user.email,
+            user_id=str(user.id).encode("utf-8"),
+            user_display_name=user.email,
+            challenge=challenge,
+            authenticator_selection=AuthenticatorSelectionCriteria(
+                user_verification=UserVerificationRequirement.REQUIRED,
+            ),
+            exclude_credentials=exclude_credentials or None,
+        )
+
+        AuthRepository.create_webauthn_challenge(
+            db,
+            user_id=user.id,
+            challenge=_challenge_to_string(challenge),
+            ceremony="registration",
+            expires_at=WebAuthnService._challenge_expiry(),
+        )
+
+        return options_to_json(options)
+
+    @staticmethod
+    def create_authentication_options(
+        db: Session,
+        *,
+        user: User,
+    ) -> str:
+        challenge = WebAuthnService._new_challenge()
+
+        credentials = db.query(WebAuthnCredential).filter(
+            WebAuthnCredential.user_id == user.id
+        ).all()
+
+        if not credentials:
+            raise ValueError("No WebAuthn credentials are registered for this user.")
+
+        allow_credentials = [
+            PublicKeyCredentialDescriptor(
+                id=base64.urlsafe_b64decode(
+                    credential.credential_id
+                    + "=" * (-len(credential.credential_id) % 4)
+                )
+            )
+            for credential in credentials
+        ]
+
+        options = generate_authentication_options(
+            rp_id=WEBAUTHN_RP_ID,
+            challenge=challenge,
+            allow_credentials=allow_credentials,
+            user_verification=UserVerificationRequirement.REQUIRED,
+        )
+
+        AuthRepository.create_webauthn_challenge(
+            db,
+            user_id=user.id,
+            challenge=_challenge_to_string(challenge),
+            ceremony="authentication",
+            expires_at=WebAuthnService._challenge_expiry(),
+        )
+
+        return options_to_json(options)

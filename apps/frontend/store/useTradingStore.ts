@@ -27,6 +27,21 @@ export interface MarketQuote {
 
 export type MarketState = Record<string, MarketQuote>;
 
+export interface VenueContextState {
+    active_provider: string;
+    provider_available: boolean;
+    provider_status?: Record<string, any>;
+    venue: string;
+    display_name: string;
+}
+
+export interface InstrumentRegistryState {
+    instruments: Record<string, any>[];
+    selectedSymbol: string;
+    loading: boolean;
+    error: string | null;
+    lastUpdated: number | null;
+}
 export interface VaultState {
     status: string;
     allocation_profile: string;
@@ -47,6 +62,30 @@ export interface VaultState {
     last_persist_time: number | null;
     last_persist_error: string | null;
     persistence_enabled: boolean;
+}
+
+export interface AIExecutionDecision {
+    [key: string]: any;
+}
+
+export interface AIExecutionState {
+    [key: string]: any;
+}
+
+export interface ExecutionRiskState {
+    [key: string]: any;
+}
+
+export interface OrderBuilderState {
+    [key: string]: any;
+}
+
+export interface AIExecutionOrchestratorState {
+    [key: string]: any;
+}
+
+export interface ExecutionQueueState {
+    [key: string]: any;
 }
 
 export interface TradingState {
@@ -87,7 +126,12 @@ export interface TradingState {
 
     // MARKET
     market: MarketState;
-
+    venueContext: VenueContextState;
+    instrumentRegistry: InstrumentRegistryState;
+    setInstrumentRegistry: (
+        instruments: Record<string, any>[],
+        selectedSymbol?: string
+    ) => void;
     // POSITIONS / PORTFOLIO
     positions: TradingPosition[];
     portfolioValue: number;
@@ -100,14 +144,39 @@ export interface TradingState {
     valueAtRisk: number;
     riskStatus: string;
 
+    // AI / EXECUTION
+    aiDecision: AIExecutionDecision;
+    aiExecution: AIExecutionState;
+    executionRisk: ExecutionRiskState;
+    orderBuilder: OrderBuilderState;
+    aiExecutionOrchestrator: AIExecutionOrchestratorState;
+    executionQueue: ExecutionQueueState;
+
+    // MULTI-SYMBOL TRADING STATE
+    symbols: string[];
+    symbolStates: Record<string, any>;
+    marketFeaturesBySymbol: Record<string, any>;
+    marketRegimeBySymbol: Record<string, any>;
+    trendBySymbol: Record<string, any>;
+    counterTrendBySymbol: Record<string, any>;
+    aiDecisionBySymbol: Record<string, AIExecutionDecision>;
+    aiExecutionBySymbol: Record<string, AIExecutionState>;
+    executionRiskBySymbol: Record<string, ExecutionRiskState>;
+    orderBuilderBySymbol: Record<string, OrderBuilderState>;
+    aiExecutionOrchestratorBySymbol: Record<string, AIExecutionOrchestratorState>;
+
     // ALLOCATION / VAULT / HEDGING
     allocations: Record<string, number>;
     vault: VaultState;
     hedgingSignals: HedgingSignal[];
 
+    // FINANCIAL INTELLIGENCE
+    financialIntelligence: Record<string, any>;
+
     // RAW STATE VERSION
     stateVersion: number | null;
     lastStateTimestamp: string | number | null;
+
 
     // CENTRAL STATE INGESTION
     updateTradingState: (payload: any) => void;
@@ -295,7 +364,19 @@ export const useTradingStore = create<TradingState>(
 
         // MARKET
         market: {},
-
+        venueContext: {
+            active_provider: "MT5",
+            provider_available: false,
+            venue: "UNKNOWN",
+            display_name: "Unknown",
+        },
+        instrumentRegistry: {
+            instruments: [],
+            selectedSymbol: "XAUUSDm",
+            loading: false,
+            error: null,
+            lastUpdated: null,
+        },
         // POSITIONS / PORTFOLIO
         positions: [],
         portfolioValue: 0,
@@ -307,6 +388,30 @@ export const useTradingStore = create<TradingState>(
         liquidationWarning: false,
         valueAtRisk: 0,
         riskStatus: "UNKNOWN",
+
+        // AI / EXECUTION
+        aiDecision: {},
+        aiExecution: {},
+        executionRisk: {},
+        orderBuilder: {},
+        aiExecutionOrchestrator: {},
+        executionQueue: {},
+
+        // MULTI-SYMBOL TRADING STATE
+        symbols: [],
+        symbolStates: {},
+        marketFeaturesBySymbol: {},
+        marketRegimeBySymbol: {},
+        trendBySymbol: {},
+        counterTrendBySymbol: {},
+        aiDecisionBySymbol: {},
+        aiExecutionBySymbol: {},
+        executionRiskBySymbol: {},
+        orderBuilderBySymbol: {},
+        aiExecutionOrchestratorBySymbol: {},
+
+        // FINANCIAL INTELLIGENCE
+        financialIntelligence: {},
 
         // ALLOCATION
         allocations: {},
@@ -320,6 +425,24 @@ export const useTradingStore = create<TradingState>(
         // STATE METADATA
         stateVersion: null,
         lastStateTimestamp: null,
+
+        setInstrumentRegistry: (
+            instruments: Record<string, any>[],
+            selectedSymbol?: string
+        ) => {
+            set((state) => ({
+                instrumentRegistry: {
+                    ...state.instrumentRegistry,
+                    instruments,
+                    selectedSymbol:
+                        selectedSymbol ??
+                        state.instrumentRegistry.selectedSymbol,
+                    loading: false,
+                    error: null,
+                    lastUpdated: Date.now(),
+                },
+            }));
+        },
 
         updateTradingState: (payload) => {
 
@@ -341,6 +464,12 @@ export const useTradingStore = create<TradingState>(
 
             const positions =
                 objectValue(payload.positions);
+
+            const venueContext =
+
+                objectValue(payload.venue_context);
+
+            
 
             const market =
                 objectValue(payload.market);
@@ -375,6 +504,95 @@ export const useTradingStore = create<TradingState>(
                     payload.metadata
                 );
 
+            const aiDecision =
+                objectValue(
+                    payload.ai_decision
+                );
+
+            const aiExecution =
+                objectValue(
+                    payload.ai_execution
+                );
+
+            const executionRisk =
+                objectValue(
+                    payload.execution_risk
+                );
+
+            const orderBuilder =
+                objectValue(
+                    payload.order_builder
+                );
+
+            const aiExecutionOrchestrator =
+                objectValue(
+                    payload.ai_execution_orchestrator
+                );
+
+            // MULTI-SYMBOL STATE
+            const symbols =
+                Array.isArray(payload.symbols)
+                    ? payload.symbols.map(String)
+                    : [];
+
+            const symbolStates =
+                objectValue(payload.symbol_states);
+
+            const marketFeaturesBySymbol =
+                objectValue(
+                    payload.market_features_by_symbol
+                );
+
+            const marketRegimeBySymbol =
+                objectValue(
+                    payload.market_regime_by_symbol
+                );
+
+            const trendBySymbol =
+                objectValue(
+                    payload.trend_by_symbol
+                );
+
+            const counterTrendBySymbol =
+                objectValue(
+                    payload.counter_trend_by_symbol
+                );
+
+            const financialIntelligence =
+                objectValue(
+                    payload.financial_intelligence
+                );
+
+            const aiDecisionBySymbol =
+                objectValue(
+                    payload.ai_decision_by_symbol
+                ) as Record<string, AIExecutionDecision>;
+
+            const aiExecutionBySymbol =
+                objectValue(
+                    payload.ai_execution_by_symbol
+                ) as Record<string, AIExecutionState>;
+
+            const executionRiskBySymbol =
+                objectValue(
+                    payload.execution_risk_by_symbol
+                ) as Record<string, ExecutionRiskState>;
+
+            const orderBuilderBySymbol =
+                objectValue(
+                    payload.order_builder_by_symbol
+                ) as Record<string, OrderBuilderState>;
+
+            const aiExecutionOrchestratorBySymbol =
+                objectValue(
+                    payload.ai_execution_orchestrator_by_symbol
+                ) as Record<string, AIExecutionOrchestratorState>;
+
+            const executionQueue =
+                objectValue(
+                    payload.execution_queue
+                );
+
             const normalizedMarket: MarketState = {};
 
             for (const [symbol, quote] of Object.entries(market)) {
@@ -401,9 +619,37 @@ export const useTradingStore = create<TradingState>(
                 // CONNECTION
                 isFastApiConnected: true,
 
+                // AI / EXECUTION
+                aiDecision,
+                aiExecution,
+                executionRisk,
+                orderBuilder,
+                aiExecutionOrchestrator,
+                executionQueue,
+
+                // MULTI-SYMBOL TRADING STATE
+                symbols,
+                symbolStates,
+                marketFeaturesBySymbol,
+                marketRegimeBySymbol,
+                trendBySymbol,
+                counterTrendBySymbol,
+                financialIntelligence,
+                aiDecisionBySymbol,
+                aiExecutionBySymbol,
+                executionRiskBySymbol,
+                orderBuilderBySymbol,
+                aiExecutionOrchestratorBySymbol,
+
                 // MARKET
                 market: normalizedMarket,
-
+                venueContext: {
+                    active_provider: String(venueContext.active_provider ?? "MT5"),
+                    provider_available: Boolean(venueContext.provider_available ?? false),
+                    provider_status: objectValue(venueContext.provider_status),
+                    venue: String(venueContext.venue ?? "UNKNOWN"),
+                    display_name: String(venueContext.display_name ?? "Unknown"),
+                },
                 // ACCOUNT
                 balance: numberOrZero(
                     payload.balance ?? account.balance
@@ -569,6 +815,22 @@ export const useTradingStore = create<TradingState>(
         },
     })
 );
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

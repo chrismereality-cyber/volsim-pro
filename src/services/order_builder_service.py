@@ -1,6 +1,7 @@
 ﻿import time
 import logging
 
+
 from src.services.mt5_service import mt5_service
 
 
@@ -21,7 +22,7 @@ class OrderBuilderService:
     - normalize price to broker precision
     - preserve explicitly supplied protective exits
     - construct normalized OMS order request
-    - expose builder state
+    - expose symbol-scoped builder state
 
     Does NOT:
     - calculate risk
@@ -33,17 +34,53 @@ class OrderBuilderService:
     """
 
     DEFAULT_SYMBOL = "XAUUSDm"
+    ACTIVE_SYMBOLS = (
+        "XAUUSDm",
+        "BTCUSDm",
+    )
+
     DEFAULT_VOLUME = 0.01
     MAGIC_NUMBER = 202607
 
     def __init__(self):
 
-        self.state = {
+        self.states = {
+            symbol: self._empty_state(symbol)
+            for symbol in self.ACTIVE_SYMBOLS
+        }
+
+        # Backward-compatible XAUUSDm alias.
+        self.state = self.states[self.DEFAULT_SYMBOL]
+
+    # ------------------------------------------------------------------
+    # State helpers
+    # ------------------------------------------------------------------
+
+    def _empty_state(self, symbol):
+
+        return {
             "status": "STANDBY",
+            "symbol": symbol,
             "order_ready": False,
             "order_request": None,
             "last_update": time.time(),
         }
+
+    def _ensure_symbol(self, symbol):
+
+        if not symbol:
+            symbol = self.DEFAULT_SYMBOL
+
+        if symbol not in self.states:
+            self.states[symbol] = self._empty_state(symbol)
+
+        return symbol
+
+    def _state(self, symbol):
+
+        symbol = self._ensure_symbol(symbol)
+
+        return self.states[symbol]
 
     # ------------------------------------------------------------------
     # Broker execution context
@@ -110,11 +147,28 @@ class OrderBuilderService:
         self,
         ai_decision,
         execution_risk,
+        symbol=None,
     ):
         """
         Construct an OMS-compatible order only when execution
         risk has already approved the decision.
+
+        State is maintained independently per symbol.
         """
+
+        # --------------------------------------------------------------
+        # Resolve symbol
+        # --------------------------------------------------------------
+
+        symbol = (
+            symbol
+            or ai_decision.get("symbol")
+            or execution_risk.get("symbol")
+            or self.DEFAULT_SYMBOL
+        )
+
+        symbol = self._ensure_symbol(symbol)
+        state = self.states[symbol]
 
         # --------------------------------------------------------------
         # Risk gate
@@ -125,10 +179,13 @@ class OrderBuilderService:
             False,
         ):
 
-            self.state.update({
+            state.update({
 
                 "status":
                     "BLOCKED",
+
+                "symbol":
+                    symbol,
 
                 "order_ready":
                     False,
@@ -141,7 +198,7 @@ class OrderBuilderService:
 
             })
 
-            return self.state
+            return state
 
         # --------------------------------------------------------------
         # AI decision
@@ -157,10 +214,13 @@ class OrderBuilderService:
             "SELL",
         ):
 
-            self.state.update({
+            state.update({
 
                 "status":
                     "WAITING",
+
+                "symbol":
+                    symbol,
 
                 "order_ready":
                     False,
@@ -173,7 +233,7 @@ class OrderBuilderService:
 
             })
 
-            return self.state
+            return state
 
         # --------------------------------------------------------------
         # Symbol
@@ -181,8 +241,11 @@ class OrderBuilderService:
 
         symbol = ai_decision.get(
             "symbol",
-            self.DEFAULT_SYMBOL,
+            symbol,
         )
+
+        symbol = self._ensure_symbol(symbol)
+        state = self.states[symbol]
 
         # --------------------------------------------------------------
         # Volume
@@ -199,10 +262,13 @@ class OrderBuilderService:
 
         except (TypeError, ValueError):
 
-            self.state.update({
+            state.update({
 
                 "status":
                     "ERROR",
+
+                "symbol":
+                    symbol,
 
                 "order_ready":
                     False,
@@ -215,7 +281,7 @@ class OrderBuilderService:
 
             })
 
-            return self.state
+            return state
 
         # --------------------------------------------------------------
         # Live MT5 execution context
@@ -227,10 +293,13 @@ class OrderBuilderService:
 
         if not context:
 
-            self.state.update({
+            state.update({
 
                 "status":
                     "BROKER_CONTEXT_UNAVAILABLE",
+
+                "symbol":
+                    symbol,
 
                 "order_ready":
                     False,
@@ -243,7 +312,7 @@ class OrderBuilderService:
 
             })
 
-            return self.state
+            return state
 
         # --------------------------------------------------------------
         # Broker price
@@ -278,10 +347,13 @@ class OrderBuilderService:
 
         if price <= 0:
 
-            self.state.update({
+            state.update({
 
                 "status":
                     "INVALID_MARKET_PRICE",
+
+                "symbol":
+                    symbol,
 
                 "order_ready":
                     False,
@@ -294,7 +366,7 @@ class OrderBuilderService:
 
             })
 
-            return self.state
+            return state
 
         # --------------------------------------------------------------
         # Protective exits
@@ -329,6 +401,11 @@ class OrderBuilderService:
 
         order = {
 
+            "decision_id":
+                ai_decision.get(
+                    "decision_id"
+                ),
+
             "symbol":
                 symbol,
 
@@ -356,13 +433,16 @@ class OrderBuilderService:
         }
 
         # --------------------------------------------------------------
-        # Publish builder state
+        # Publish symbol-scoped builder state
         # --------------------------------------------------------------
 
-        self.state.update({
+        state.update({
 
             "status":
                 "READY",
+
+            "symbol":
+                symbol,
 
             "order_ready":
                 True,
@@ -375,18 +455,33 @@ class OrderBuilderService:
 
         })
 
-        return self.state
+        return state
 
     # ------------------------------------------------------------------
     # Snapshot
     # ------------------------------------------------------------------
 
-    def snapshot(self):
+    def snapshot(self, symbol=None):
         """
         Return the current Order Builder state.
+
+        Without a symbol, preserve the historical XAUUSDm behavior.
         """
 
-        return self.state
+        if symbol is None:
+            return self.state
+
+        return self._state(symbol)
+
+    def snapshot_all(self):
+        """
+        Return independent builder states for every active symbol.
+        """
+
+        return {
+            symbol: dict(state)
+            for symbol, state in self.states.items()
+        }
 
 
 order_builder_service = OrderBuilderService()

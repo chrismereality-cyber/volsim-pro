@@ -12,6 +12,7 @@ ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
         "vault.read",
         "analytics.read",
         "risk.read",
+        "instruments.read",
     }),
 
     "trader": frozenset({
@@ -24,6 +25,7 @@ ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
         "vault.read",
         "analytics.read",
         "risk.read",
+        "instruments.read",
     }),
 
     "admin": frozenset({
@@ -49,6 +51,8 @@ ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
         "capital.approve",
         "capital.execute",
         "capital.reconcile",
+        "instruments.read",
+        "instruments.manage",
     }),
 
     "superadmin": frozenset({

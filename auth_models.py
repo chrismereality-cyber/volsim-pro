@@ -195,3 +195,129 @@ class AuditEvent(Base):
         nullable=False,
         default=datetime.utcnow,
     )
+
+class WebAuthnCredential(Base):
+    __tablename__ = "webauthn_credentials"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+    )
+
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    credential_id = Column(
+        Text,
+        nullable=False,
+        unique=True,
+    )
+
+    credential_public_key = Column(
+        Text,
+        nullable=False,
+    )
+
+    sign_count = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+
+    aaguid = Column(
+        String(36),
+        nullable=True,
+    )
+
+    fmt = Column(
+        String(64),
+        nullable=True,
+    )
+
+    credential_type = Column(
+        String(64),
+        nullable=True,
+    )
+
+    user_verified = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+    )
+
+    credential_device_type = Column(
+        String(64),
+        nullable=True,
+    )
+
+    credential_backed_up = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+    )
+
+    attestation_object = Column(
+        Text,
+        nullable=True,
+    )
+
+    created_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+    )
+
+    last_used_at = Column(
+        DateTime,
+        nullable=True,
+    )
+
+class WebAuthnChallenge(Base):
+    __tablename__ = "webauthn_challenges"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+    )
+
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    challenge = Column(
+        Text,
+        nullable=False,
+        unique=True,
+    )
+
+    ceremony = Column(
+        String(32),
+        nullable=False,
+    )
+
+    expires_at = Column(
+        DateTime,
+        nullable=False,
+        index=True,
+    )
+
+    used_at = Column(
+        DateTime,
+        nullable=True,
+    )
+
+    created_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+    )

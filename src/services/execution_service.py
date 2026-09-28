@@ -102,6 +102,7 @@ class ExecutionService:
         success: bool,
         order_id=None,
         client_order_id=None,
+        decision_id=None,
         execution_mode=None,
         status=None,
         trade_id=None,
@@ -145,6 +146,7 @@ class ExecutionService:
             "order_id": order_id,
             "oms_order_id": order_id,
             "client_order_id": client_order_id,
+            "decision_id": decision_id,
 
             "trade_id": trade_id,
 
@@ -185,6 +187,7 @@ class ExecutionService:
         broker_transmission_started = False
         client_order_id = order_request.get('client_order_id') or order_request.get('idempotency_key') or 'VOLSIM-' + uuid.uuid4().hex
         order_request['client_order_id'] = client_order_id
+        decision_id = order_request.get('decision_id')
         claimed, previous_result = await self._claim_execution_idempotency(client_order_id)
         if not claimed:
             previous_execution_result = previous_result.get('result') if previous_result else None
@@ -198,6 +201,7 @@ class ExecutionService:
                 'retcode': 'DUPLICATE_EXECUTION',
                 'message': 'Execution rejected because client_order_id has already been claimed.',
                 'client_order_id': client_order_id,
+                'decision_id': decision_id,
                 'execution_mode': self.execution_mode
             }
             return duplicate_result
@@ -218,6 +222,7 @@ class ExecutionService:
                     'retcode': 'LIVE_TRANSMISSION_NOT_AUTHORIZED',
                     'message': 'Live broker transmission requires explicit authorization.',
                     'client_order_id': client_order_id,
+                    'decision_id': decision_id,
                     'execution_mode': self.execution_mode,
                     'live_transmission_authorized': False
                 }
@@ -241,7 +246,14 @@ class ExecutionService:
                 self.last_error = risk_result.get('reason', 'Risk rejected')
                 oms_service.update_status(order_id, 'REJECTED', risk_result)
                 await self._release_execution_idempotency(client_order_id)
-                return {'success': False, 'order_id': order_id, 'reason': self.last_error, 'risk': risk_result}
+                return {
+                    'success': False,
+                    'order_id': order_id,
+                    'reason': self.last_error,
+                    'risk': risk_result,
+                    'decision_id': decision_id,
+                    'client_order_id': client_order_id,
+                }
             try:
                 guard_symbol = str(order_request.get('symbol', ''))
                 guard_action = str(order_request.get('action', order_request.get('type', order_request.get('side', '')))).upper().strip()
@@ -256,7 +268,19 @@ class ExecutionService:
             if not guard_allowed:
                 self.orders_rejected += 1
                 self.last_error = 'MARKET_CONTEXT_REJECTED: ' + guard_reason
-                rejection_result = {'success': False, 'order_id': order_id, 'ticket': None, 'retcode': 'MARKET_CONTEXT_REJECTED', 'message': self.last_error, 'guard_status': guard_status, 'guard_reason': guard_reason, 'market_context': market_context_result, 'execution_mode': self.execution_mode}
+                rejection_result = {
+                    'success': False,
+                    'order_id': order_id,
+                    'ticket': None,
+                    'retcode': 'MARKET_CONTEXT_REJECTED',
+                    'message': self.last_error,
+                    'guard_status': guard_status,
+                    'guard_reason': guard_reason,
+                    'market_context': market_context_result,
+                    'execution_mode': self.execution_mode,
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                }
                 oms_service.update_status(order_id, 'REJECTED', rejection_result)
                 logger.warning('Order rejected by market context guard: oms_order_id=%s symbol=%s action=%s reason=%s', order_id, guard_symbol, guard_action, guard_reason)
                 return rejection_result
@@ -270,11 +294,39 @@ class ExecutionService:
                 self.last_order_time = time.time()
                 self.last_fill_time = time.time()
                 self.execution_latency_ms = round((time.time() - start) * 1000, 2)
-                result = {'success': True, 'mode': 'PAPER', 'oms_order_id': order_id, 'trade_id': paper_trade_id, 'position_ticket': None, 'order_ticket': None, 'deal_ticket': None, 'ticket': paper_trade_id, 'retcode': 'SIMULATED_FILL', 'symbol': order_request.get('symbol', ''), 'side': order_request.get('type', order_request.get('side', '')), 'volume': float(order_request.get('volume', 0.01) or 0.01), 'price': execution_price, 'comment': order_request.get('comment', 'VolSim-Pro PAPER')}
+                result = {
+                    'success': True,
+                    'mode': 'PAPER',
+                    'oms_order_id': order_id,
+                    'trade_id': paper_trade_id,
+                    'position_ticket': None,
+                    'order_ticket': None,
+                    'deal_ticket': None,
+                    'ticket': paper_trade_id,
+                    'retcode': 'SIMULATED_FILL',
+                    'symbol': order_request.get('symbol', ''),
+                    'side': order_request.get('type', order_request.get('side', '')),
+                    'volume': float(order_request.get('volume', 0.01) or 0.01),
+                    'price': execution_price,
+                    'comment': order_request.get('comment', 'VolSim-Pro PAPER'),
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                }
                 oms_service.update_status(order_id, 'FILLED', result)
                 position = await position_service.open_position(paper_trade_id, order_request, result)
                 logger.info('PAPER position registered: oms_order_id=%s trade_id=%s symbol=%s side=%s volume=%s price=%s', order_id, paper_trade_id, order_request.get('symbol'), order_request.get('type'), order_request.get('volume'), execution_price)
-                await self._finalize_execution_idempotency(client_order_id, {**result, 'order_id': order_id, 'trade_id': paper_trade_id, 'client_order_id': client_order_id, 'execution_mode': self.execution_mode}, order_id)
+                await self._finalize_execution_idempotency(
+                    client_order_id,
+                    {
+                        **result,
+                        'order_id': order_id,
+                        'trade_id': paper_trade_id,
+                        'client_order_id': client_order_id,
+                        'decision_id': decision_id,
+                        'execution_mode': self.execution_mode,
+                    },
+                    order_id,
+                )
                 return {'order_id': order_id, 'trade_id': paper_trade_id, 'position': position, **result}
             request = {'action': mt5.TRADE_ACTION_DEAL, 'symbol': order_request.get('symbol'), 'volume': order_request.get('volume', 0.01), 'type': mt5.ORDER_TYPE_BUY if order_request.get('type') == 'BUY' else mt5.ORDER_TYPE_SELL, 'price': order_request.get('price', 0), 'sl': order_request.get('stop_loss', 0), 'tp': order_request.get('take_profit', 0), 'deviation': 20, 'magic': 202607, 'type_filling': mt5.ORDER_FILLING_IOC, 'comment': 'VolSim-Pro'}
             try:
@@ -285,13 +337,29 @@ class ExecutionService:
                 self.last_error = 'MT5_ORDER_CHECK_EXCEPTION: ' + str(order_check_error)
                 oms_service.update_status(order_id, 'REJECTED', {'success': False, 'retcode': 'ORDER_CHECK_EXCEPTION', 'message': self.last_error})
                 await self._release_execution_idempotency(client_order_id)
-                return {'success': False, 'order_id': order_id, 'ticket': None, 'retcode': 'ORDER_CHECK_EXCEPTION', 'message': self.last_error}
+                return {
+                    'success': False,
+                    'order_id': order_id,
+                    'ticket': None,
+                    'retcode': 'ORDER_CHECK_EXCEPTION',
+                    'message': self.last_error,
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                }
             if order_check_result is None:
                 self.orders_rejected += 1
                 self.last_error = 'MT5_ORDER_CHECK_FAILED: No response from MT5'
                 oms_service.update_status(order_id, 'REJECTED', {'success': False, 'retcode': 'ORDER_CHECK_NO_RESPONSE', 'message': self.last_error})
                 await self._release_execution_idempotency(client_order_id)
-                return {'success': False, 'order_id': order_id, 'ticket': None, 'retcode': 'ORDER_CHECK_NO_RESPONSE', 'message': self.last_error}
+                return {
+                    'success': False,
+                    'order_id': order_id,
+                    'ticket': None,
+                    'retcode': 'ORDER_CHECK_NO_RESPONSE',
+                    'message': self.last_error,
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                }
             order_check_retcode = getattr(order_check_result, 'retcode', None)
             order_check_comment = getattr(order_check_result, 'comment', '')
             logger.info('MT5 order_check() result: retcode=%s comment=%s', order_check_retcode, order_check_comment)
@@ -300,7 +368,17 @@ class ExecutionService:
                 self.last_error = f'MT5_ORDER_CHECK_REJECTED: retcode={order_check_retcode} comment={order_check_comment}'
                 oms_service.update_status(order_id, 'REJECTED', {'success': False, 'retcode': 'ORDER_CHECK_REJECTED', 'broker_retcode': order_check_retcode, 'broker_comment': order_check_comment, 'message': self.last_error})
                 await self._release_execution_idempotency(client_order_id)
-                return {'success': False, 'order_id': order_id, 'ticket': None, 'retcode': 'ORDER_CHECK_REJECTED', 'broker_retcode': order_check_retcode, 'comment': order_check_comment, 'message': self.last_error}
+                return {
+                    'success': False,
+                    'order_id': order_id,
+                    'ticket': None,
+                    'retcode': 'ORDER_CHECK_REJECTED',
+                    'broker_retcode': order_check_retcode,
+                    'comment': order_check_comment,
+                    'message': self.last_error,
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                }
             logger.info('MT5 order_check() PASSED. Proceeding to order_send(): oms_order_id=%s symbol=%s', order_id, order_request.get('symbol'))
             broker_transmission_started = True
             result = mt5.order_send(request)
@@ -317,7 +395,22 @@ class ExecutionService:
                 order_ticket = getattr(result, 'order', None)
                 deal_ticket = getattr(result, 'deal', None)
                 position_ticket = self._resolve_broker_position_ticket(symbol=order_request.get('symbol', ''), magic=order_request.get('magic', 202607), order_ticket=order_ticket, deal_ticket=deal_ticket)
-                execution_result = {'success': True, 'oms_order_id': order_id, 'position_ticket': position_ticket, 'ticket': order_ticket, 'order_ticket': order_ticket, 'deal_ticket': deal_ticket, 'retcode': result.retcode, 'comment': getattr(result, 'comment', ''), 'symbol': order_request.get('symbol', ''), 'side': order_request.get('side', order_request.get('order_type', '')), 'volume': float(getattr(result, 'volume', order_request.get('volume', 0.01))), 'price': float(getattr(result, 'price', order_request.get('price', 0)))}
+                execution_result = {
+                    'success': True,
+                    'oms_order_id': order_id,
+                    'position_ticket': position_ticket,
+                    'ticket': order_ticket,
+                    'order_ticket': order_ticket,
+                    'deal_ticket': deal_ticket,
+                    'retcode': result.retcode,
+                    'comment': getattr(result, 'comment', ''),
+                    'symbol': order_request.get('symbol', ''),
+                    'side': order_request.get('side', order_request.get('order_type', '')),
+                    'volume': float(getattr(result, 'volume', order_request.get('volume', 0.01))),
+                    'price': float(getattr(result, 'price', order_request.get('price', 0))),
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                }
                 oms_service.update_status(order_id, 'FILLED', execution_result)
                 await self.record_trade_ledger(order_request, execution_result, 'FILLED', oms_order_id=order_id)
                 live_trade_id = position_ticket or str(order_ticket) or str(order_id)
@@ -325,11 +418,35 @@ class ExecutionService:
                 position = await position_service.open_position(str(live_trade_id), order_request, execution_result)
                 await position_service.persist_snapshot(position)
                 logger.info('LIVE position registered: oms_order_id=%s trade_id=%s position_ticket=%s order_ticket=%s deal_ticket=%s', order_id, live_trade_id, position_ticket, order_ticket, deal_ticket)
-                await self._finalize_execution_idempotency(client_order_id, {**execution_result, 'order_id': order_id, 'trade_id': str(live_trade_id), 'client_order_id': client_order_id, 'execution_mode': self.execution_mode}, order_id)
+                await self._finalize_execution_idempotency(
+                    client_order_id,
+                    {
+                        **execution_result,
+                        'order_id': order_id,
+                        'trade_id': str(live_trade_id),
+                        'client_order_id': client_order_id,
+                        'decision_id': decision_id,
+                        'execution_mode': self.execution_mode,
+                    },
+                    order_id,
+                )
                 return {'order_id': order_id, 'trade_id': str(live_trade_id), **execution_result}
             self.orders_rejected += 1
             self.last_error = str(result.retcode)
-            await self._finalize_execution_idempotency(client_order_id, {'success': False, 'order_id': order_id, 'ticket': None, 'retcode': result.retcode, 'message': self.last_error, 'client_order_id': client_order_id, 'execution_mode': self.execution_mode}, order_id)
+            await self._finalize_execution_idempotency(
+                client_order_id,
+                {
+                    'success': False,
+                    'order_id': order_id,
+                    'ticket': None,
+                    'retcode': result.retcode,
+                    'message': self.last_error,
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                    'execution_mode': self.execution_mode,
+                },
+                order_id,
+            )
             return {'success': False, 'ticket': None, 'retcode': result.retcode, 'message': self.last_error}
         except Exception as e:
             self.orders_rejected += 1
@@ -343,7 +460,20 @@ class ExecutionService:
             else:
                 exception_retcode = 'EXECUTION_EXCEPTION'
                 exception_message = str(e)
-            await self._finalize_execution_idempotency(client_order_id, {'success': False, 'order_id': order_id, 'ticket': None, 'retcode': exception_retcode, 'message': exception_message, 'client_order_id': client_order_id, 'execution_mode': self.execution_mode}, order_id)
+            await self._finalize_execution_idempotency(
+                client_order_id,
+                {
+                    'success': False,
+                    'order_id': order_id,
+                    'ticket': None,
+                    'retcode': exception_retcode,
+                    'message': exception_message,
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                    'execution_mode': self.execution_mode,
+                },
+                order_id,
+            )
             return {'success': False, 'order_id': order_id, 'ticket': None, 'message': str(e)}
 
     async def record_trade_ledger(self, order_request: dict, result: dict, status: str, oms_order_id: str | None=None) -> bool:
