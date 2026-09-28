@@ -24,10 +24,20 @@ class MT5Provider(MarketProvider):
         except Exception:
             connected = False
 
+        broker_identity = mt5_service.get_broker_identity()
+
         return {
             "provider": self.provider_id,
             "venue": self.venue_id,
             "display_name": self.display_name,
+            "broker": str(broker_identity.get("broker", "") or ""),
+            "server": str(broker_identity.get("server", "") or ""),
+            "terminal_name": str(
+                broker_identity.get("terminal_name", "") or ""
+            ),
+            "broker_connected": bool(
+                broker_identity.get("connected", False)
+            ),
             "status": "CONNECTED" if connected else "DISCONNECTED",
             "available": connected,
             "execution_supported": connected,
@@ -108,3 +118,4 @@ class MT5Provider(MarketProvider):
 
 
 mt5_provider = MT5Provider()
+

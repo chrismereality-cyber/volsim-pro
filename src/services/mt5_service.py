@@ -1,4 +1,4 @@
-﻿import MetaTrader5 as mt5
+import MetaTrader5 as mt5
 import time
 
 
@@ -49,6 +49,96 @@ class MT5Service:
             return []
 
         return list(symbols)
+
+
+    def activate_symbol(self, symbol):
+        """
+        Explicitly activate one discovered MT5 symbol in Market Watch.
+
+        This is a controlled symbol-selection primitive:
+        - no orders are submitted
+        - no database state is modified
+        - no AI/risk state is modified
+        - no other symbols are automatically selected
+        """
+        requested_symbol = str(symbol or "").strip()
+
+        if not requested_symbol:
+            return {
+                "status": "INVALID_SYMBOL",
+                "symbol": "",
+                "activated": False,
+                "visible": False,
+                "reason": "Symbol is required.",
+            }
+
+        if not self.connect():
+            return {
+                "status": "MT5_UNAVAILABLE",
+                "symbol": requested_symbol,
+                "activated": False,
+                "visible": False,
+                "reason": "MT5 terminal is not connected.",
+            }
+
+        try:
+            info = mt5.symbol_info(requested_symbol)
+        except Exception as exc:
+            return {
+                "status": "SYMBOL_LOOKUP_ERROR",
+                "symbol": requested_symbol,
+                "activated": False,
+                "visible": False,
+                "reason": str(exc),
+            }
+
+        if info is None:
+            return {
+                "status": "SYMBOL_NOT_FOUND",
+                "symbol": requested_symbol,
+                "activated": False,
+                "visible": False,
+                "reason": "Symbol is not exposed by the connected MT5 terminal.",
+            }
+
+        try:
+            selected = bool(
+                mt5.symbol_select(requested_symbol, True)
+            )
+        except Exception as exc:
+            return {
+                "status": "SYMBOL_SELECT_ERROR",
+                "symbol": requested_symbol,
+                "activated": False,
+                "visible": bool(getattr(info, "visible", False)),
+                "reason": str(exc),
+            }
+
+        try:
+            refreshed = mt5.symbol_info(requested_symbol)
+        except Exception:
+            refreshed = info
+
+        visible = bool(
+            getattr(refreshed, "visible", False)
+        )
+
+        if selected and visible:
+            return {
+                "status": "ACTIVATED",
+                "symbol": requested_symbol,
+                "activated": True,
+                "visible": True,
+                "reason": "Symbol activated in MT5 Market Watch.",
+            }
+
+        return {
+            "status": "ACTIVATION_FAILED",
+            "symbol": requested_symbol,
+            "activated": False,
+            "visible": visible,
+            "reason": "MT5 did not confirm symbol visibility after selection.",
+        }
 
 
     def get_instrument_registry(self):
@@ -199,6 +289,42 @@ class MT5Service:
             "realized_pl": realized_pl
         }
 
+
+    def get_broker_identity(self):
+        """
+        Return broker/terminal identity from the already-connected MT5 session.
+
+        This is read-only:
+        - no orders
+        - no symbol selection
+        - no account mutation
+        """
+        if not self.connect():
+            return {}
+
+        terminal = mt5.terminal_info()
+        account = mt5.account_info()
+
+        if not terminal and not account:
+            return {}
+
+        return {
+            "broker": str(
+                getattr(terminal, "company", "") or ""
+            ),
+            "terminal_name": str(
+                getattr(terminal, "name", "") or ""
+            ),
+            "server": str(
+                getattr(account, "server", "") or ""
+            ),
+            "currency": str(
+                getattr(account, "currency", "") or ""
+            ),
+            "connected": bool(
+                getattr(terminal, "connected", False)
+            ) if terminal else False,
+        }
 
     def get_account_state(self):
 
@@ -1334,5 +1460,6 @@ class MT5Service:
             }
 
 mt5_service = MT5Service()
+
 
 

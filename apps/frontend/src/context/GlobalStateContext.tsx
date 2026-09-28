@@ -1,8 +1,9 @@
-﻿'use client';
+'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 import { tradingSocket } from '../../lib/TradingSocketManager';
+import { InstrumentRegistryClient } from '../../lib/InstrumentRegistryClient';
 import { useTradingStore } from '../../store/useTradingStore';
 import { useAuth } from '../auth/AuthProvider';
 
@@ -33,6 +34,64 @@ export const GlobalStateProvider = ({
 
     const [connected, setConnected] = useState(false);
 
+    const setInstrumentRegistry = useTradingStore(
+        (state) => state.setInstrumentRegistry
+    );
+
+    useEffect(() => {
+        if (
+            isLoading ||
+            !isAuthenticated ||
+            !accessToken
+        ) {
+            return;
+        }
+
+        const authenticatedToken = accessToken;
+        let cancelled = false;
+
+        async function loadInstrumentRegistry() {
+            try {
+                const response =
+                    await InstrumentRegistryClient.listMT5(
+                        authenticatedToken,
+                    );
+
+                if (cancelled) {
+                    return;
+                }
+
+                setInstrumentRegistry(
+                    response.instruments,
+                );
+
+                console.log(
+                    '[GLOBAL STATE] MT5 instrument registry loaded',
+                    response.count,
+                );
+            } catch (error) {
+                if (cancelled) {
+                    return;
+                }
+
+                console.error(
+                    '[GLOBAL STATE] MT5 instrument registry load failed',
+                    error,
+                );
+            }
+        }
+
+        void loadInstrumentRegistry();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [
+        isAuthenticated,
+        isLoading,
+        accessToken,
+        setInstrumentRegistry,
+    ]);
     useEffect(() => {
         if (
             isLoading ||
@@ -109,4 +168,7 @@ export const GlobalStateProvider = ({
 };
 
 export const useGlobalState = () => useContext(GlobalStateContext);
+
+
+
 

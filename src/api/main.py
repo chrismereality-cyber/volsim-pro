@@ -1,5 +1,6 @@
-import asyncio
+﻿import asyncio
 import os
+from datetime import datetime
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
@@ -28,6 +29,9 @@ from src.services.vault_service import vault_service
 from src.services.mt5_service import mt5_service
 from src.providers.registry import provider_registry
 from src.services.statistics_service import statistics_service
+
+from src.vfia.core.orchestrator import intelligence_orchestrator
+from src.vfia.core.world_state_adapter import vfia_world_state_adapter
 
 
 
@@ -376,7 +380,7 @@ app.include_router(
 @app.get("/api/instruments/mt5")
 async def mt5_instruments(
     context: AuthorizationContext = Depends(
-        permission_guard("portfolio.read")
+        permission_guard("instruments.read")
     ),
 ):
     """
@@ -399,9 +403,87 @@ async def mt5_instruments(
 
 
 # ---------------------------------------------------------------------------
-# Global Trading State
+@app.post("/api/instruments/mt5/{symbol}/activate")
+async def activate_mt5_instrument(
+    symbol: str,
+    context: AuthorizationContext = Depends(
+        permission_guard("instruments.manage")
+    ),
+):
+    """
+    Explicitly activate one MT5 instrument in Market Watch.
+
+    This endpoint is intentionally limited to symbol activation:
+    - no orders are submitted
+    - no AI decision is created
+    - no risk state is modified
+    - no database state is modified
+    - no other symbols are automatically activated
+    """
+    result = mt5_service.activate_symbol(symbol)
+
+    return {
+        "status": "ok",
+        "provider": "MT5",
+        "activation": result,
+    }
+
+# ---------------------------------------------------------------------------
+# Explicit AI-Authorized Trading Execution
 # ---------------------------------------------------------------------------
 
+@app.post("/api/trading/execute/{symbol}")
+async def execute_trading_symbol(
+    symbol: str,
+    context: AuthorizationContext = Depends(
+        permission_guard("orders.create")
+    ),
+):
+    """
+    Explicitly request one AI-authorized execution cycle for one symbol.
+
+    This endpoint is the API command boundary only.
+
+    The actual execution path remains:
+        AI Decision
+        -> AI Execution Authorization
+        -> Execution Risk Gate
+        -> Order Builder
+        -> Central AI Execution Orchestrator
+        -> Execution Service
+
+    This endpoint does not:
+    - create a manual order
+    - call MT5 directly
+    - bypass AI authorization
+    - bypass the execution risk gate
+    - bypass the order builder
+    - create a background execution loop
+    """
+
+    normalized_symbol = symbol.strip()
+
+    try:
+        result = await global_trading_state_service.execute_symbol(
+            normalized_symbol
+        )
+    except ValueError as exc:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "status": "INVALID_REQUEST",
+                "symbol": normalized_symbol,
+                "detail": str(exc),
+            },
+        )
+
+    return JSONResponse(
+        content=result
+    )
+
+
+# Global Trading State
+# ---------------------------------------------------------------------------
 @app.get("/api/trading-state")
 async def trading_state(
     context: AuthorizationContext = Depends(
@@ -544,11 +626,68 @@ async def trading_state_socket(
         })
 
         while True:
+            # ----------------------------------------------------------
+            # AUTHORITATIVE TRADING STATE
+            #
+            # Capture exactly one VolSim-Pro state snapshot.
+            # VFIA consumes this same snapshot through its read-only
+            # world-state adapter. It must not call snapshot() again.
+            # ----------------------------------------------------------
+
             state = global_trading_state_service.snapshot()
+
+            # ----------------------------------------------------------
+            # VFIA FINANCIAL INTELLIGENCE
+            #
+            # VFIA observes and analyzes the authoritative state.
+            # It does not authorize execution, place orders, mutate
+            # trading state, or bypass risk governance.
+            # ----------------------------------------------------------
+
+            world_state = (
+                vfia_world_state_adapter.from_state(
+                    state
+                )
+            )
+
+            financial_intelligence = (
+                await intelligence_orchestrator.analyze(
+                    world_state
+                )
+            )
+
+            # The VFIA orchestrator returns a datetime timestamp.
+            # Normalize it for the JSON WebSocket contract.
+            if isinstance(
+                financial_intelligence.get("timestamp"),
+                datetime,
+            ):
+                financial_intelligence["timestamp"] = (
+                    financial_intelligence["timestamp"].isoformat()
+                )
+
+            # Defensive read-only governance markers.
+            financial_intelligence[
+                "execution_authorized"
+            ] = False
+
+            financial_intelligence[
+                "execution_allowed"
+            ] = False
+
+            # ----------------------------------------------------------
+            # CANONICAL TRADING STATE CONTRACT
+            # ----------------------------------------------------------
+
+            state[
+                "financial_intelligence"
+            ] = financial_intelligence
 
             payload = build_trading_state_contract(
                 state
-            ).model_dump()
+            ).model_dump(
+                mode="json"
+            )
 
             await websocket.send_json(
                 payload
@@ -568,4 +707,15 @@ async def trading_state_socket(
             await websocket.close()
         except Exception:
             pass
+
+
+
+
+
+
+
+
+
+
+
 

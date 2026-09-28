@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import {
@@ -16,6 +16,7 @@ import MarketOverviewView from '../components/views/MarketOverviewView';
 import OrderBookView from '../components/views/OrderBookView';
 import LivePositionsView from '../components/views/LivePositionsView';
 import MainChartView from '../components/views/MainChartView';
+import AIExecutionView from '../components/views/AIExecutionView';
 import PerformanceAnalyticsView from '../components/views/PerformanceAnalyticsView';
 import RiskManagementView from '../components/views/RiskManagementView';
 import TradeJournalView from '../components/views/TradeJournalView';
@@ -62,6 +63,12 @@ export default function EnterpriseShell() {
       name: "Live Positions",
       icon: Activity,
       permission: "positions.read",
+    },
+    {
+      id: "ai-execution",
+      name: "AI Execution",
+      icon: Cpu,
+      permission: "portfolio.read",
     },
     {
       id: "charts",
@@ -261,7 +268,11 @@ export default function EnterpriseShell() {
           canView("positions.read") &&
           <LivePositionsView />}
 
-        {activeTab === "charts" &&
+        {activeTab === "ai-execution" &&
+          canView("portfolio.read") &&
+          <AIExecutionView />}
+
+                {activeTab === "charts" &&
           canView("portfolio.read") &&
           <MainChartView />}
 
@@ -300,3 +311,7 @@ export default function EnterpriseShell() {
     </div>
   );
 }
+
+
+
+

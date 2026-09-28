@@ -33,7 +33,12 @@ type AuthTab = 'login' | 'signup';
 
 
 export const LoginScreen: React.FC = () => {
-  const { login, register, isLoading } = useAuth();
+  const {
+    login,
+    biometricLogin,
+    register,
+    isLoading,
+  } = useAuth();
 
   const [activeTab, setActiveTab] = useState<AuthTab>('login');
   const [email, setEmail] = useState('');
@@ -68,8 +73,26 @@ export const LoginScreen: React.FC = () => {
     }
   };
 
-  const handleBiometric = () => {
-    setLocalError('Biometric Login is not available yet.');
+  const handleBiometric = async () => {
+    setLocalError('');
+
+    if (!email.trim()) {
+      setLocalError(
+        'Please enter your email address before using Biometric Login.',
+      );
+      return;
+    }
+
+    try {
+      await biometricLogin(email.trim());
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Biometric authentication failed. Please try again.';
+
+      setLocalError(message);
+    }
   };
 
   const handleForgotPassword = () => {
@@ -1496,6 +1519,9 @@ export const LoginScreen: React.FC = () => {
 };
 
 export default LoginScreen;
+
+
+
 
 
 

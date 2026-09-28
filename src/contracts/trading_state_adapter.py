@@ -52,6 +52,9 @@ def build_trading_state_contract(
 
     No trading calculations are performed here.
     No state is mutated here.
+
+    Legacy single-symbol aliases are preserved while authoritative
+    multi-symbol collections are exposed unchanged.
     """
 
     account = state.get("account") or {}
@@ -97,8 +100,6 @@ def build_trading_state_contract(
         risk.get("liquidation_warning", False)
     )
 
-    # These metrics are not currently produced by the active backend.
-    # Do NOT copy stale values from retired/historical engines.
     total_trades = _int(
         statistics.get(
             "trade_count",
@@ -174,9 +175,12 @@ def build_trading_state_contract(
 
         hedgingSignals=hedging_signals,
 
-        # Preserve complete authoritative state.
+        # Global infrastructure.
         account=account,
         market=state.get("market") or {},
+        venue_context=state.get("venue_context") or {},
+
+        # Legacy single-symbol aliases.
         market_features=state.get("market_features"),
         market_regime=state.get("market_regime"),
         trend=state.get("trend"),
@@ -190,6 +194,39 @@ def build_trading_state_contract(
         ai_execution_orchestrator=state.get(
             "ai_execution_orchestrator"
         ),
+
+        # Authoritative multi-symbol state.
+        symbols=state.get("symbols") or [],
+        symbol_states=state.get("symbol_states") or {},
+        market_features_by_symbol=(
+            state.get("market_features_by_symbol") or {}
+        ),
+        market_regime_by_symbol=(
+            state.get("market_regime_by_symbol") or {}
+        ),
+        trend_by_symbol=(
+            state.get("trend_by_symbol") or {}
+        ),
+        counter_trend_by_symbol=(
+            state.get("counter_trend_by_symbol") or {}
+        ),
+        ai_decision_by_symbol=(
+            state.get("ai_decision_by_symbol") or {}
+        ),
+        ai_execution_by_symbol=(
+            state.get("ai_execution_by_symbol") or {}
+        ),
+        execution_risk_by_symbol=(
+            state.get("execution_risk_by_symbol") or {}
+        ),
+        order_builder_by_symbol=(
+            state.get("order_builder_by_symbol") or {}
+        ),
+        ai_execution_orchestrator_by_symbol=(
+            state.get("ai_execution_orchestrator_by_symbol") or {}
+        ),
+
+        # Global infrastructure.
         execution_queue=state.get("execution_queue"),
         vault=state.get("vault") or {},
         portfolio=portfolio,
@@ -197,5 +234,8 @@ def build_trading_state_contract(
         execution=state.get("execution"),
         oms=state.get("oms"),
         statistics=statistics,
+        financial_intelligence=(
+            state.get("financial_intelligence") or {}
+        ),
     )
 

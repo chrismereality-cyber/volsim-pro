@@ -11,6 +11,9 @@ class TradingStateContract(BaseModel):
 
     The GlobalTradingStateService remains the authoritative state producer.
     This model only validates and normalizes the externally exposed contract.
+
+    Legacy single-symbol fields are preserved for frontend compatibility.
+    Multi-symbol collections expose the authoritative per-symbol state.
     """
 
     model_config = ConfigDict(extra="allow")
@@ -47,9 +50,13 @@ class TradingStateContract(BaseModel):
 
     hedgingSignals: List[Any] = Field(default_factory=list)
 
-    # Full authoritative nested state is preserved.
+    # Global infrastructure
     account: Dict[str, Any] = Field(default_factory=dict)
     market: Dict[str, Any] = Field(default_factory=dict)
+    venue_context: Dict[str, Any] = Field(default_factory=dict)
+
+    # Legacy single-symbol aliases.
+    # These remain populated for existing frontend consumers.
     market_features: Any = None
     market_regime: Any = None
     trend: Any = None
@@ -59,6 +66,22 @@ class TradingStateContract(BaseModel):
     execution_risk: Any = None
     order_builder: Any = None
     ai_execution_orchestrator: Any = None
+
+    # Authoritative multi-symbol state.
+    symbols: List[str] = Field(default_factory=list)
+    symbol_states: Dict[str, Any] = Field(default_factory=dict)
+    market_features_by_symbol: Dict[str, Any] = Field(default_factory=dict)
+    market_regime_by_symbol: Dict[str, Any] = Field(default_factory=dict)
+    trend_by_symbol: Dict[str, Any] = Field(default_factory=dict)
+    counter_trend_by_symbol: Dict[str, Any] = Field(default_factory=dict)
+    ai_decision_by_symbol: Dict[str, Any] = Field(default_factory=dict)
+    ai_execution_by_symbol: Dict[str, Any] = Field(default_factory=dict)
+    execution_risk_by_symbol: Dict[str, Any] = Field(default_factory=dict)
+    order_builder_by_symbol: Dict[str, Any] = Field(default_factory=dict)
+    ai_execution_orchestrator_by_symbol: Dict[str, Any] = Field(
+        default_factory=dict
+    )
+
     execution_queue: Any = None
     vault: Dict[str, Any] = Field(default_factory=dict)
     portfolio: Dict[str, Any] = Field(default_factory=dict)
@@ -66,3 +89,4 @@ class TradingStateContract(BaseModel):
     execution: Any = None
     oms: Any = None
     statistics: Dict[str, Any] = Field(default_factory=dict)
+    financial_intelligence: Dict[str, Any] = Field(default_factory=dict)

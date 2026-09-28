@@ -2,12 +2,15 @@
 
 import React from 'react';
 import { useTradingStore } from '../../store/useTradingStore';
+import NeuralExecutionCore from './NeuralExecutionCore';
 
 export default function PortfolioOverviewView() {
   const state = useTradingStore();
 
   return (
     <div className="space-y-6 font-mono text-zinc-300">
+
+      <NeuralExecutionCore />
 
       <div className="flex justify-between items-center border-b border-zinc-900 pb-4">
         <div>
@@ -199,4 +202,5 @@ function Row({
     </div>
   );
 }
+
 

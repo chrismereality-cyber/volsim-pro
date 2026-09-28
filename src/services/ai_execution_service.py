@@ -1,4 +1,4 @@
-import time
+﻿import time
 
 
 class AIExecutionService:
@@ -12,16 +12,47 @@ class AIExecutionService:
     - Risk Engine
     - OMS
     - Execution Service
+
+    Multi-symbol:
+    - XAUUSDm
+    - BTCUSDm
+
+    Backward compatibility:
+    - self.state remains the XAUUSDm state.
+    - evaluate() without a symbol evaluates XAUUSDm.
+    - snapshot() without a symbol returns XAUUSDm.
     """
+
+    DEFAULT_SYMBOL = "XAUUSDm"
+
+    ACTIVE_SYMBOLS = (
+        "XAUUSDm",
+        "BTCUSDm",
+    )
 
 
     def __init__(self):
 
-        self.state = {
+        self.states = {
+            symbol: self._empty_state(symbol)
+            for symbol in self.ACTIVE_SYMBOLS
+        }
+
+        # Backward-compatible XAUUSDm state alias.
+        self.state = self.states[self.DEFAULT_SYMBOL]
+
+
+    def _empty_state(self, symbol):
+
+        return {
 
             "status": "STANDBY",
 
+            "symbol": symbol,
+
             "execution_signal": "NONE",
+
+            "decision_id": None,
 
             "last_action": "WAITING",
 
@@ -32,18 +63,40 @@ class AIExecutionService:
         }
 
 
+    def _ensure_symbol(self, symbol):
+
+        if symbol not in self.states:
+
+            self.states[symbol] = self._empty_state(symbol)
+
+        return self.states[symbol]
+
 
     def evaluate(
         self,
         ai_decision,
         risk_state,
-        portfolio_state
+        portfolio_state,
+        symbol=None
     ):
+
+        symbol = (
+            symbol
+            or ai_decision.get("symbol")
+            or self.DEFAULT_SYMBOL
+        )
+
+        state = self._ensure_symbol(symbol)
 
 
         decision = ai_decision.get(
             "decision",
             "HOLD"
+        )
+
+
+        decision_id = ai_decision.get(
+            "decision_id"
         )
 
 
@@ -55,8 +108,11 @@ class AIExecutionService:
         )
 
 
-        self.state["execution_signal"] = decision
+        state["decision_id"] = decision_id
 
+        state["execution_signal"] = decision
+
+        state["symbol"] = symbol
 
 
         #
@@ -65,7 +121,7 @@ class AIExecutionService:
 
         if confidence < 70:
 
-            self.state.update({
+            state.update({
 
                 "status":
                     "STANDBY",
@@ -78,8 +134,7 @@ class AIExecutionService:
 
             })
 
-            return self.state
-
+            return state
 
 
         if decision not in [
@@ -87,7 +142,7 @@ class AIExecutionService:
             "SELL"
         ]:
 
-            self.state.update({
+            state.update({
 
                 "status":
                     "STANDBY",
@@ -100,11 +155,10 @@ class AIExecutionService:
 
             })
 
-            return self.state
+            return state
 
 
-
-        self.state.update({
+        state.update({
 
             "status":
                 "READY",
@@ -118,14 +172,22 @@ class AIExecutionService:
         })
 
 
-        return self.state
+        return state
 
 
+    def snapshot(self, symbol=None):
 
-    def snapshot(self):
+        symbol = symbol or self.DEFAULT_SYMBOL
 
-        return self.state
+        return self._ensure_symbol(symbol)
 
+
+    def snapshot_all(self):
+
+        return {
+            symbol: dict(state)
+            for symbol, state in self.states.items()
+        }
 
 
 ai_execution_service = AIExecutionService()

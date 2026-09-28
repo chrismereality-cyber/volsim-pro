@@ -1,5 +1,4 @@
-
-import time
+﻿import time
 
 from src.services.execution_queue_service import execution_queue_service
 from src.services.execution_service import execution_service
@@ -12,160 +11,311 @@ class AIExecutionOrchestrator:
     Pipeline:
 
         Order Builder
-              ?
+              ↓
         Execution Queue
-              ?
+              ↓
         Queue Dispatch
-              ?
+              ↓
         Execution Service
-              ?
+              ↓
         OMS / Position Service
 
-    This orchestrator consumes an already-approved order.
+    The orchestrator consumes an already-approved order.
     It does not calculate risk.
+
+    Execution infrastructure remains centralized.
+    Orchestration state is maintained independently per symbol.
     """
+
+    DEFAULT_SYMBOL = "XAUUSDm"
+
+    ACTIVE_SYMBOLS = (
+        "XAUUSDm",
+        "BTCUSDm",
+    )
 
     def __init__(self):
 
-        self.state = {
+        self.states = {
+            symbol: self._empty_state(symbol)
+            for symbol in self.ACTIVE_SYMBOLS
+        }
+
+        # Backward-compatible XAUUSDm alias.
+        self.state = self.states[self.DEFAULT_SYMBOL]
+
+        self._last_signatures = {
+            symbol: None
+            for symbol in self.ACTIVE_SYMBOLS
+        }
+
+    # ------------------------------------------------------------------
+    # State helpers
+    # ------------------------------------------------------------------
+
+    def _empty_state(self, symbol):
+
+        return {
             "status": "ONLINE",
+            "symbol": symbol,
             "execution_signal": "NONE",
             "last_action": "WAITING",
             "last_order": None,
             "last_result": None,
             "last_update": time.time(),
-            "queue": execution_queue_service.snapshot()
+            "queue": execution_queue_service.snapshot(),
         }
 
-        self._last_signature = None
+    def _ensure_symbol(self, symbol):
 
-    async def evaluate(self, order_state):
+        if not symbol:
+            symbol = self.DEFAULT_SYMBOL
 
-        self.state["last_update"] = time.time()
+        if symbol not in self.states:
+            self.states[symbol] = self._empty_state(symbol)
+            self._last_signatures[symbol] = None
 
-        # --------------------------------------------------
+        return symbol
+
+    # ------------------------------------------------------------------
+    # Evaluation
+    # ------------------------------------------------------------------
+
+    async def evaluate(
+        self,
+        order_state,
+        symbol=None,
+        ai_execution=None,
+    ):
+        """
+        Process an already-approved order.
+
+        The execution queue and execution service remain global.
+        Only orchestration state and duplicate protection are
+        symbol-scoped.
+        """
+
+        # --------------------------------------------------------------
+        # Resolve symbol from explicit argument or order state
+        # --------------------------------------------------------------
+
+        symbol = (
+            symbol
+            or order_state.get("symbol")
+            or (
+                order_state.get("order_request") or {}
+            ).get("symbol")
+            or self.DEFAULT_SYMBOL
+        )
+
+        symbol = self._ensure_symbol(symbol)
+        state = self.states[symbol]
+
+        state["last_update"] = time.time()
+
+        # --------------------------------------------------------------
         # 1. Validate Order Builder state
-        # --------------------------------------------------
+        # --------------------------------------------------------------
 
-        if not order_state.get("order_ready", False):
+        if not order_state.get(
+            "order_ready",
+            False,
+        ):
 
-            self.state["execution_signal"] = "NONE"
-            self.state["last_action"] = "WAITING"
-            self.state["last_order"] = None
-            self.state["queue"] = (
+            state["execution_signal"] = "NONE"
+            state["last_action"] = "WAITING"
+            state["last_order"] = None
+            state["queue"] = (
                 execution_queue_service.snapshot()
             )
 
-            return self.state
+            return state
 
-        # --------------------------------------------------
-        # 2. Extract order request
-        # --------------------------------------------------
+        # --------------------------------------------------------------
+        # 2. Validate AI Execution Authorization
+        # --------------------------------------------------------------
+        #
+        # AI Execution Policy is the explicit authorization boundary.
+        # The orchestrator must never dispatch an order unless the AI
+        # execution service has explicitly returned READY.
+        #
+        # This is intentionally checked before request extraction,
+        # queue insertion, or execution-service dispatch.
+        # --------------------------------------------------------------
 
-        request = order_state.get("order_request")
+        if ai_execution is None:
+            ai_execution = {}
+
+        if ai_execution.get("status") != "READY":
+            state["execution_signal"] = "NONE"
+            state["last_action"] = (
+                "AI_EXECUTION_NOT_AUTHORIZED"
+            )
+            state["last_order"] = None
+            state["queue"] = (
+                execution_queue_service.snapshot()
+            )
+
+            return state
+
+        if ai_execution.get(
+            "last_action"
+        ) != "EXECUTION_READY":
+            state["execution_signal"] = "NONE"
+            state["last_action"] = (
+                "AI_EXECUTION_NOT_AUTHORIZED"
+            )
+            state["last_order"] = None
+            state["queue"] = (
+                execution_queue_service.snapshot()
+            )
+
+            return state
+
+        # --------------------------------------------------------------
+        # 3. Extract order request
+        # --------------------------------------------------------------
+
+        request = order_state.get(
+            "order_request"
+        )
 
         if not request:
 
-            self.state["execution_signal"] = "NONE"
-            self.state["last_action"] = "INVALID_REQUEST"
-            self.state["last_order"] = None
-            self.state["queue"] = (
+            state["execution_signal"] = "NONE"
+            state["last_action"] = "INVALID_REQUEST"
+            state["last_order"] = None
+            state["queue"] = (
                 execution_queue_service.snapshot()
             )
 
-            return self.state
+            return state
 
-        # --------------------------------------------------
-        # 3. Validate order fields
-        # --------------------------------------------------
+        # --------------------------------------------------------------
+        # 3. Resolve request symbol
+        # --------------------------------------------------------------
 
-        symbol = request.get("symbol")
-        order_type = request.get("type")
-        volume = request.get("volume")
-
-        if not symbol or order_type not in ("BUY", "SELL"):
-
-            self.state["execution_signal"] = "NONE"
-            self.state["last_action"] = "INVALID_ORDER"
-            self.state["last_order"] = request
-
-            return self.state
-
-        if volume is None or float(volume) <= 0:
-
-            self.state["execution_signal"] = "NONE"
-            self.state["last_action"] = "INVALID_VOLUME"
-            self.state["last_order"] = request
-
-            return self.state
-
-        # --------------------------------------------------
-        # 4. Duplicate protection
-        # --------------------------------------------------
-
-        signature = (
+        request_symbol = request.get(
+            "symbol",
             symbol,
-            order_type,
-            float(volume)
         )
 
-        if signature == self._last_signature:
+        request_symbol = self._ensure_symbol(
+            request_symbol
+        )
 
-            self.state["execution_signal"] = order_type
-            self.state["last_action"] = "DUPLICATE_SKIPPED"
-            self.state["last_order"] = request
-            self.state["queue"] = (
+        if request_symbol != symbol:
+
+            symbol = request_symbol
+            state = self.states[symbol]
+            state["last_update"] = time.time()
+
+        # --------------------------------------------------------------
+        # 4. Validate order fields
+        # --------------------------------------------------------------
+
+        order_type = request.get("type")
+        volume = request.get("volume")
+        decision_id = request.get("decision_id")
+
+        if not symbol or order_type not in (
+            "BUY",
+            "SELL",
+        ):
+
+            state["execution_signal"] = "NONE"
+            state["last_action"] = "INVALID_ORDER"
+            state["last_order"] = request
+
+            return state
+
+        try:
+
+            normalized_volume = float(volume)
+
+        except (TypeError, ValueError):
+
+            normalized_volume = 0.0
+
+        if normalized_volume <= 0:
+
+            state["execution_signal"] = "NONE"
+            state["last_action"] = "INVALID_VOLUME"
+            state["last_order"] = request
+
+            return state
+
+        # --------------------------------------------------------------
+        # 5. Duplicate protection
+        # --------------------------------------------------------------
+
+        signature = (
+            decision_id,
+            symbol,
+            order_type,
+            normalized_volume,
+        )
+
+        if signature == self._last_signatures.get(symbol):
+
+            state["execution_signal"] = order_type
+            state["last_action"] = "DUPLICATE_SKIPPED"
+            state["last_order"] = request
+            state["queue"] = (
                 execution_queue_service.snapshot()
             )
 
-            return self.state
+            return state
 
-        self._last_signature = signature
+        self._last_signatures[symbol] = signature
 
-        self.state["execution_signal"] = order_type
-        self.state["last_order"] = request
+        state["execution_signal"] = order_type
+        state["last_order"] = request
+        state["decision_id"] = decision_id
 
-        # --------------------------------------------------
-        # 5. Enqueue order
-        # --------------------------------------------------
+        # --------------------------------------------------------------
+        # 6. Enqueue order
+        # --------------------------------------------------------------
 
-        queued = execution_queue_service.enqueue(request)
+        queued = execution_queue_service.enqueue(
+            request
+        )
 
         if not queued:
 
-            self.state["last_action"] = "QUEUE_REJECTED"
-            self.state["queue"] = (
+            state["last_action"] = "QUEUE_REJECTED"
+            state["queue"] = (
                 execution_queue_service.snapshot()
             )
 
-            return self.state
+            return state
 
-        self.state["last_action"] = "QUEUED"
+        state["last_action"] = "QUEUED"
 
-        self.state["queue"] = (
+        state["queue"] = (
             execution_queue_service.snapshot()
         )
 
-        # --------------------------------------------------
-        # 6. Dispatch order
-        # --------------------------------------------------
+        # --------------------------------------------------------------
+        # 7. Dispatch order
+        # --------------------------------------------------------------
 
         queued_order = execution_queue_service.next_order()
 
         if not queued_order:
 
-            self.state["last_action"] = "QUEUE_EMPTY"
-            self.state["queue"] = (
+            state["last_action"] = "QUEUE_EMPTY"
+            state["queue"] = (
                 execution_queue_service.snapshot()
             )
 
-            return self.state
+            return state
 
-        self.state["last_action"] = "DISPATCHING"
+        state["last_action"] = "DISPATCHING"
 
-        # --------------------------------------------------
-        # 7. Send to Execution Service
-        # --------------------------------------------------
+        # --------------------------------------------------------------
+        # 8. Send to centralized Execution Service
+        # --------------------------------------------------------------
 
         try:
 
@@ -175,50 +325,85 @@ class AIExecutionOrchestrator:
 
         except Exception as exc:
 
-            self.state["last_action"] = "EXECUTION_EXCEPTION"
+            state["last_action"] = (
+                "EXECUTION_EXCEPTION"
+            )
 
-            self.state["last_result"] = {
+            state["last_result"] = {
                 "success": False,
-                "error": str(exc)
+                "error": str(exc),
             }
 
-            self.state["queue"] = (
+            state["queue"] = (
                 execution_queue_service.snapshot()
             )
 
-            self.state["last_update"] = time.time()
+            state["last_update"] = time.time()
 
-            return self.state
+            return state
 
-        # --------------------------------------------------
-        # 8. Record result
-        # --------------------------------------------------
+        # --------------------------------------------------------------
+        # 9. Record result
+        # --------------------------------------------------------------
 
-        self.state["last_result"] = result
+        state["last_result"] = result
 
-        self.state["last_action"] = (
+        state["last_action"] = (
             "ORDER_SENT"
             if result.get("success")
             else "ORDER_FAILED"
         )
 
-        self.state["last_order"] = queued_order
+        state["last_order"] = queued_order
 
-        self.state["queue"] = (
+        state["queue"] = (
             execution_queue_service.snapshot()
         )
 
-        self.state["last_update"] = time.time()
+        state["last_update"] = time.time()
 
-        return self.state
+        return state
 
-    def snapshot(self):
+    # ------------------------------------------------------------------
+    # Snapshots
+    # ------------------------------------------------------------------
 
-        self.state["queue"] = (
+    def snapshot(self, symbol=None):
+        """
+        Return the current orchestration state.
+
+        Without a symbol, preserve historical XAUUSDm behavior.
+        """
+
+        if symbol is None:
+            symbol = self.DEFAULT_SYMBOL
+
+        symbol = self._ensure_symbol(symbol)
+
+        state = self.states[symbol]
+
+        state["queue"] = (
             execution_queue_service.snapshot()
         )
 
-        return self.state
+        return state
+
+    def snapshot_all(self):
+        """
+        Return independent orchestration state for every symbol.
+        """
+
+        queue_state = execution_queue_service.snapshot()
+
+        snapshots = {}
+
+        for symbol, state in self.states.items():
+
+            state["queue"] = queue_state
+
+            snapshots[symbol] = dict(state)
+
+        return snapshots
 
 
 ai_execution_orchestrator = AIExecutionOrchestrator()
