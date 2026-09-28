@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, {
     createContext,
@@ -30,10 +30,20 @@ interface AuthContextValue {
         password: string,
     ) => Promise<AuthSession>;
 
+    biometricLogin: (
+        email: string,
+    ) => Promise<AuthSession>;
+
     register: (
         email: string,
         password: string,
     ) => Promise<AuthUser>;
+
+    registerPasskey: () => Promise<{
+        success: boolean;
+        credential_id: string;
+        user_verified: boolean;
+    }>;
 
     logout: () => void;
 
@@ -149,6 +159,58 @@ function getErrorMessage(error: unknown): string {
     return 'Authentication request failed.';
 }
 
+type UserVerificationRequirement =
+    | 'required'
+    | 'preferred'
+    | 'discouraged';
+
+function base64UrlToArrayBuffer(
+    value: string,
+): ArrayBuffer {
+    const normalized = value
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+
+    const padded =
+        normalized +
+        '='.repeat(
+            (4 - (normalized.length % 4)) % 4,
+        );
+
+    const binary = window.atob(padded);
+    const bytes = new Uint8Array(
+        binary.length,
+    );
+
+    for (
+        let index = 0;
+        index < binary.length;
+        index += 1
+    ) {
+        bytes[index] =
+            binary.charCodeAt(index);
+    }
+
+    return bytes.buffer;
+}
+
+function arrayBufferToBase64Url(
+    buffer: ArrayBuffer,
+): string {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+
+    for (const byte of bytes) {
+        binary += String.fromCharCode(byte);
+    }
+
+    return window
+        .btoa(binary)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/g, '');
+}
+
 export function AuthProvider({
     children,
 }: {
@@ -231,6 +293,198 @@ export function AuthProvider({
         [loadIdentity],
     );
 
+    const biometricLogin = useCallback(
+        async (
+            email: string,
+        ): Promise<AuthSession> => {
+            setIsLoading(true);
+            setError(null);
+
+            try {
+                if (
+                    typeof window === 'undefined' ||
+                    !window.PublicKeyCredential
+                ) {
+                    throw new Error(
+                        'Biometric authentication is not supported in this browser.',
+                    );
+                }
+
+                const options =
+                    await AuthClient.getBiometricAuthenticationOptions(
+                        email,
+                    );
+
+                const publicKey =
+                    options as Record<string, unknown>;
+
+                const challenge =
+                    publicKey.challenge;
+
+                if (typeof challenge !== 'string') {
+                    throw new Error(
+                        'WebAuthn authentication challenge is missing.',
+                    );
+                }
+
+                const allowCredentials =
+                    Array.isArray(
+                        publicKey.allowCredentials,
+                    )
+                        ? publicKey.allowCredentials.map(
+                              (
+                                  descriptor,
+                              ) => {
+                                  const item =
+                                      descriptor as {
+                                          id?: unknown;
+                                          type?: unknown;
+                                      };
+
+                                  if (
+                                      typeof item.id !==
+                                      'string'
+                                  ) {
+                                      throw new Error(
+                                          'Invalid WebAuthn credential identifier.',
+                                      );
+                                  }
+
+                                  return {
+                                      id:
+                                          base64UrlToArrayBuffer(
+                                              item.id,
+                                          ),
+                                      type:
+                                          'public-key' as const,
+                                  };
+                              },
+                          )
+                        : undefined;
+
+                const credential =
+                    await navigator.credentials.get({
+                        publicKey: {
+                            challenge:
+                                base64UrlToArrayBuffer(
+                                    challenge,
+                                ),
+                            rpId:
+                                typeof publicKey.rpId ===
+                                'string'
+                                    ? publicKey.rpId
+                                    : undefined,
+                            timeout:
+                                typeof publicKey.timeout ===
+                                'number'
+                                    ? publicKey.timeout
+                                    : undefined,
+                            userVerification:
+                                typeof publicKey.userVerification ===
+                                'string'
+                                    ? publicKey.userVerification as
+                                          UserVerificationRequirement
+                                    : 'required',
+                            allowCredentials,
+                        },
+                    });
+
+                if (
+                    !credential ||
+                    !(credential instanceof
+                        PublicKeyCredential)
+                ) {
+                    throw new Error(
+                        'No biometric credential was returned.',
+                    );
+                }
+
+                const response =
+                    credential.response;
+
+                if (
+                    !(response instanceof
+                        AuthenticatorAssertionResponse)
+                ) {
+                    throw new Error(
+                        'Invalid WebAuthn authentication response.',
+                    );
+                }
+
+                const serializedCredential = {
+                    id: credential.id,
+                    rawId:
+                        arrayBufferToBase64Url(
+                            credential.rawId,
+                        ),
+                    response: {
+                        clientDataJSON:
+                            arrayBufferToBase64Url(
+                                response.clientDataJSON,
+                            ),
+                        authenticatorData:
+                            arrayBufferToBase64Url(
+                                response.authenticatorData,
+                            ),
+                        signature:
+                            arrayBufferToBase64Url(
+                                response.signature,
+                            ),
+                        userHandle:
+                            response.userHandle
+                                ? arrayBufferToBase64Url(
+                                      response.userHandle,
+                                  )
+                                : null,
+                    },
+                    type: credential.type,
+                };
+
+                const session =
+                    await AuthClient.verifyBiometricCredential(
+                        serializedCredential,
+                    );
+
+                storeSession(session);
+
+                setUser(session.user);
+                setAccessToken(
+                    session.access_token,
+                );
+                setRefreshToken(
+                    session.refresh_token,
+                );
+
+                try {
+                    await loadIdentity(
+                        session.access_token,
+                    );
+                } catch {
+                    setIdentity(null);
+
+                    if (
+                        typeof window !== 'undefined'
+                    ) {
+                        window.sessionStorage.removeItem(
+                            IDENTITY_KEY,
+                        );
+                    }
+                }
+
+                return session;
+            } catch (err) {
+                const message =
+                    getErrorMessage(err);
+
+                setError(message);
+                throw err;
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [loadIdentity],
+    );
+
     const register = useCallback(
         async (
             email: string,
@@ -253,6 +507,305 @@ export function AuthProvider({
             }
         },
         [],
+    );
+
+    const registerPasskey = useCallback(
+        async (): Promise<{
+            success: boolean;
+            credential_id: string;
+            user_verified: boolean;
+        }> => {
+            setIsLoading(true);
+            setError(null);
+
+            try {
+                if (
+                    typeof window === 'undefined' ||
+                    !window.PublicKeyCredential
+                ) {
+                    throw new Error(
+                        'Passkey registration is not supported in this browser.',
+                    );
+                }
+
+                if (!accessToken) {
+                    throw new Error(
+                        'You must be authenticated to register a passkey.',
+                    );
+                }
+
+                const options =
+                    await AuthClient.getWebAuthnRegistrationOptions(
+                        accessToken,
+                    );
+
+                const publicKey =
+                    options as Record<string, unknown>;
+
+                const challenge =
+                    publicKey.challenge;
+
+                if (typeof challenge !== 'string') {
+                    throw new Error(
+                        'WebAuthn registration challenge is missing.',
+                    );
+                }
+
+                const rp =
+                    publicKey.rp;
+
+                if (
+                    typeof rp !== 'object' ||
+                    rp === null
+                ) {
+                    throw new Error(
+                        'WebAuthn relying-party information is missing.',
+                    );
+                }
+
+                const rpRecord =
+                    rp as Record<string, unknown>;
+
+                const rpName =
+                    rpRecord.name;
+
+                if (typeof rpName !== 'string') {
+                    throw new Error(
+                        'WebAuthn relying-party name is missing.',
+                    );
+                }
+
+                const rpId =
+                    rpRecord.id;
+
+                const user =
+                    publicKey.user;
+
+                if (
+                    typeof user !== 'object' ||
+                    user === null
+                ) {
+                    throw new Error(
+                        'WebAuthn user information is missing.',
+                    );
+                }
+
+                const userRecord =
+                    user as Record<string, unknown>;
+
+                const userId =
+                    userRecord.id;
+                const userName =
+                    userRecord.name;
+                const userDisplayName =
+                    userRecord.displayName;
+
+                if (
+                    typeof userId !== 'string' ||
+                    typeof userName !== 'string' ||
+                    typeof userDisplayName !== 'string'
+                ) {
+                    throw new Error(
+                        'Invalid WebAuthn user information.',
+                    );
+                }
+
+                const pubKeyCredParams =
+                    Array.isArray(
+                        publicKey.pubKeyCredParams,
+                    )
+                        ? publicKey.pubKeyCredParams
+                              .filter(
+                                  (
+                                      parameter,
+                                  ) => {
+                                      const item =
+                                          parameter as {
+                                              type?: unknown;
+                                              alg?: unknown;
+                                          };
+
+                                      return (
+                                          item.type ===
+                                              'public-key' &&
+                                          typeof item.alg ===
+                                              'number'
+                                      );
+                                  },
+                              )
+                              .map(
+                                  (
+                                      parameter,
+                                  ) => {
+                                      const item =
+                                          parameter as {
+                                              type: 'public-key';
+                                              alg: number;
+                                          };
+
+                                      return {
+                                          type: 'public-key' as const,
+                                          alg: item.alg,
+                                      };
+                                  },
+                              )
+                        : [];
+
+                if (
+                    pubKeyCredParams.length === 0
+                ) {
+                    throw new Error(
+                        'No supported WebAuthn credential algorithms were provided.',
+                    );
+                }
+
+                const excludeCredentials =
+                    Array.isArray(
+                        publicKey.excludeCredentials,
+                    )
+                        ? publicKey.excludeCredentials.map(
+                              (
+                                  descriptor,
+                              ) => {
+                                  const item =
+                                      descriptor as {
+                                          id?: unknown;
+                                      };
+
+                                  if (
+                                      typeof item.id !==
+                                      'string'
+                                  ) {
+                                      throw new Error(
+                                          'Invalid existing WebAuthn credential identifier.',
+                                      );
+                                  }
+
+                                  return {
+                                      id:
+                                          base64UrlToArrayBuffer(
+                                              item.id,
+                                          ),
+                                      type:
+                                          'public-key' as const,
+                                  };
+                              },
+                          )
+                        : undefined;
+
+                const credential =
+                    await navigator.credentials.create({
+                        publicKey: {
+                            challenge:
+                                base64UrlToArrayBuffer(
+                                    challenge,
+                                ),
+                            rp: {
+                                name: rpName,
+                                ...(typeof rpId === 'string'
+                                    ? { id: rpId }
+                                    : {}),
+                            },
+                            user: {
+                                id:
+                                    base64UrlToArrayBuffer(
+                                        userId,
+                                    ),
+                                name: userName,
+                                displayName:
+                                    userDisplayName,
+                            },
+                            pubKeyCredParams,
+                            timeout:
+                                typeof publicKey.timeout ===
+                                'number'
+                                    ? publicKey.timeout
+                                    : undefined,
+                            excludeCredentials,
+                            authenticatorSelection:
+                                typeof publicKey.authenticatorSelection ===
+                                    'object' &&
+                                publicKey.authenticatorSelection !==
+                                    null
+                                    ? publicKey.authenticatorSelection as AuthenticatorSelectionCriteria
+                                    : undefined,
+                            attestation:
+                                typeof publicKey.attestation ===
+                                'string'
+                                    ? publicKey.attestation as AttestationConveyancePreference
+                                    : undefined,
+                        },
+                    });
+
+                if (
+                    !credential ||
+                    !(credential instanceof
+                        PublicKeyCredential)
+                ) {
+                    throw new Error(
+                        'No passkey credential was created.',
+                    );
+                }
+
+                const response =
+                    credential.response;
+
+                if (
+                    !(response instanceof
+                        AuthenticatorAttestationResponse)
+                ) {
+                    throw new Error(
+                        'Invalid WebAuthn registration response.',
+                    );
+                }
+
+                const serializedCredential = {
+                    id: credential.id,
+                    rawId:
+                        arrayBufferToBase64Url(
+                            credential.rawId,
+                        ),
+                    response: {
+                        clientDataJSON:
+                            arrayBufferToBase64Url(
+                                response.clientDataJSON,
+                            ),
+                        attestationObject:
+                            arrayBufferToBase64Url(
+                                response.attestationObject,
+                            ),
+                    },
+                    type: credential.type,
+                };
+
+                const result =
+                    await AuthClient.verifyWebAuthnRegistration(
+                        accessToken,
+                        serializedCredential,
+                    );
+
+                return {
+                    success:
+                        result.success === true,
+                    credential_id:
+                        typeof result.credential_id ===
+                        'string'
+                            ? result.credential_id
+                            : '',
+                    user_verified:
+                        result.user_verified === true,
+                };
+            } catch (err) {
+                const message =
+                    getErrorMessage(err);
+
+                setError(message);
+                throw err;
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [accessToken],
     );
 
     useEffect(() => {
@@ -361,7 +914,9 @@ export function AuthProvider({
             error,
 
             login,
+            biometricLogin,
             register,
+            registerPasskey,
             logout,
             clearError,
         }),
@@ -373,7 +928,9 @@ export function AuthProvider({
             isLoading,
             error,
             login,
+            biometricLogin,
             register,
+            registerPasskey,
             logout,
             clearError,
         ],
@@ -397,3 +954,7 @@ export function useAuth(): AuthContextValue {
 
     return context;
 }
+
+
+
+

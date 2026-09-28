@@ -3,11 +3,15 @@
 import React, { useState } from 'react';
 import { Settings, Sliders, Palette, Shield, Check } from 'lucide-react';
 import { useTradingStore, ThemeType } from '../../store/useTradingStore';
+import { useAuth } from '../../src/auth/AuthProvider';
 
 export default function SystemSettingsView() {
   const globalTheme = useTradingStore((state) => state.theme);
   const setGlobalTheme = useTradingStore((state) => state.setTheme);
   const [saveStatus, setSaveStatus] = useState(false);
+  const { registerPasskey, isLoading: authLoading } = useAuth();
+  const [passkeyStatus, setPasskeyStatus] = useState<string | null>(null);
+  const [passkeyError, setPasskeyError] = useState<string | null>(null);
 
   const [config, setConfig] = useState({
     pollingInterval: 100,
@@ -20,6 +24,26 @@ export default function SystemSettingsView() {
     setTimeout(() => setSaveStatus(false), 2000);
   };
 
+  const handleRegisterPasskey = async () => {
+    setPasskeyStatus(null);
+    setPasskeyError(null);
+
+    try {
+      const result = await registerPasskey();
+
+      if (result.success) {
+        setPasskeyStatus('PASSKEY REGISTERED — BIOMETRIC LOGIN READY');
+      } else {
+        setPasskeyError('Passkey registration could not be completed.');
+      }
+    } catch (error) {
+      setPasskeyError(
+        error instanceof Error
+          ? error.message
+          : 'Unknown passkey registration error.'
+      );
+    }
+  };
   return (
     <div className="space-y-6 p-1">
       <div className="flex justify-between items-start border-b border-zinc-900/60 pb-4">
@@ -111,6 +135,50 @@ export default function SystemSettingsView() {
           </div>
         </div>
       </div>
+
+      <div className="border border-zinc-900 p-5 rounded space-y-4 bg-zinc-950">
+        <h3 className="text-xs font-bold uppercase tracking-wider border-b border-zinc-900 pb-2 flex items-center gap-2 text-white">
+          <Shield className="w-4 h-4 text-emerald-500" /> Authentication Security
+        </h3>
+
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <span className="text-xs font-mono font-bold block text-white">
+              WebAuthn Passkey
+            </span>
+            <p className="text-[11px] leading-relaxed text-zinc-500 mt-1 max-w-2xl">
+              Register this authenticated device with WebAuthn so biometric login
+              can be used without changing the existing authentication architecture.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleRegisterPasskey}
+            disabled={authLoading}
+            className="shrink-0 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white font-mono text-xs font-bold rounded shadow transition-all"
+          >
+            {authLoading ? 'REGISTERING...' : 'REGISTER PASSKEY'}
+          </button>
+        </div>
+
+        {passkeyStatus && (
+          <div className="border border-emerald-900/60 bg-emerald-950/20 rounded p-3 text-[11px] font-mono text-emerald-400">
+            {passkeyStatus}
+          </div>
+        )}
+
+        {passkeyError && (
+          <div className="border border-red-900/60 bg-red-950/20 rounded p-3 text-[11px] font-mono text-red-400">
+            {passkeyError}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
+
+
+
+
+

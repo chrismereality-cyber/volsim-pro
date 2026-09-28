@@ -1,9 +1,9 @@
-from datetime import datetime
+﻿from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from auth_models import AuthSession, User, Role, UserRole
+from auth_models import AuthSession, User, Role, UserRole, WebAuthnChallenge, WebAuthnCredential
 
 
 class AuthRepository:
@@ -115,3 +115,63 @@ class AuthRepository:
         session.revoked_at = revoked_at or datetime.utcnow()
         db.flush()
         return session
+    @staticmethod
+    def create_webauthn_challenge(
+        db: Session,
+        *,
+        user_id: int,
+        challenge: str,
+        ceremony: str,
+        expires_at: datetime,
+    ) -> WebAuthnChallenge:
+        record = WebAuthnChallenge(
+            user_id=user_id,
+            challenge=challenge,
+            ceremony=ceremony,
+            expires_at=expires_at,
+        )
+
+        db.add(record)
+        db.flush()
+
+        return record
+
+    @staticmethod
+    def get_webauthn_challenge(
+        db: Session,
+        *,
+        challenge: str,
+        ceremony: str,
+    ) -> WebAuthnChallenge | None:
+        return db.execute(
+            select(WebAuthnChallenge).where(
+                WebAuthnChallenge.challenge == challenge,
+                WebAuthnChallenge.ceremony == ceremony,
+            )
+        ).scalar_one_or_none()
+
+    @staticmethod
+    def get_webauthn_credential(
+        db: Session,
+        *,
+        credential_id: str,
+    ) -> WebAuthnCredential | None:
+        return db.execute(
+            select(WebAuthnCredential).where(
+                WebAuthnCredential.credential_id == credential_id,
+            )
+        ).scalar_one_or_none()
+
+    @staticmethod
+    def consume_webauthn_challenge(
+        db: Session,
+        challenge_record: WebAuthnChallenge,
+        *,
+        consumed_at: datetime | None = None,
+    ) -> WebAuthnChallenge:
+        challenge_record.used_at = consumed_at or datetime.utcnow()
+        db.flush()
+        return challenge_record
+
+
+

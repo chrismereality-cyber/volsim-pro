@@ -1,4 +1,4 @@
-import time
+﻿import time
 
 
 class ExecutionRiskGateService:
@@ -13,23 +13,65 @@ class ExecutionRiskGateService:
     - execution permission
     - exposure
     - duplicate positions
+
+    Does NOT execute orders.
+
+    Multi-symbol:
+    - XAUUSDm
+    - BTCUSDm
+
+    Backward compatibility:
+    - self.state remains the XAUUSDm state.
+    - approve() without a symbol uses the symbol from
+      ai_decision, otherwise XAUUSDm.
+    - snapshot() without a symbol returns XAUUSDm.
     """
+
+    DEFAULT_SYMBOL = "XAUUSDm"
+
+    ACTIVE_SYMBOLS = (
+        "XAUUSDm",
+        "BTCUSDm",
+    )
 
 
     def __init__(self):
 
-        self.state = {
+        self.states = {
+            symbol: self._empty_state(symbol)
+            for symbol in self.ACTIVE_SYMBOLS
+        }
+
+        # Backward-compatible XAUUSDm state alias.
+        self.state = self.states[self.DEFAULT_SYMBOL]
+
+
+    def _empty_state(self, symbol):
+
+        return {
 
             "status": "ONLINE",
+
+            "symbol": symbol,
 
             "approved": False,
 
             "reason": "Waiting",
 
+            "decision_id": None,
+
             "last_check": time.time()
 
         }
 
+
+    def _ensure_symbol(self, symbol):
+
+        if symbol not in self.states:
+
+            self.states[symbol] = self._empty_state(symbol)
+
+        return self.states[symbol]
 
 
     def approve(
@@ -37,9 +79,23 @@ class ExecutionRiskGateService:
         ai_decision,
         ai_execution,
         risk_state,
-        portfolio_state
+        portfolio_state,
+        symbol=None
     ):
 
+        symbol = (
+            symbol
+            or ai_decision.get("symbol")
+            or self.DEFAULT_SYMBOL
+        )
+
+        state = self._ensure_symbol(symbol)
+
+        decision_id = ai_decision.get(
+            "decision_id"
+        )
+
+        state["decision_id"] = decision_id
 
         confidence = float(
             ai_decision.get(
@@ -55,9 +111,9 @@ class ExecutionRiskGateService:
         ):
 
             return self.reject(
-                "Risk permission denied"
+                "Risk permission denied",
+                symbol=symbol
             )
-
 
 
         if not ai_decision.get(
@@ -66,9 +122,9 @@ class ExecutionRiskGateService:
         ):
 
             return self.reject(
-                "Execution disabled"
+                "Execution disabled",
+                symbol=symbol
             )
-
 
 
         minimum_confidence = 25
@@ -76,10 +132,19 @@ class ExecutionRiskGateService:
         if confidence < minimum_confidence:
 
             return self.reject(
-                "Confidence below threshold"
+                "Confidence below threshold",
+                symbol=symbol
             )
 
 
+        # AI Execution Policy is the explicit execution
+        # authorization boundary.
+        if ai_execution.get("status") != "READY":
+
+            return self.reject(
+                "AI execution authorization not ready",
+                symbol=symbol
+            )
 
         if ai_execution.get(
             "execution_signal"
@@ -89,9 +154,9 @@ class ExecutionRiskGateService:
         ]:
 
             return self.reject(
-                "No execution signal"
+                "No execution signal",
+                symbol=symbol
             )
-
 
 
         exposure = float(
@@ -105,17 +170,27 @@ class ExecutionRiskGateService:
         if exposure > 1000000:
 
             return self.reject(
-                "Maximum exposure exceeded"
+                "Maximum exposure exceeded",
+                symbol=symbol
             )
 
 
+        state.update({
 
-        self.state.update({
+            "status":
+                "ONLINE",
 
-            "approved": True,
+            "symbol":
+                symbol,
+
+            "approved":
+                True,
 
             "reason":
                 "Execution approved",
+
+            "decision_id":
+                decision_id,
 
             "last_check":
                 time.time()
@@ -123,18 +198,29 @@ class ExecutionRiskGateService:
         })
 
 
-        return self.state
-
+        return state
 
 
     def reject(
         self,
-        reason
+        reason,
+        symbol=None
     ):
 
-        self.state.update({
+        symbol = symbol or self.DEFAULT_SYMBOL
 
-            "approved": False,
+        state = self._ensure_symbol(symbol)
+
+        state.update({
+
+            "status":
+                "ONLINE",
+
+            "symbol":
+                symbol,
+
+            "approved":
+                False,
 
             "reason":
                 reason,
@@ -145,14 +231,24 @@ class ExecutionRiskGateService:
         })
 
 
-        return self.state
+        return state
 
 
+    def snapshot(self, symbol=None):
 
-    def snapshot(self):
+        symbol = symbol or self.DEFAULT_SYMBOL
 
-        return self.state
+        return self._ensure_symbol(symbol)
 
 
+    def snapshot_all(self):
 
-execution_risk_gate_service = ExecutionRiskGateService()
+        return {
+            symbol: dict(state)
+            for symbol, state in self.states.items()
+        }
+
+
+execution_risk_gate_service = (
+    ExecutionRiskGateService()
+)

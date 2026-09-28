@@ -54,4 +54,47 @@ export class AuthClient {
             },
         );
     }
+
+    static async getBiometricAuthenticationOptions(
+        email: string,
+    ): Promise<Record<string, unknown>> {
+        return TradingApiClient.post(
+            "/api/auth/webauthn/authenticate/options",
+            { email },
+        );
+    }
+
+    static async verifyBiometricCredential(
+        credential: Record<string, unknown>,
+    ): Promise<AuthSession> {
+        return TradingApiClient.post(
+            "/api/auth/webauthn/authenticate/verify",
+            { credential },
+        );
+    }
+
+    static async getWebAuthnRegistrationOptions(
+        accessToken: string,
+    ): Promise<Record<string, unknown>> {
+        return TradingApiClient.post(
+            "/api/auth/webauthn/register/options",
+            {},
+            {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        );
+    }
+
+    static async verifyWebAuthnRegistration(
+        accessToken: string,
+        credential: Record<string, unknown>,
+    ): Promise<Record<string, unknown>> {
+        return TradingApiClient.post(
+            "/api/auth/webauthn/register/verify",
+            { credential },
+            {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        );
+    }
 }

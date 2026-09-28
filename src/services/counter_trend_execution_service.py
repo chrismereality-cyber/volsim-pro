@@ -1,4 +1,4 @@
-import time
+﻿import time
 
 
 class CounterTrendExecutionService:
@@ -10,14 +10,41 @@ class CounterTrendExecutionService:
 
     Does NOT execute orders.
     Execution Engine consumes this state.
+
+    Multi-symbol:
+        XAUUSDm
+        BTCUSDm
+
+    Backward compatibility:
+        self.state remains the XAUUSDm state.
+        evaluate() and snapshot() without a symbol
+        continue to operate on XAUUSDm.
     """
 
+    DEFAULT_SYMBOL = "XAUUSDm"
+    ACTIVE_SYMBOLS = (
+        "XAUUSDm",
+        "BTCUSDm",
+    )
 
     def __init__(self):
 
-        self.state = {
+        self.states = {
+            symbol: self._empty_state(symbol)
+            for symbol in self.ACTIVE_SYMBOLS
+        }
+
+        # Backward-compatible XAUUSDm state alias
+        self.state = self.states[self.DEFAULT_SYMBOL]
+
+
+    def _empty_state(self, symbol):
+
+        return {
 
             "status": "ACTIVE",
+
+            "symbol": symbol,
 
             "enabled": True,
 
@@ -38,35 +65,57 @@ class CounterTrendExecutionService:
         }
 
 
-    def snapshot(self):
+    def _ensure_symbol(self, symbol):
 
-        return self.state
+        if symbol not in self.states:
+            self.states[symbol] = self._empty_state(symbol)
 
+        return self.states[symbol]
+
+
+    def snapshot(self, symbol=None):
+
+        symbol = symbol or self.DEFAULT_SYMBOL
+
+        return self._ensure_symbol(symbol)
+
+
+    def snapshot_all(self):
+
+        return {
+            symbol: dict(state)
+            for symbol, state in self.states.items()
+        }
 
 
     def evaluate(
         self,
         market_state,
         portfolio_state,
-        risk_state
+        risk_state,
+        symbol=None
     ):
 
+        symbol = (
+            symbol
+            or market_state.get("symbol")
+            or self.DEFAULT_SYMBOL
+        )
+
+        state = self._ensure_symbol(symbol)
 
         trend = (
             market_state
-            .get("trend","NONE")
+            .get("trend", "NONE")
         )
-
 
         rsi = float(
-            market_state.get("rsi",0)
+            market_state.get("rsi", 0)
         )
-
 
         atr = float(
-            market_state.get("atr",0)
+            market_state.get("atr", 0)
         )
-
 
         drawdown = float(
             risk_state.get(
@@ -75,29 +124,26 @@ class CounterTrendExecutionService:
             )
         )
 
+        state["trigger"] = {
 
-        self.state["trigger"] = {
+            "trend": trend,
 
-            "trend":trend,
+            "rsi": rsi,
 
-            "rsi":rsi,
+            "atr": atr,
 
-            "atr":atr,
-
-            "drawdown":drawdown
+            "drawdown": drawdown
 
         }
 
 
+        signal = "NONE"
 
-        signal="NONE"
+        direction = None
 
-        direction=None
+        confidence = 0
 
-        confidence=0
-
-        reason="No counter trend condition"
-
+        reason = "No counter trend condition"
 
 
         # Bullish exhaustion protection
@@ -109,17 +155,16 @@ class CounterTrendExecutionService:
                 or drawdown >= 1.0
             ):
 
-                signal="SELL"
+                signal = "SELL"
 
-                direction="BEARISH"
+                direction = "BEARISH"
 
-                confidence=75
+                confidence = 75
 
-                reason=(
+                reason = (
                     "Bullish exhaustion "
                     "counter trend overlay"
                 )
-
 
 
         # Bearish exhaustion protection
@@ -131,42 +176,46 @@ class CounterTrendExecutionService:
                 or drawdown >= 1.0
             ):
 
-                signal="BUY"
+                signal = "BUY"
 
-                direction="BULLISH"
+                direction = "BULLISH"
 
-                confidence=75
+                confidence = 75
 
-                reason=(
+                reason = (
                     "Bearish exhaustion "
                     "counter trend overlay"
                 )
 
 
+        state.update({
 
-        self.state.update({
+            "status": "ACTIVE",
 
-            "signal":signal,
+            "symbol": symbol,
 
-            "confidence":confidence,
+            "signal": signal,
 
-            "reason":reason,
+            "confidence": confidence,
 
-            "direction":direction,
+            "reason": reason,
 
-            "overlay_position_size":(
+            "direction": direction,
+
+            "overlay_position_size": (
                 0.25
                 if signal != "NONE"
                 else 0.0
             ),
 
-            "last_update":time.time()
+            "last_update": time.time()
 
         })
 
 
-        return self.state
+        return state
 
 
-
-counter_trend_execution_service = CounterTrendExecutionService()
+counter_trend_execution_service = (
+    CounterTrendExecutionService()
+)
