@@ -209,6 +209,108 @@ class OrderBuilderService:
             "HOLD",
         )
 
+        # --------------------------------------------------------------
+        # EXIT
+        #
+        # EXIT closes an existing position identified by trade_id.
+        # It is deliberately NOT priced here. ExecutionService owns
+        # the fresh executable PAPER quote at the moment of close.
+        # --------------------------------------------------------------
+
+        if decision == "EXIT":
+
+            trade_id = ai_decision.get(
+                "trade_id"
+            )
+
+            if not trade_id:
+
+                state.update({
+
+                    "status":
+                        "MISSING_TRADE_ID",
+
+                    "symbol":
+                        symbol,
+
+                    "order_ready":
+                        False,
+
+                    "order_request":
+                        None,
+
+                    "last_update":
+                        time.time(),
+
+                })
+
+                return state
+
+            order = {
+
+                "decision_id":
+                    ai_decision.get(
+                        "decision_id"
+                    ),
+
+                "symbol":
+                    symbol,
+
+                "type":
+                    "EXIT",
+
+                "volume":
+                    ai_decision.get(
+                        "volume",
+                        self.DEFAULT_VOLUME,
+                    ),
+
+                "price":
+                    0.0,
+
+                "stop_loss":
+                    0.0,
+
+                "take_profit":
+                    0.0,
+
+                "trade_id":
+                    trade_id,
+
+                "position_side":
+                    ai_decision.get(
+                        "position_side"
+                    ),
+
+                "magic":
+                    self.MAGIC_NUMBER,
+
+                "comment":
+                    "VolSim-Pro AI Exit",
+
+            }
+
+            state.update({
+
+                "status":
+                    "READY",
+
+                "symbol":
+                    symbol,
+
+                "order_ready":
+                    True,
+
+                "order_request":
+                    order,
+
+                "last_update":
+                    time.time(),
+
+            })
+
+            return state
+
         if decision not in (
             "BUY",
             "SELL",
@@ -485,3 +587,4 @@ class OrderBuilderService:
 
 
 order_builder_service = OrderBuilderService()
+
