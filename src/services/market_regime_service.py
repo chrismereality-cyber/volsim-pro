@@ -1,8 +1,13 @@
 ﻿import time
 from typing import Any, Dict, Optional
 
+from src.services.mt5_service import mt5_service
+
 from src.services.market_feature_service import (
     market_feature_service,
+)
+from src.services.trend_detection_service import (
+    trend_detection_service,
 )
 
 
@@ -77,12 +82,36 @@ class MarketRegimeService:
             symbol
         )
 
+        # Use the authoritative MT5 connection path before
+        # requesting market features.
+        if not mt5_service.connect():
+            state.update({
+                "status": "MT5_UNAVAILABLE",
+                "symbol": symbol,
+                "regime": "WAITING",
+                "volatility": "UNKNOWN",
+                "execution_mode": "WAIT",
+                "confidence": 0.0,
+                "last_update": time.time(),
+            })
+            return state
+
         market_feature_service.evaluate(
             symbol
         )
 
         features = (
             market_feature_service.snapshot(
+                symbol
+            )
+        )
+
+        trend_detection_service.evaluate(
+            symbol
+        )
+
+        trend = (
+            trend_detection_service.snapshot(
                 symbol
             )
         )
@@ -101,18 +130,86 @@ class MarketRegimeService:
             )
         )
 
-        # Preserve the existing regime fields while
-        # making their state independent per symbol.
+        market_phase = str(
+            trend.get(
+                "market_phase",
+                "WAITING"
+            )
+        )
+
+        trend_signal = str(
+            trend.get(
+                "trend",
+                "NONE"
+            )
+        )
+
+        if market_phase == "TRENDING_UP":
+            regime = "TRENDING_UP"
+
+        elif market_phase == "TRENDING_DOWN":
+            regime = "TRENDING_DOWN"
+
+        elif market_phase == "RANGE":
+            regime = "RANGING"
+
+        else:
+            regime = "TRANSITION"
+
+        if volatility_score < 0.05:
+            volatility = "LOW"
+
+        elif volatility_score < 0.15:
+            volatility = "NORMAL"
+
+        else:
+            volatility = "HIGH"
+
+        if regime in (
+            "TRENDING_UP",
+            "TRENDING_DOWN",
+        ):
+            execution_mode = "TREND"
+
+        elif regime == "RANGING":
+            execution_mode = "RANGE"
+
+        else:
+            execution_mode = "WAIT"
+
+        # Regime is descriptive only.
+        # It does not authorize, reject, or size trades.
         state.update({
 
             "status": "ONLINE",
 
             "symbol": symbol,
 
+            "regime": regime,
+
+            "volatility": volatility,
+
             "trend_quality":
                 trend_strength,
 
+            "execution_mode":
+                execution_mode,
+
             "confidence":
+                float(
+                    trend.get(
+                        "confidence",
+                        0.0
+                    )
+                ),
+
+            "trend":
+                trend_signal,
+
+            "market_phase":
+                market_phase,
+
+            "volatility_score":
                 volatility_score,
 
             "last_update":
@@ -148,3 +245,5 @@ class MarketRegimeService:
 market_regime_service = (
     MarketRegimeService()
 )
+
+
