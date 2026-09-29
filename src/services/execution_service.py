@@ -480,6 +480,11 @@ class ExecutionService:
                 }
                 oms_service.update_status(order_id, 'FILLED', result)
                 position = await position_service.open_position(paper_trade_id, order_request, result)
+
+                await self._record_entry_attribution(
+                    paper_trade_id,
+                    order_request,
+                )
                 logger.info('PAPER position registered: oms_order_id=%s trade_id=%s symbol=%s side=%s volume=%s price=%s', order_id, paper_trade_id, order_request.get('symbol'), order_request.get('type'), order_request.get('volume'), execution_price)
                 await self._finalize_execution_idempotency(
                     client_order_id,
@@ -972,6 +977,11 @@ class ExecutionService:
                 execution_result['trade_id'] = str(live_trade_id)
                 position = await position_service.open_position(str(live_trade_id), order_request, execution_result)
                 await position_service.persist_snapshot(position)
+
+                await self._record_entry_attribution(
+                    str(live_trade_id),
+                    order_request,
+                )
                 logger.info('LIVE position registered: oms_order_id=%s trade_id=%s position_ticket=%s order_ticket=%s deal_ticket=%s', order_id, live_trade_id, position_ticket, order_ticket, deal_ticket)
                 await self._finalize_execution_idempotency(
                     client_order_id,
@@ -1031,6 +1041,94 @@ class ExecutionService:
             )
             return {'success': False, 'order_id': order_id, 'ticket': None, 'message': str(e)}
 
+    async def _record_entry_attribution(
+        self,
+        trade_id: str,
+        order_request: dict,
+    ) -> bool:
+        """
+        Persist immutable AI entry context for one economic trade.
+
+        Attribution is analytical metadata only. Failure to persist it
+        must never change the execution result of the trade.
+        """
+        if not trade_id:
+            logger.warning(
+                "Entry attribution skipped: missing trade_id"
+            )
+            return False
+
+        try:
+            await database_service.execute(
+                """
+                INSERT INTO entry_attribution
+                (
+                    trade_id,
+                    decision_id,
+                    symbol,
+                    side,
+                    trend,
+                    regime,
+                    volatility,
+                    confidence,
+                    atr,
+                    rsi,
+                    ema20,
+                    ema50,
+                    ema200,
+                    spread
+                )
+                VALUES
+                (
+                    $1,
+                    $2,
+                    $3,
+                    $4,
+                    $5,
+                    $6,
+                    $7,
+                    $8,
+                    $9,
+                    $10,
+                    $11,
+                    $12,
+                    $13,
+                    $14
+                )
+                ON CONFLICT (trade_id)
+                DO NOTHING
+                """,
+                str(trade_id),
+                order_request.get("decision_id"),
+                order_request.get("symbol"),
+                order_request.get("type"),
+                order_request.get("trend"),
+                order_request.get("regime"),
+                order_request.get("volatility"),
+                order_request.get("confidence"),
+                order_request.get("atr"),
+                order_request.get("rsi"),
+                order_request.get("ema20"),
+                order_request.get("ema50"),
+                order_request.get("ema200"),
+                order_request.get("spread"),
+            )
+
+            logger.info(
+                "Entry attribution persisted: trade_id=%s decision_id=%s symbol=%s",
+                trade_id,
+                order_request.get("decision_id"),
+                order_request.get("symbol"),
+            )
+            return True
+
+        except Exception as exc:
+            logger.exception(
+                "Entry attribution persistence failed: trade_id=%s error=%s",
+                trade_id,
+                exc,
+            )
+            return False
     async def record_trade_ledger(self, order_request: dict, result: dict, status: str, oms_order_id: str | None=None) -> bool:
         """
         Persist an execution event into the durable trade ledger.
@@ -1285,5 +1383,12 @@ class ExecutionService:
             logger.error('Execution snapshot failure: %s', e)
             return {'status': 'ERROR', 'engine_status': 'DEGRADED', 'bridge_connection_status': 'UNKNOWN', 'broker_connection_status': 'UNKNOWN', 'last_error': str(e), 'heartbeat': time.time(), 'health_score': 0}
 execution_service = ExecutionService()
+
+
+
+
+
+
+
 
 

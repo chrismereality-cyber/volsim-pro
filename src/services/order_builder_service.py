@@ -508,6 +508,58 @@ class OrderBuilderService:
                     "decision_id"
                 ),
 
+            # Decision-time attribution context.
+            # Analytical metadata only; does not affect execution.
+            "trend":
+                ai_decision.get(
+                    "trend_signal"
+                ),
+
+            "regime":
+                ai_decision.get(
+                    "regime"
+                ),
+
+            "volatility":
+                ai_decision.get(
+                    "volatility"
+                ),
+
+            "confidence":
+                ai_decision.get(
+                    "confidence"
+                ),
+
+            "atr":
+                ai_decision.get(
+                    "atr"
+                ),
+
+            "rsi":
+                ai_decision.get(
+                    "rsi"
+                ),
+
+            "ema20":
+                ai_decision.get(
+                    "ema20"
+                ),
+
+            "ema50":
+                ai_decision.get(
+                    "ema50"
+                ),
+
+            "ema200":
+                ai_decision.get(
+                    "ema200"
+                ),
+
+            "spread":
+                ai_decision.get(
+                    "spread"
+                ),
+
             "symbol":
                 symbol,
 
@@ -587,4 +639,6 @@ class OrderBuilderService:
 
 
 order_builder_service = OrderBuilderService()
+
+
 
