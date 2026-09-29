@@ -1,4 +1,4 @@
-﻿import time
+import time
 import asyncio
 
 from src.services.mt5_service import mt5_service
@@ -20,6 +20,9 @@ from src.services.ai_decision_orchestrator import (
 )
 from src.services.ai_execution_service import (
     ai_execution_service,
+)
+from src.services.ai_position_management_service import (
+    ai_position_management_service,
 )
 from src.services.ai_execution_orchestrator import (
     ai_execution_orchestrator,
@@ -169,12 +172,51 @@ class GlobalTradingStateService:
         )
 
         # --------------------------------------------------------------
+        # AI POSITION MANAGEMENT
+        # --------------------------------------------------------------
+
+        position_snapshot = position_service.snapshot()
+
+        open_position = next(
+            (
+                position
+                for position in position_snapshot.get(
+                    "open_positions",
+                    []
+                )
+                if position.get("symbol") == symbol
+                and position.get("status") == "OPEN"
+            ),
+            None,
+        )
+
+        position_management = (
+            ai_position_management_service.evaluate(
+                open_position,
+                ai_decision,
+            )
+        )
+
+        execution_decision = dict(ai_decision)
+
+        if (
+            position_management.get("action") == "EXIT"
+            and position_management.get(
+                "execution_authorized",
+                False,
+            )
+        ):
+            execution_decision["decision"] = "EXIT"
+            execution_decision["trade_id"] = position_management.get("trade_id")
+            execution_decision["position_side"] = position_management.get("position_side")
+
+        # --------------------------------------------------------------
         # AI EXECUTION SIGNAL
         # --------------------------------------------------------------
 
         ai_execution = (
             ai_execution_service.evaluate(
-                ai_decision,
+                execution_decision,
                 risk_state,
                 portfolio_state,
                 symbol=symbol,
@@ -187,7 +229,7 @@ class GlobalTradingStateService:
 
         execution_risk = (
             execution_risk_gate_service.approve(
-                ai_decision,
+                execution_decision,
                 ai_execution,
                 risk_state,
                 portfolio_state,
@@ -201,7 +243,7 @@ class GlobalTradingStateService:
 
         order_state = (
             order_builder_service.build(
-                ai_decision,
+                execution_decision,
                 execution_risk,
                 symbol=symbol,
             )
@@ -230,6 +272,7 @@ class GlobalTradingStateService:
             "market_state": market_state,
             "counter_trend_execution": counter_trend_state,
             "ai_decision": ai_decision,
+            "ai_position_management": position_management,
             "ai_execution": ai_execution,
             "execution_risk": execution_risk,
             "order_builder": order_state,

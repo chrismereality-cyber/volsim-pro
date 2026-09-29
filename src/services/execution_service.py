@@ -1,4 +1,4 @@
-﻿import time
+import time
 import uuid
 import json
 import asyncio
@@ -286,7 +286,173 @@ class ExecutionService:
                 return rejection_result
             logger.info('Market context guard APPROVED: oms_order_id=%s symbol=%s action=%s status=%s', order_id, guard_symbol, guard_action, guard_status)
             if self.execution_mode == 'PAPER':
-                import uuid
+
+                # PAPER EXIT: close the existing position using a fresh
+                # executable quote from the authoritative market state.
+                if str(order_request.get('type', '')).upper() == 'EXIT':
+                    trade_id = order_request.get('trade_id')
+                    symbol = str(order_request.get('symbol', '')).strip()
+
+                    position = position_service.positions.get(trade_id)
+
+                    if not position:
+                        rejection_result = {
+                            'success': False,
+                            'mode': 'PAPER',
+                            'retcode': 'POSITION_NOT_FOUND',
+                            'message': 'PAPER EXIT position not found',
+                            'trade_id': trade_id,
+                            'symbol': symbol,
+                            'execution_mode': self.execution_mode,
+                        }
+                        oms_service.update_status(order_id, 'REJECTED', rejection_result)
+                        await self._release_execution_idempotency(client_order_id)
+                        return rejection_result
+
+                    if position.get('status') != 'OPEN':
+                        rejection_result = {
+                            'success': False,
+                            'mode': 'PAPER',
+                            'retcode': 'POSITION_NOT_OPEN',
+                            'message': 'PAPER EXIT position is not OPEN',
+                            'trade_id': trade_id,
+                            'symbol': symbol,
+                            'execution_mode': self.execution_mode,
+                        }
+                        oms_service.update_status(order_id, 'REJECTED', rejection_result)
+                        await self._release_execution_idempotency(client_order_id)
+                        return rejection_result
+
+                    position_symbol = str(position.get('symbol', '')).strip()
+
+                    if position_symbol != symbol:
+                        rejection_result = {
+                            'success': False,
+                            'mode': 'PAPER',
+                            'retcode': 'POSITION_SYMBOL_MISMATCH',
+                            'message': 'PAPER EXIT symbol does not match position',
+                            'trade_id': trade_id,
+                            'symbol': symbol,
+                            'position_symbol': position_symbol,
+                            'execution_mode': self.execution_mode,
+                        }
+                        oms_service.update_status(order_id, 'REJECTED', rejection_result)
+                        await self._release_execution_idempotency(client_order_id)
+                        return rejection_result
+
+                    try:
+                        market_state = mt5_service.get_market_state()
+                    except Exception as market_error:
+                        logger.exception('PAPER EXIT market-state failure: %s', market_error)
+                        market_state = {}
+
+                    quote = market_state.get(position_symbol, {})
+                    bid = float(quote.get('bid', 0.0) or 0.0)
+                    ask = float(quote.get('ask', 0.0) or 0.0)
+
+                    position_side = str(position.get('side', '')).upper()
+
+                    if position_side == 'BUY':
+                        close_price = bid
+                    elif position_side == 'SELL':
+                        close_price = ask
+                    else:
+                        close_price = 0.0
+
+                    if close_price <= 0:
+                        rejection_result = {
+                            'success': False,
+                            'mode': 'PAPER',
+                            'retcode': 'INVALID_EXIT_QUOTE',
+                            'message': 'No valid executable PAPER exit quote',
+                            'trade_id': trade_id,
+                            'symbol': symbol,
+                            'position_side': position_side,
+                            'bid': bid,
+                            'ask': ask,
+                            'execution_mode': self.execution_mode,
+                        }
+                        oms_service.update_status(order_id, 'REJECTED', rejection_result)
+                        await self._release_execution_idempotency(client_order_id)
+                        return rejection_result
+
+                    closed_position = await position_service.close_position(
+                        trade_id,
+                        close_price,
+                    )
+
+                    if not closed_position:
+                        rejection_result = {
+                            'success': False,
+                            'mode': 'PAPER',
+                            'retcode': 'POSITION_CLOSE_FAILED',
+                            'message': 'PAPER position close failed',
+                            'trade_id': trade_id,
+                            'symbol': symbol,
+                            'close_price': close_price,
+                            'execution_mode': self.execution_mode,
+                        }
+                        oms_service.update_status(order_id, 'REJECTED', rejection_result)
+                        await self._release_execution_idempotency(client_order_id)
+                        return rejection_result
+
+                    self.orders_sent += 1
+                    self.orders_filled += 1
+                    self.last_order_time = time.time()
+                    self.last_fill_time = time.time()
+                    self.execution_latency_ms = round((time.time() - start) * 1000, 2)
+
+                    result = {
+                        'success': True,
+                        'mode': 'PAPER',
+                        'oms_order_id': order_id,
+                        'trade_id': trade_id,
+                        'position_ticket': None,
+                        'order_ticket': None,
+                        'deal_ticket': None,
+                        'ticket': trade_id,
+                        'retcode': 'SIMULATED_EXIT',
+                        'symbol': symbol,
+                        'side': position_side,
+                        'volume': float(position.get('volume', 0.0) or 0.0),
+                        'price': close_price,
+                        'comment': order_request.get('comment', 'VolSim-Pro AI Exit'),
+                        'client_order_id': client_order_id,
+                        'decision_id': decision_id,
+                        'position': closed_position,
+                    }
+
+                    oms_service.update_status(order_id, 'FILLED', result)
+
+                    await self._finalize_execution_idempotency(
+                        client_order_id,
+                        {
+                            **result,
+                            'order_id': order_id,
+                            'trade_id': trade_id,
+                            'client_order_id': client_order_id,
+                            'decision_id': decision_id,
+                            'execution_mode': self.execution_mode,
+                        },
+                        order_id,
+                    )
+
+                    logger.info(
+                        'PAPER position closed: oms_order_id=%s trade_id=%s symbol=%s side=%s close_price=%s',
+                        order_id,
+                        trade_id,
+                        symbol,
+                        position_side,
+                        close_price,
+                    )
+
+                    return {
+                        'order_id': order_id,
+                        'trade_id': trade_id,
+                        'position': closed_position,
+                        **result,
+                    }
+
                 paper_trade_id = 'PAPER-' + uuid.uuid4().hex
                 execution_price = float(order_request.get('price', 0.0) or 0.0)
                 self.orders_sent += 1
@@ -730,4 +896,5 @@ class ExecutionService:
             logger.error('Execution snapshot failure: %s', e)
             return {'status': 'ERROR', 'engine_status': 'DEGRADED', 'bridge_connection_status': 'UNKNOWN', 'broker_connection_status': 'UNKNOWN', 'last_error': str(e), 'heartbeat': time.time(), 'health_score': 0}
 execution_service = ExecutionService()
+
 
