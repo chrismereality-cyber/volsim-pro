@@ -1,4 +1,4 @@
-﻿import time
+import time
 
 from src.services.execution_queue_service import execution_queue_service
 from src.services.execution_service import execution_service
@@ -217,11 +217,27 @@ class AIExecutionOrchestrator:
         order_type = request.get("type")
         volume = request.get("volume")
         decision_id = request.get("decision_id")
+        trade_id = request.get("trade_id")
 
         if not symbol or order_type not in (
             "BUY",
             "SELL",
+            "EXIT",
         ):
+
+            state["execution_signal"] = "NONE"
+            state["last_action"] = "INVALID_ORDER"
+            state["last_order"] = request
+
+            return state
+
+        if order_type == "EXIT" and not trade_id:
+
+            state["execution_signal"] = "NONE"
+            state["last_action"] = "MISSING_TRADE_ID"
+            state["last_order"] = request
+
+            return state
 
             state["execution_signal"] = "NONE"
             state["last_action"] = "INVALID_ORDER"
@@ -254,6 +270,7 @@ class AIExecutionOrchestrator:
             symbol,
             order_type,
             normalized_volume,
+            trade_id if order_type == "EXIT" else None,
         )
 
         if signature == self._last_signatures.get(symbol):
@@ -407,3 +424,4 @@ class AIExecutionOrchestrator:
 
 
 ai_execution_orchestrator = AIExecutionOrchestrator()
+
