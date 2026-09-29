@@ -1,4 +1,4 @@
-import time
+﻿import time
 import asyncio
 
 from src.services.mt5_service import mt5_service
@@ -198,6 +198,17 @@ class GlobalTradingStateService:
         )
 
         execution_decision = dict(ai_decision)
+
+        # Preserve the market context observed at AI decision time.
+        # These fields are analytical attribution data only.
+        execution_decision["regime"] = market_regime.get("regime")
+        execution_decision["volatility"] = market_regime.get("volatility")
+        execution_decision["atr"] = market_features.get("atr")
+        execution_decision["rsi"] = market_features.get("rsi")
+        execution_decision["ema20"] = market_features.get("ema20")
+        execution_decision["ema50"] = market_features.get("ema50")
+        execution_decision["ema200"] = market_features.get("ema200")
+        execution_decision["spread"] = market_features.get("spread")
 
         if (
             position_management.get("action") == "EXIT"
@@ -751,3 +762,4 @@ class GlobalTradingStateService:
 
 
 global_trading_state_service = GlobalTradingStateService()
+
