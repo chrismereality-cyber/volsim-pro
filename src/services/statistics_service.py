@@ -1,4 +1,4 @@
-
+﻿
 import logging
 
 from src.services.oms_service import oms_service
@@ -116,16 +116,31 @@ class StatisticsService:
 
         deduplicated = {}
         for trade in durable:
-            key = trade.get("oms_order_id") or trade.get("trade_id")
+            # Statistics represent economic trades, not individual OMS
+            # lifecycle events. A single broker position can produce
+            # multiple OMS orders (entry + AI-driven exit) while retaining
+            # one authoritative trade_id.
+            trade_id = trade.get("trade_id")
 
-            if key is None:
-                key = (
-                    trade.get("symbol"),
-                    trade.get("side"),
-                    trade.get("closed_at"),
-                )
+            if trade_id is not None:
+                key = ("trade", str(trade_id))
+            else:
+                oms_order_id = trade.get("oms_order_id")
 
-            deduplicated[str(key)] = trade
+                if oms_order_id is not None:
+                    key = ("oms", str(oms_order_id))
+                else:
+                    key = (
+                        "fallback",
+                        trade.get("symbol"),
+                        trade.get("side"),
+                        trade.get("closed_at"),
+                    )
+
+            # Ledger rows are ordered by timestamp ASC, so the latest
+            # record for an economic trade wins. The closing execution
+            # therefore remains the authoritative statistics record.
+            deduplicated[key] = trade
 
         self._durable_closed_trades = list(deduplicated.values())
 
@@ -152,11 +167,71 @@ class StatisticsService:
             if order.get("status") == "CLOSED"
         ]
 
+        # Statistics represent economic trades rather than individual
+        # OMS lifecycle events. An entry OMS order and an AI-driven EXIT
+        # OMS order may both become CLOSED for the same broker position.
+        #
+        # The authoritative economic identity is trade_id. For OMS
+        # records, trade_id is stored inside execution_result.
+        completed_by_identity = {}
+
+        for order in completed:
+            execution_result = order.get("execution_result") or {}
+
+            live_trade_id = (
+                order.get("trade_id")
+                or execution_result.get("trade_id")
+            )
+
+            live_oms_id = (
+                order.get("order_id")
+                or order.get("oms_order_id")
+            )
+
+            if live_trade_id is not None:
+                identity = ("trade", str(live_trade_id))
+            elif live_oms_id is not None:
+                identity = ("oms", str(live_oms_id))
+            else:
+                identity = (
+                    "fallback",
+                    order.get("symbol"),
+                    order.get("side"),
+                    order.get("closed_at"),
+                )
+
+            existing = completed_by_identity.get(identity)
+
+            if existing is None:
+                completed_by_identity[identity] = order
+                continue
+
+            # If multiple OMS lifecycle records represent the same
+            # economic trade, retain the later CLOSED record. The EXIT
+            # lifecycle is therefore preferred over the original entry
+            # lifecycle when both carry the same trade_id.
+            existing_closed_at = existing.get("closed_at") or 0
+            current_closed_at = order.get("closed_at") or 0
+
+            if current_closed_at >= existing_closed_at:
+                completed_by_identity[identity] = order
+
+        completed = list(completed_by_identity.values())
+
         matched_durable = set()
 
         for order in completed:
-            live_oms_id = order.get("order_id") or order.get("oms_order_id")
-            live_trade_id = order.get("trade_id")
+            execution_result = order.get("execution_result") or {}
+
+            live_oms_id = (
+                order.get("order_id")
+                or order.get("oms_order_id")
+            )
+
+            live_trade_id = (
+                order.get("trade_id")
+                or execution_result.get("trade_id")
+            )
 
             for index, durable in enumerate(self._durable_closed_trades):
                 durable_oms_id = (
@@ -166,13 +241,14 @@ class StatisticsService:
                 durable_trade_id = durable.get("trade_id")
 
                 if (
-                    live_oms_id is not None
-                    and durable_oms_id is not None
-                    and str(live_oms_id) == str(durable_oms_id)
-                ) or (
                     live_trade_id is not None
                     and durable_trade_id is not None
                     and str(live_trade_id) == str(durable_trade_id)
+                ) or (
+                    live_trade_id is None
+                    and live_oms_id is not None
+                    and durable_oms_id is not None
+                    and str(live_oms_id) == str(durable_oms_id)
                 ):
                     matched_durable.add(index)
                     break
@@ -302,4 +378,6 @@ class StatisticsService:
             "trade_count": trade_count,
         }
 statistics_service = StatisticsService()
+
+
 
