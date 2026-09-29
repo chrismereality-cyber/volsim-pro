@@ -494,7 +494,250 @@ class ExecutionService:
                     order_id,
                 )
                 return {'order_id': order_id, 'trade_id': paper_trade_id, 'position': position, **result}
-            request = {'action': mt5.TRADE_ACTION_DEAL, 'symbol': order_request.get('symbol'), 'volume': order_request.get('volume', 0.01), 'type': mt5.ORDER_TYPE_BUY if order_request.get('type') == 'BUY' else mt5.ORDER_TYPE_SELL, 'price': order_request.get('price', 0), 'sl': order_request.get('stop_loss', 0), 'tp': order_request.get('take_profit', 0), 'deviation': 20, 'magic': 202607, 'type_filling': mt5.ORDER_FILLING_IOC, 'comment': 'VolSim-Pro'}
+            is_exit = order_request.get('type') == 'EXIT'
+
+            if is_exit:
+                trade_id = order_request.get('trade_id')
+                symbol = order_request.get('symbol')
+
+                if not trade_id:
+                    self.orders_rejected += 1
+                    self.last_error = 'LIVE EXIT requires trade_id'
+                    oms_service.update_status(
+                        order_id,
+                        'REJECTED',
+                        {
+                            'success': False,
+                            'retcode': 'MISSING_TRADE_ID',
+                            'message': self.last_error,
+                        },
+                    )
+                    await self._release_execution_idempotency(client_order_id)
+                    return {
+                        'success': False,
+                        'order_id': order_id,
+                        'ticket': None,
+                        'retcode': 'MISSING_TRADE_ID',
+                        'message': self.last_error,
+                        'client_order_id': client_order_id,
+                        'decision_id': decision_id,
+                    }
+
+                position = position_service.positions.get(trade_id)
+
+                if not position or position.get('status') != 'OPEN':
+                    self.orders_rejected += 1
+                    self.last_error = f'LIVE EXIT position not OPEN: {trade_id}'
+                    oms_service.update_status(
+                        order_id,
+                        'REJECTED',
+                        {
+                            'success': False,
+                            'retcode': 'POSITION_NOT_OPEN',
+                            'message': self.last_error,
+                        },
+                    )
+                    await self._release_execution_idempotency(client_order_id)
+                    return {
+                        'success': False,
+                        'order_id': order_id,
+                        'ticket': None,
+                        'retcode': 'POSITION_NOT_OPEN',
+                        'message': self.last_error,
+                        'client_order_id': client_order_id,
+                        'decision_id': decision_id,
+                    }
+
+                position_symbol = position.get('symbol')
+                if position_symbol != symbol:
+                    self.orders_rejected += 1
+                    self.last_error = (
+                        f'LIVE EXIT symbol mismatch: '
+                        f'position={position_symbol} request={symbol}'
+                    )
+                    oms_service.update_status(
+                        order_id,
+                        'REJECTED',
+                        {
+                            'success': False,
+                            'retcode': 'POSITION_SYMBOL_MISMATCH',
+                            'message': self.last_error,
+                        },
+                    )
+                    await self._release_execution_idempotency(client_order_id)
+                    return {
+                        'success': False,
+                        'order_id': order_id,
+                        'ticket': None,
+                        'retcode': 'POSITION_SYMBOL_MISMATCH',
+                        'message': self.last_error,
+                        'client_order_id': client_order_id,
+                        'decision_id': decision_id,
+                    }
+
+                broker_position_ticket = position.get('broker_position_ticket')
+                if not broker_position_ticket:
+                    self.orders_rejected += 1
+                    self.last_error = (
+                        f'LIVE EXIT missing broker_position_ticket: {trade_id}'
+                    )
+                    oms_service.update_status(
+                        order_id,
+                        'REJECTED',
+                        {
+                            'success': False,
+                            'retcode': 'MISSING_BROKER_POSITION_TICKET',
+                            'message': self.last_error,
+                        },
+                    )
+                    await self._release_execution_idempotency(client_order_id)
+                    return {
+                        'success': False,
+                        'order_id': order_id,
+                        'ticket': None,
+                        'retcode': 'MISSING_BROKER_POSITION_TICKET',
+                        'message': self.last_error,
+                        'client_order_id': client_order_id,
+                        'decision_id': decision_id,
+                    }
+
+                position_side = str(position.get('side', '')).upper()
+
+                try:
+                    market_state = mt5_service.get_market_state()
+                except Exception as market_error:
+                    logger.exception(
+                        'LIVE EXIT market-state lookup failed: %s',
+                        market_error,
+                    )
+                    self.orders_rejected += 1
+                    self.last_error = (
+                        'LIVE_EXIT_MARKET_STATE_ERROR: '
+                        + str(market_error)
+                    )
+                    oms_service.update_status(
+                        order_id,
+                        'REJECTED',
+                        {
+                            'success': False,
+                            'retcode': 'MARKET_STATE_ERROR',
+                            'message': self.last_error,
+                        },
+                    )
+                    await self._release_execution_idempotency(client_order_id)
+                    return {
+                        'success': False,
+                        'order_id': order_id,
+                        'ticket': None,
+                        'retcode': 'MARKET_STATE_ERROR',
+                        'message': self.last_error,
+                        'client_order_id': client_order_id,
+                        'decision_id': decision_id,
+                    }
+
+                quote = market_state.get(symbol, {})
+                bid = float(quote.get('bid', 0) or 0)
+                ask = float(quote.get('ask', 0) or 0)
+
+                if position_side == 'BUY':
+                    close_type = mt5.ORDER_TYPE_SELL
+                    close_price = bid
+                elif position_side == 'SELL':
+                    close_type = mt5.ORDER_TYPE_BUY
+                    close_price = ask
+                else:
+                    self.orders_rejected += 1
+                    self.last_error = (
+                        f'LIVE EXIT unsupported position side: {position_side}'
+                    )
+                    oms_service.update_status(
+                        order_id,
+                        'REJECTED',
+                        {
+                            'success': False,
+                            'retcode': 'INVALID_POSITION_SIDE',
+                            'message': self.last_error,
+                        },
+                    )
+                    await self._release_execution_idempotency(client_order_id)
+                    return {
+                        'success': False,
+                        'order_id': order_id,
+                        'ticket': None,
+                        'retcode': 'INVALID_POSITION_SIDE',
+                        'message': self.last_error,
+                        'client_order_id': client_order_id,
+                        'decision_id': decision_id,
+                    }
+
+                if close_price <= 0:
+                    self.orders_rejected += 1
+                    self.last_error = (
+                        f'LIVE EXIT invalid executable quote: '
+                        f'symbol={symbol} bid={bid} ask={ask}'
+                    )
+                    oms_service.update_status(
+                        order_id,
+                        'REJECTED',
+                        {
+                            'success': False,
+                            'retcode': 'INVALID_EXIT_QUOTE',
+                            'message': self.last_error,
+                        },
+                    )
+                    await self._release_execution_idempotency(client_order_id)
+                    return {
+                        'success': False,
+                        'order_id': order_id,
+                        'ticket': None,
+                        'retcode': 'INVALID_EXIT_QUOTE',
+                        'message': self.last_error,
+                        'client_order_id': client_order_id,
+                        'decision_id': decision_id,
+                    }
+
+                request = {
+                    'action': mt5.TRADE_ACTION_DEAL,
+                    'symbol': symbol,
+                    'volume': float(position.get('volume', order_request.get('volume', 0.01))),
+                    'type': close_type,
+                    'position': int(broker_position_ticket),
+                    'price': close_price,
+                    'sl': 0,
+                    'tp': 0,
+                    'deviation': 20,
+                    'magic': 202607,
+                    'type_filling': mt5.ORDER_FILLING_IOC,
+                    'comment': 'VolSim-Pro AI Exit',
+                }
+
+                logger.info(
+                    'LIVE EXIT request prepared: trade_id=%s '
+                    'position_ticket=%s side=%s close_type=%s price=%s',
+                    trade_id,
+                    broker_position_ticket,
+                    position_side,
+                    close_type,
+                    close_price,
+                )
+            else:
+                request = {
+                    'action': mt5.TRADE_ACTION_DEAL,
+                    'symbol': order_request.get('symbol'),
+                    'volume': order_request.get('volume', 0.01),
+                    'type': (
+                        mt5.ORDER_TYPE_BUY
+                        if order_request.get('type') == 'BUY'
+                        else mt5.ORDER_TYPE_SELL
+                    ),
+                    'price': order_request.get('price', 0),
+                    'sl': order_request.get('stop_loss', 0),
+                    'tp': order_request.get('take_profit', 0),
+                    'deviation': 20,
+                    'magic': 202607,
+                    'type_filling': mt5.ORDER_FILLING_IOC,
+                    'comment': 'VolSim-Pro',
+                }
             try:
                 order_check_result = mt5.order_check(request)
             except Exception as order_check_error:
@@ -560,7 +803,153 @@ class ExecutionService:
                 self.last_fill_time = time.time()
                 order_ticket = getattr(result, 'order', None)
                 deal_ticket = getattr(result, 'deal', None)
-                position_ticket = self._resolve_broker_position_ticket(symbol=order_request.get('symbol', ''), magic=order_request.get('magic', 202607), order_ticket=order_ticket, deal_ticket=deal_ticket)
+
+                if is_exit:
+                    trade_id = order_request.get('trade_id')
+
+                    reconciliation = await position_service.sync_from_mt5()
+
+                    reconciled_position = position_service.positions.get(trade_id)
+
+                    if (
+                        not reconciled_position
+                        or reconciled_position.get('status') != 'CLOSED'
+                    ):
+                        self.orders_rejected += 1
+                        self.last_error = (
+                            'LIVE EXIT broker transmission succeeded but '
+                            'position reconciliation did not establish CLOSED state'
+                        )
+                        logger.critical(
+                            'LIVE EXIT RECONCILIATION REQUIRED: '
+                            'oms_order_id=%s trade_id=%s reconciliation=%s',
+                            order_id,
+                            trade_id,
+                            reconciliation,
+                        )
+                        await self._finalize_execution_idempotency(
+                            client_order_id,
+                            {
+                                'success': False,
+                                'order_id': order_id,
+                                'ticket': order_ticket,
+                                'deal_ticket': deal_ticket,
+                                'retcode': 'RECONCILIATION_REQUIRED',
+                                'message': self.last_error,
+                                'client_order_id': client_order_id,
+                                'decision_id': decision_id,
+                                'execution_mode': self.execution_mode,
+                            },
+                            order_id,
+                        )
+                        return {
+                            'success': False,
+                            'order_id': order_id,
+                            'ticket': order_ticket,
+                            'deal_ticket': deal_ticket,
+                            'retcode': 'RECONCILIATION_REQUIRED',
+                            'message': self.last_error,
+                            'client_order_id': client_order_id,
+                            'decision_id': decision_id,
+                        }
+
+                    execution_result = {
+                        'success': True,
+                        'oms_order_id': order_id,
+                        'position_ticket': reconciled_position.get(
+                            'broker_position_ticket'
+                        ),
+                        'ticket': (
+                            reconciled_position.get('broker_order_ticket')
+                            or order_ticket
+                        ),
+                        'order_ticket': (
+                            reconciled_position.get('broker_order_ticket')
+                            or order_ticket
+                        ),
+                        'deal_ticket': (
+                            reconciled_position.get('broker_deal_ticket')
+                            or deal_ticket
+                        ),
+                        'retcode': result.retcode,
+                        'comment': getattr(result, 'comment', ''),
+                        'symbol': reconciled_position.get(
+                            'symbol',
+                            order_request.get('symbol', ''),
+                        ),
+                        'side': reconciled_position.get(
+                            'side',
+                            order_request.get('position_side', ''),
+                        ),
+                        'volume': float(
+                            reconciled_position.get(
+                                'volume',
+                                order_request.get('volume', 0.01),
+                            )
+                        ),
+                        'price': float(
+                            reconciled_position.get(
+                                'close_price',
+                                getattr(
+                                    result,
+                                    'price',
+                                    order_request.get('price', 0),
+                                ),
+                            )
+                        ),
+                        'realized_pl': float(
+                            reconciled_position.get('realized_pl', 0.0)
+                        ),
+                        'client_order_id': client_order_id,
+                        'decision_id': decision_id,
+                        'trade_id': str(trade_id),
+                        'execution_mode': self.execution_mode,
+                    }
+
+                    oms_service.update_status(
+                        order_id,
+                        'CLOSED',
+                        execution_result,
+                    )
+
+                    await self.record_trade_ledger(
+                        order_request,
+                        execution_result,
+                        'CLOSED',
+                        oms_order_id=order_id,
+                    )
+
+                    await self._finalize_execution_idempotency(
+                        client_order_id,
+                        {
+                            **execution_result,
+                            'order_id': order_id,
+                        },
+                        order_id,
+                    )
+
+                    logger.info(
+                        'LIVE position closed and reconciled: '
+                        'oms_order_id=%s trade_id=%s position_ticket=%s '
+                        'close_price=%s realized_pl=%s',
+                        order_id,
+                        trade_id,
+                        execution_result.get('position_ticket'),
+                        execution_result.get('price'),
+                        execution_result.get('realized_pl'),
+                    )
+
+                    return {
+                        'order_id': order_id,
+                        **execution_result,
+                    }
+
+                position_ticket = self._resolve_broker_position_ticket(
+                    symbol=order_request.get('symbol', ''),
+                    magic=order_request.get('magic', 202607),
+                    order_ticket=order_ticket,
+                    deal_ticket=deal_ticket,
+                )
                 execution_result = {
                     'success': True,
                     'oms_order_id': order_id,
