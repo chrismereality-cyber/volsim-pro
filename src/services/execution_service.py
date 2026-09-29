@@ -419,10 +419,20 @@ class ExecutionService:
                         'comment': order_request.get('comment', 'VolSim-Pro AI Exit'),
                         'client_order_id': client_order_id,
                         'decision_id': decision_id,
+                        'realized_pl': float(
+                            closed_position.get('realized_pl', 0.0) or 0.0
+                        ),
                         'position': closed_position,
                     }
 
                     oms_service.update_status(order_id, 'FILLED', result)
+
+                    await self.record_trade_ledger(
+                        order_request,
+                        result,
+                        'CLOSED',
+                        oms_order_id=order_id,
+                    )
 
                     await self._finalize_execution_idempotency(
                         client_order_id,
