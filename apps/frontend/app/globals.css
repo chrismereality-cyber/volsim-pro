@@ -1,4 +1,4 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -9,11 +9,134 @@
   }
 }
 
-/* Custom terminal scanline overlay accent */
+@layer components {
+
+  /* ============================================================
+     VOLSIM-PRO TELEMETRY VISUAL SYSTEM
+     Presentation only — no data or execution logic.
+     ============================================================ */
+
+  .telemetry-shell {
+    @apply font-mono text-zinc-100;
+  }
+
+  .telemetry-section {
+    @apply uppercase tracking-[0.16em] text-[11px] font-black text-zinc-300;
+  }
+
+  .telemetry-label {
+    @apply uppercase tracking-[0.12em] text-[10px] font-bold text-zinc-500;
+  }
+
+  .telemetry-sublabel {
+    @apply uppercase tracking-[0.10em] text-[9px] font-semibold text-zinc-600;
+  }
+
+  .telemetry-value {
+    @apply font-mono font-black tracking-tight text-white;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .telemetry-value-xl {
+    @apply telemetry-value text-3xl md:text-4xl;
+  }
+
+  .telemetry-value-lg {
+    @apply telemetry-value text-2xl md:text-3xl;
+  }
+
+  .telemetry-value-md {
+    @apply telemetry-value text-xl md:text-2xl;
+  }
+
+  .telemetry-status {
+    @apply inline-flex items-center gap-2 uppercase tracking-[0.12em] text-[10px] font-black;
+  }
+
+  .telemetry-status::before {
+    content: "";
+    @apply w-2 h-2 rounded-full bg-current;
+  }
+
+  .telemetry-status-online {
+    @apply telemetry-status text-emerald-400;
+  }
+
+  .telemetry-status-warning {
+    @apply telemetry-status text-amber-400;
+  }
+
+  .telemetry-status-danger {
+    @apply telemetry-status text-rose-400;
+  }
+
+  .telemetry-status-neutral {
+    @apply telemetry-status text-zinc-400;
+  }
+
+  .telemetry-card {
+    @apply bg-zinc-950 border border-zinc-800 rounded-xl p-5;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.015),
+      0 12px 35px rgba(0,0,0,0.22);
+  }
+
+  .telemetry-card:hover {
+    @apply border-zinc-700;
+  }
+
+  .telemetry-card-header {
+    @apply flex items-center justify-between pb-3 mb-4 border-b border-zinc-900;
+  }
+
+  .telemetry-divider {
+    @apply border-zinc-900;
+  }
+
+  .telemetry-positive {
+    @apply text-emerald-400 font-black;
+  }
+
+  .telemetry-negative {
+    @apply text-rose-400 font-black;
+  }
+
+  .telemetry-warning {
+    @apply text-amber-400 font-black;
+  }
+
+  .telemetry-accent {
+    @apply text-cyan-300 font-black;
+  }
+
+  .telemetry-metric-row {
+    @apply flex items-end justify-between gap-4;
+  }
+
+  .telemetry-grid {
+    @apply grid gap-4;
+  }
+
+  .telemetry-readout {
+    @apply rounded-lg border border-zinc-900 bg-black/40 px-4 py-3;
+  }
+}
+
+/* Custom terminal scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-::-webkit-scrollbar-track { background: #02050a; }
-::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #10b981; }
+
+::-webkit-scrollbar-track {
+  background: #02050a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #10b981;
+}
