@@ -139,7 +139,8 @@ class AIExecutionService:
 
         if decision not in [
             "BUY",
-            "SELL"
+            "SELL",
+            "EXIT"
         ]:
 
             state.update({

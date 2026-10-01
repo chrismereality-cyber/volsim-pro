@@ -150,7 +150,8 @@ class ExecutionRiskGateService:
             "execution_signal"
         ) not in [
             "BUY",
-            "SELL"
+            "SELL",
+            "EXIT"
         ]:
 
             return self.reject(
