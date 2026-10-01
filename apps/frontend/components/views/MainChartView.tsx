@@ -99,12 +99,16 @@ export default function MainChartView() {
       ? 'CONNECTED'
       : 'UNAVAILABLE';
 
+  const activeBroker = String(
+    venueContext?.provider_status?.broker ?? 'UNKNOWN'
+  ).trim() || 'UNKNOWN';
+
   const [selectedAsset, setSelectedAsset] = useState<AssetConfig>(
     SUPPORTED_ASSETS[0]
   );
 
   const [instrumentCategory, setInstrumentCategory] =
-    useState<'FOREX' | 'METALS' | 'SYNTHETICS'>('FOREX');
+    useState<'FOREX' | 'METALS' | 'CRYPTO' | 'SYNTHETICS'>('FOREX');
 
   const [instrumentSearch, setInstrumentSearch] = useState('');
   const [isInstrumentSelectorOpen, setIsInstrumentSelectorOpen] =
@@ -189,12 +193,25 @@ export default function MainChartView() {
     (asset) => asset.feedType === 'DERIV_SYNTHETIC'
   );
 
+  const cryptoAssets = mt5Assets.filter((asset) => {
+    const category = String(
+      instrumentRegistry.instruments.find(
+        (instrument) =>
+          String(instrument.symbol ?? '') === asset.backendSymbol
+      )?.category ?? ''
+    ).trim();
+
+    return category === 'Crypto';
+  });
+
   const categoryAssets =
     instrumentCategory === 'FOREX'
       ? forexAssets
       : instrumentCategory === 'METALS'
         ? metalAssets
-        : syntheticAssets;
+        : instrumentCategory === 'CRYPTO'
+          ? cryptoAssets
+          : syntheticAssets;
 
   const normalizedSearch = instrumentSearch.trim().toLowerCase();
 
@@ -241,6 +258,33 @@ export default function MainChartView() {
 
   const selectedCounterTrend =
     counterTrendBySymbol[selectedSymbol];
+
+  const selectedRegimeLabel =
+    selectedMarketRegime &&
+    typeof selectedMarketRegime === 'object'
+      ? String(
+          (selectedMarketRegime as Record<string, unknown>).regime ??
+            '—'
+        )
+      : String(selectedMarketRegime ?? '—');
+
+  const selectedTrendLabel =
+    selectedTrend &&
+    typeof selectedTrend === 'object'
+      ? String(
+          (selectedTrend as Record<string, unknown>).trend ??
+            '—'
+        )
+      : String(selectedTrend ?? '—');
+
+  const selectedCounterTrendLabel =
+    selectedCounterTrend &&
+    typeof selectedCounterTrend === 'object'
+      ? String(
+          (selectedCounterTrend as Record<string, unknown>).signal ??
+            '—'
+        )
+      : String(selectedCounterTrend ?? '—');
 
   const aiDecisionStatus = String(aiDecision?.status ?? 'OFFLINE');
 
@@ -638,6 +682,7 @@ export default function MainChartView() {
                     [
                       'FOREX',
                       'METALS',
+                      'CRYPTO',
                       'SYNTHETICS'
                     ] as const
                   ).map(category => {
@@ -1103,7 +1148,7 @@ export default function MainChartView() {
                 Regime
               </div>
               <div className="telemetry-value-md mt-1">
-                {String(selectedMarketRegime ?? '—')}
+                {selectedRegimeLabel}
               </div>
             </div>
 
@@ -1112,7 +1157,7 @@ export default function MainChartView() {
                 Trend
               </div>
               <div className="telemetry-value-md mt-1">
-                {String(selectedTrend ?? '—')}
+                {selectedTrendLabel}
               </div>
             </div>
 
@@ -1121,7 +1166,7 @@ export default function MainChartView() {
                 Counter Trend
               </div>
               <div className="telemetry-value-md mt-1">
-                {String(selectedCounterTrend ?? '—')}
+                {selectedCounterTrendLabel}
               </div>
             </div>
 
@@ -1240,12 +1285,35 @@ export default function MainChartView() {
 
             </div>
 
-            <div className="text-zinc-200 font-black text-sm mt-1 uppercase">
-              {activeVenueProvider}
-              <span className="text-zinc-700 mx-1">
-                •
-              </span>
-              {activeVenue}
+            <div className="grid grid-cols-3 gap-3 mt-2">
+
+              <div>
+                <div className="telemetry-label">
+                  BROKER
+                </div>
+                <div className="text-zinc-200 font-black text-xs mt-1 uppercase truncate">
+                  {activeBroker}
+                </div>
+              </div>
+
+              <div>
+                <div className="telemetry-label">
+                  PROVIDER
+                </div>
+                <div className="text-zinc-200 font-black text-xs mt-1 uppercase truncate">
+                  {activeVenueProvider}
+                </div>
+              </div>
+
+              <div>
+                <div className="telemetry-label">
+                  VENUE
+                </div>
+                <div className="text-zinc-200 font-black text-xs mt-1 uppercase truncate">
+                  {activeVenue}
+                </div>
+              </div>
+
             </div>
 
           </div>
