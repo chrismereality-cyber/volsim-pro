@@ -188,6 +188,7 @@ def build_trading_state_contract(
             "counter_trend_execution"
         ),
         ai_decision=state.get("ai_decision"),
+        execution_decision=state.get("execution_decision"),
         ai_execution=state.get("ai_execution"),
         execution_risk=state.get("execution_risk"),
         order_builder=state.get("order_builder"),
@@ -212,6 +213,9 @@ def build_trading_state_contract(
         ),
         ai_decision_by_symbol=(
             state.get("ai_decision_by_symbol") or {}
+        ),
+        execution_decision_by_symbol=(
+            state.get("execution_decision_by_symbol") or {}
         ),
         ai_execution_by_symbol=(
             state.get("ai_execution_by_symbol") or {}
@@ -238,4 +242,3 @@ def build_trading_state_contract(
             state.get("financial_intelligence") or {}
         ),
     )
-
