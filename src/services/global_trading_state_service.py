@@ -283,6 +283,7 @@ class GlobalTradingStateService:
             "market_state": market_state,
             "counter_trend_execution": counter_trend_state,
             "ai_decision": ai_decision,
+            "execution_decision": execution_decision,
             "ai_position_management": position_management,
             "ai_execution": ai_execution,
             "execution_risk": execution_risk,
@@ -556,6 +557,12 @@ class GlobalTradingStateService:
             for symbol, state in symbol_states.items()
         }
 
+        execution_decision_by_symbol = {
+            symbol:
+                state["execution_decision"]
+            for symbol, state in symbol_states.items()
+        }
+
         ai_execution_by_symbol = {
             symbol:
                 state["ai_execution"]
@@ -609,6 +616,10 @@ class GlobalTradingStateService:
 
         ai_decision = (
             default_state["ai_decision"]
+        )
+
+        execution_decision = (
+            default_state["execution_decision"]
         )
 
         ai_execution = (
@@ -710,6 +721,9 @@ class GlobalTradingStateService:
             "ai_decision":
                 ai_decision,
 
+            "execution_decision":
+                execution_decision,
+
             "ai_execution":
                 ai_execution,
 
@@ -747,6 +761,9 @@ class GlobalTradingStateService:
             "ai_decision_by_symbol":
                 ai_decision_by_symbol,
 
+            "execution_decision_by_symbol":
+                execution_decision_by_symbol,
+
             "ai_execution_by_symbol":
                 ai_execution_by_symbol,
 
@@ -762,4 +779,3 @@ class GlobalTradingStateService:
 
 
 global_trading_state_service = GlobalTradingStateService()
-
