@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTradingStore } from '../../store/useTradingStore';
@@ -384,52 +384,66 @@ export default function MainChartView() {
     setIsExecuting(true);
     setExecutionResult(null);
 
-    const payload = {
-      symbol: selectedAsset.backendSymbol,
-      action: action,
-      volume: Number(volume),
-      sl: Number(sl),
-      tp: Number(tp),
-      deviation: Number(deviation)
-    };
-
     try {
       const response = await fetch(
-        'http://127.0.0.1:10000/api/trade/execute',
+        `http://127.0.0.1:10000/api/trading/execute/${encodeURIComponent(
+          selectedAsset.backendSymbol
+        )}`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload),
         }
       );
 
+      const result = await response.json();
+
       if (!response.ok) {
         throw new Error(
+          result.detail ||
+          result.last_action ||
           `Execution error: ${response.statusText}`
         );
       }
 
-      const result = await response.json();
+      const status = String(
+        result.status ?? 'UNKNOWN'
+      );
+
+      const orchestrator =
+        result.ai_execution_orchestrator ?? {};
+
+      const lastAction = String(
+        orchestrator.last_action ??
+        result.last_action ??
+        'UNKNOWN'
+      );
+
+      const ticket =
+        result.ticket ??
+        orchestrator.ticket ??
+        orchestrator.order_ticket ??
+        orchestrator.last_result?.ticket ??
+        orchestrator.last_result?.order_ticket;
+
+      const executionSucceeded =
+        lastAction === 'ORDER_SENT';
 
       setExecutionResult({
-        success: true,
+        success: executionSucceeded,
         message:
-          'Order completed successfully. Trade executed on MetaTrader 5 kernel.',
-        ticket:
-          result.ticket ||
-          Math.floor(
-            10000000 +
-            Math.random() * 90000000
-          ).toString()
+          `${selectedAsset.backendSymbol} · ` +
+          `${action} request → ` +
+          `${status} · ` +
+          `${lastAction}`,
+        ...(ticket
+          ? { ticket: String(ticket) }
+          : {}),
       });
     } catch (err: any) {
       setExecutionResult({
         success: false,
         message:
           err.message ||
-          'MetaTrader 5 gateway execution timeout.'
+          'AI execution cycle request failed.'
       });
     } finally {
       setIsExecuting(false);
