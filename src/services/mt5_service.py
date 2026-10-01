@@ -7,7 +7,8 @@ class MT5Service:
     SYMBOLS = [
         "XAUUSDm",
         "EURUSD",
-        "GBPUSD"
+        "GBPUSD",
+        "BTCUSDm",
     ]
 
 
