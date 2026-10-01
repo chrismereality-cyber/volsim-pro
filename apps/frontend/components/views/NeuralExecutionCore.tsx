@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import { BrainCircuit, Activity, ShieldCheck, Zap } from 'lucide-react';
@@ -94,71 +94,113 @@ function InstrumentCard({
 
     const signalClass =
         signal === 'BUY'
-            ? 'text-emerald-400'
+            ? 'telemetry-positive'
             : signal === 'SELL'
-                ? 'text-rose-400'
-                : 'text-zinc-400';
+                ? 'telemetry-negative'
+                : 'text-white';
+
+    const pnlNumber = Number(data.pnl ?? 0);
+
+    const pnlClass =
+        Number.isFinite(pnlNumber)
+            ? pnlNumber > 0
+                ? 'telemetry-positive'
+                : pnlNumber < 0
+                    ? 'telemetry-negative'
+                    : 'text-white'
+            : 'text-white';
+
+    const status =
+        displayValue(data.status, 'STANDBY').toUpperCase();
 
     return (
-        <div className="rounded border border-zinc-800 bg-zinc-950/80 p-4">
-            <div className="mb-4 flex items-center justify-between border-b border-zinc-900 pb-3">
+        <div className="telemetry-card p-5">
+
+            {/* INSTRUMENT HEADER */}
+            <div className="mb-5 flex items-center justify-between border-b border-zinc-900 pb-4">
+
                 <div>
-                    <div className="text-sm font-black tracking-widest text-white">
+                    <div className="text-xl font-black tracking-[0.16em] text-white">
                         {symbol}
                     </div>
 
-                    <div className="mt-1 text-[9px] uppercase tracking-widest text-zinc-600">
-                        Neural instrument state
+                    <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">
+                        NEURAL INSTRUMENT STATE
                     </div>
                 </div>
 
-                <Activity className="h-4 w-4 text-zinc-600" />
+                <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    <Activity className="h-5 w-5 text-emerald-400" />
+                </div>
+
             </div>
 
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-xs">
+            {/* PRIMARY TELEMETRY */}
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+
                 <MetricRow
-                    label="Signal"
+                    label="SIGNAL"
                     value={signal}
                     valueClass={signalClass}
+                    primary
                 />
 
                 <MetricRow
-                    label="Confidence"
+                    label="CONFIDENCE"
                     value={percentValue(data.confidence)}
+                    primary
                 />
 
                 <MetricRow
-                    label="Position"
+                    label="POSITION"
                     value={displayValue(data.position)}
+                    primary
                 />
 
                 <MetricRow
-                    label="Risk"
+                    label="RISK"
                     value={percentValue(data.risk)}
+                    primary
                 />
 
                 <MetricRow
                     label="P&L"
                     value={moneyValue(data.pnl)}
+                    valueClass={pnlClass}
+                    primary
                 />
 
                 <MetricRow
-                    label="Status"
-                    value={displayValue(data.status, 'STANDBY')}
+                    label="STATUS"
+                    value={status}
+                    valueClass={
+                        status === 'ONLINE'
+                            ? 'telemetry-positive'
+                            : status === 'ERROR' || status === 'FAILED'
+                                ? 'telemetry-negative'
+                                : 'text-white'
+                    }
+                    primary
                 />
+
             </div>
 
+            {/* INTELLIGENCE CONTEXT */}
             {data.reason && (
-                <div className="mt-4 border-t border-zinc-900 pt-3">
-                    <div className="mb-1 text-[9px] uppercase tracking-widest text-zinc-600">
-                        Intelligence context
+                <div className="mt-5 border-t border-zinc-900 pt-4">
+
+                    <div className="telemetry-label mb-2">
+                        INTELLIGENCE CONTEXT
                     </div>
 
-                    <div className="text-[10px] leading-relaxed text-zinc-400">
+                    <div className="rounded border border-zinc-900 bg-black/20 px-3 py-3 text-xs font-bold leading-relaxed tracking-wide text-zinc-300">
                         {data.reason}
                     </div>
+
                 </div>
             )}
+
         </div>
     );
 }
@@ -167,20 +209,30 @@ function MetricRow({
     label,
     value,
     valueClass = 'text-white',
+    primary = false,
 }: {
     label: string;
     value: string;
     valueClass?: string;
+    primary?: boolean;
 }) {
     return (
-        <div>
-            <div className="text-[9px] uppercase tracking-widest text-zinc-600">
+        <div className="min-w-0">
+
+            <div className="telemetry-label">
                 {label}
             </div>
 
-            <div className={`mt-1 font-semibold ${valueClass}`}>
+            <div
+                className={
+                    primary
+                        ? `mt-1 truncate text-lg font-black tracking-tight ${valueClass} md:text-xl`
+                        : `mt-1 font-black ${valueClass}`
+                }
+            >
                 {value}
             </div>
+
         </div>
     );
 }
@@ -382,31 +434,52 @@ export default function NeuralExecutionCore() {
                 : null,
     };
 
+    const vfiaStatusClass =
+        vfia.status === 'ONLINE'
+            ? 'telemetry-positive'
+            : 'telemetry-warning';
+
+    const decisionClass =
+        vfia.decision === 'AUTHORIZED'
+            ? 'telemetry-positive'
+            : 'telemetry-warning';
+
     return (
-        <section className="space-y-4">
+        <section className="telemetry-shell space-y-5">
 
-            <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
-                <div>
-                    <div className="flex items-center gap-2">
-                        <BrainCircuit className="h-4 w-4 text-emerald-400" />
+            {/* CORE HEADER */}
+            <div className="telemetry-card p-5 md:p-6">
 
-                        <h2 className="text-sm font-black tracking-widest text-white">
-                            NEURAL EXECUTION CORE
-                        </h2>
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+                    <div>
+                        <div className="flex items-center gap-3">
+
+                            <BrainCircuit className="h-6 w-6 text-emerald-400" />
+
+                            <h2 className="text-xl font-black tracking-[0.14em] text-white md:text-2xl">
+                                NEURAL EXECUTION CORE
+                            </h2>
+
+                        </div>
+
+                        <p className="mt-2 text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">
+                            AI-ASSISTED AUTOMATED TRADING STATE
+                        </p>
                     </div>
 
-                    <p className="mt-1 text-[10px] uppercase tracking-widest text-zinc-600">
-                        AI-assisted automated trading state
-                    </p>
+                    <div className="telemetry-status telemetry-status-online self-start md:self-auto">
+                        <span className="mr-2">●</span>
+                        SHARED TRADING STATE
+                    </div>
+
                 </div>
 
-                <div className="flex items-center gap-2 text-[9px] uppercase tracking-widest text-zinc-600">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    Shared Trading State
-                </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            {/* INSTRUMENT STATES */}
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+
                 <InstrumentCard
                     symbol="XAUUSDm"
                     data={xau}
@@ -416,83 +489,104 @@ export default function NeuralExecutionCore() {
                     symbol="BTCUSDm"
                     data={btc}
                 />
+
             </div>
 
-            <div className="rounded border border-zinc-800 bg-zinc-950/80 p-4">
+            {/* VFI */}
+            <div className="telemetry-card p-5 md:p-6">
 
-                <div className="mb-4 flex items-center justify-between border-b border-zinc-900 pb-3">
-                    <div className="flex items-center gap-2">
-                        <BrainCircuit className="h-4 w-4 text-emerald-400" />
+                <div className="mb-5 flex flex-col gap-4 border-b border-zinc-900 pb-4 md:flex-row md:items-center md:justify-between">
+
+                    <div className="flex items-center gap-3">
+
+                        <BrainCircuit className="h-6 w-6 text-emerald-400" />
 
                         <div>
-                            <div className="text-xs font-black tracking-widest text-white">
+                            <div className="text-base font-black tracking-[0.14em] text-white md:text-lg">
                                 VOLSIM FINANCIAL INTELLIGENCE
                             </div>
 
-                            <div className="mt-1 text-[9px] uppercase tracking-widest text-zinc-600">
-                                Decision assistance layer
+                            <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">
+                                DECISION ASSISTANCE LAYER
                             </div>
                         </div>
+
                     </div>
 
-                    <Zap className="h-4 w-4 text-zinc-600" />
+                    <Zap className="h-5 w-5 text-emerald-400" />
+
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+                <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-5">
 
                     <MetricRow
-                        label="Status"
+                        label="STATUS"
                         value={displayValue(
                             vfia.status,
                             'AWAITING DATA'
                         )}
+                        valueClass={vfiaStatusClass}
+                        primary
                     />
 
                     <MetricRow
-                        label="Regime"
+                        label="REGIME"
                         value={displayValue(
                             vfia.regime
                         )}
+                        primary
                     />
 
                     <MetricRow
-                        label="Assessment"
+                        label="ASSESSMENT"
                         value={displayValue(
                             vfia.assessment
                         )}
+                        primary
                     />
 
                     <MetricRow
-                        label="Decision"
+                        label="DECISION"
                         value={displayValue(
                             vfia.decision
                         )}
+                        valueClass={decisionClass}
+                        primary
                     />
 
                     <MetricRow
-                        label="Confidence"
+                        label="CONFIDENCE"
                         value={percentValue(
                             vfia.confidence
                         )}
+                        primary
                     />
 
                 </div>
 
-                <div className="mt-4 flex items-start gap-3 border-t border-zinc-900 pt-3">
-                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-zinc-600" />
+                <div className="mt-5 border-t border-zinc-900 pt-4">
 
-                    <div>
-                        <div className="text-[9px] uppercase tracking-widest text-zinc-600">
-                            Intelligence assistance
+                    <div className="flex items-start gap-3">
+
+                        <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
+
+                        <div className="min-w-0">
+
+                            <div className="telemetry-label mb-2">
+                                INTELLIGENCE ASSISTANCE
+                            </div>
+
+                            <div className="rounded border border-zinc-900 bg-black/20 px-3 py-3 text-xs font-bold leading-relaxed tracking-wide text-zinc-300">
+                                {displayValue(
+                                    vfia.reason,
+                                    'Live VolSim Financial Intelligence decision context will appear here when supplied by the shared backend trading state.'
+                                )}
+                            </div>
+
                         </div>
 
-                        <div className="mt-1 text-[10px] leading-relaxed text-zinc-400">
-                            {displayValue(
-                                vfia.reason,
-                                'Live VolSim Financial Intelligence decision context will appear here when supplied by the shared backend trading state.'
-                            )}
-                        </div>
                     </div>
+
                 </div>
 
             </div>
@@ -500,8 +594,3 @@ export default function NeuralExecutionCore() {
         </section>
     );
 }
-
-
-
-
-

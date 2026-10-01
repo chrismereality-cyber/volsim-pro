@@ -24,7 +24,7 @@ export default function RiskManagementView() {
 
         return (
 
-            <div className="p-6 font-mono text-xs text-zinc-500 animate-pulse">
+            <div className="telemetry-shell p-6 text-sm text-zinc-500 animate-pulse">
 
                 Awaiting Global Trading State...
 
@@ -36,19 +36,19 @@ export default function RiskManagementView() {
 
     return (
 
-        <div className="p-6 font-mono text-zinc-100 max-w-7xl mx-auto space-y-6">
+        <div className="telemetry-shell p-6 max-w-7xl mx-auto space-y-6">
 
             <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
 
                 <div>
 
-                    <h1 className="text-sm font-bold tracking-wider text-zinc-400">
+                    <h1 className="text-xl md:text-2xl font-black tracking-[0.08em] text-white uppercase">
 
                         // RISK MANAGEMENT ENGINE
 
                     </h1>
 
-                    <p className="text-xs text-zinc-600">
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-[0.12em] font-bold mt-1">
 
                         Enterprise Global Risk Monitor
 
@@ -80,17 +80,17 @@ export default function RiskManagementView() {
 
             </div>
 
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
 
-                <div className="border border-zinc-800 bg-zinc-950 p-4">
+                <div className="telemetry-card">
 
-                    <div className="text-xs text-zinc-500">
+                    <div className="telemetry-label">
 
                         Portfolio Value
 
                     </div>
 
-                    <div className="text-xl font-bold">
+                    <div className="telemetry-value-lg mt-2">
 
                         ${portfolioValue.toFixed(2)}
 
@@ -98,15 +98,15 @@ export default function RiskManagementView() {
 
                 </div>
 
-                <div className="border border-zinc-800 bg-zinc-950 p-4">
+                <div className="telemetry-card">
 
-                    <div className="text-xs text-zinc-500">
+                    <div className="telemetry-label">
 
                         Net Exposure
 
                     </div>
 
-                    <div className="text-xl font-bold">
+                    <div className="telemetry-value-lg mt-2">
 
                         ${netExposure.toFixed(2)}
 
@@ -114,15 +114,15 @@ export default function RiskManagementView() {
 
                 </div>
 
-                <div className="border border-zinc-800 bg-zinc-950 p-4">
+                <div className="telemetry-card">
 
-                    <div className="text-xs text-zinc-500">
+                    <div className="telemetry-label">
 
                         Value At Risk
 
                     </div>
 
-                    <div className="text-xl font-bold">
+                    <div className="telemetry-value-lg mt-2">
 
                         ${valueAtRisk.toFixed(2)}
 
@@ -130,15 +130,15 @@ export default function RiskManagementView() {
 
                 </div>
 
-                <div className="border border-zinc-800 bg-zinc-950 p-4">
+                <div className="telemetry-card">
 
-                    <div className="text-xs text-zinc-500">
+                    <div className="telemetry-label">
 
                         Asset Allocations
 
                     </div>
 
-                    <div className="text-xl font-bold">
+                    <div className="telemetry-value-lg mt-2">
 
                         {Object.keys(allocations).length}
 
@@ -150,9 +150,9 @@ export default function RiskManagementView() {
 
             <div className="grid lg:grid-cols-2 gap-6">
 
-                <div className="border border-zinc-800 bg-zinc-950 p-4">
+                <div className="telemetry-card">
 
-                    <h2 className="text-xs font-bold mb-4">
+                    <h2 className="telemetry-section mb-4">
 
                         Asset Exposure
 
@@ -183,9 +183,9 @@ export default function RiskManagementView() {
 
                 </div>
 
-                <div className="border border-zinc-800 bg-zinc-950 p-4">
+                <div className="telemetry-card">
 
-                    <h2 className="text-xs font-bold mb-4">
+                    <h2 className="telemetry-section mb-4">
 
                         Hedge Signals
 

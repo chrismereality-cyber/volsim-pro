@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Activity, Server, Database, Radio, Cpu, HardDrive, ShieldAlert } from 'lucide-react';
@@ -41,13 +41,13 @@ export default function SystemTelemetryView() {
   }, []);
 
   return (
-    <div className="space-y-6 text-zinc-100 font-sans p-1">
+    <div className="telemetry-shell space-y-6 p-1">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-2 uppercase">
             // HARDWARE & SUBSYSTEM TELEMETRY LOGS
           </h1>
-          <p className="text-xs text-zinc-500 font-mono mt-1">
+          <p className="text-[10px] md:text-xs text-zinc-500 font-mono mt-2 uppercase tracking-[0.08em]">
             Real-time visual monitoring of local engine resources, streaming socket pipelines, and MT5 bridges.
           </p>
         </div>
@@ -57,54 +57,54 @@ export default function SystemTelemetryView() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-zinc-950 border border-zinc-900 p-4 rounded space-y-3">
+        <div className="telemetry-card space-y-3">
           <div className="flex justify-between items-center text-zinc-500">
-            <span className="text-[10px] font-mono uppercase tracking-wider block">FASTAPI API CORE</span>
+            <span className="telemetry-label block">FASTAPI API CORE</span>
             <Server className="w-4 h-4 text-emerald-500" />
           </div>
           <div>
-            <div className="text-xl font-black text-white font-mono">PORT 10000</div>
+            <div className="telemetry-value-lg">PORT 10000</div>
             <span className="text-[10px] font-mono text-emerald-400 block mt-1">● SERVICE ONLINE & LISTEN</span>
           </div>
         </div>
 
-        <div className="bg-zinc-950 border border-zinc-900 p-4 rounded space-y-3">
+        <div className="telemetry-card space-y-3">
           <div className="flex justify-between items-center text-zinc-500">
-            <span className="text-[10px] font-mono uppercase tracking-wider block">NEXT.js INSTANCE</span>
+            <span className="telemetry-label block">NEXT.js INSTANCE</span>
             <Activity className="w-4 h-4 text-blue-500" />
           </div>
           <div>
-            <div className="text-xl font-black text-white font-mono">PORT 3001</div>
+            <div className="telemetry-value-lg">PORT 3001</div>
             <span className="text-[10px] font-mono text-zinc-400 block mt-1">NODE ENV: DEVELOPMENT</span>
           </div>
         </div>
 
-        <div className="bg-zinc-950 border border-zinc-900 p-4 rounded space-y-3">
+        <div className="telemetry-card space-y-3">
           <div className="flex justify-between items-center text-zinc-500">
-            <span className="text-[10px] font-mono uppercase tracking-wider block">SUPABASE POOLER</span>
+            <span className="telemetry-label block">SUPABASE POOLER</span>
             <Database className="w-4 h-4 text-purple-500" />
           </div>
           <div>
-            <div className="text-xl font-black text-white font-mono">{metrics.dbLatency}ms</div>
+            <div className="telemetry-value-lg">{metrics.dbLatency}ms</div>
             <span className="text-[10px] font-mono text-zinc-500 block mt-1">AWS-1-EU-NORTH-1 LINK</span>
           </div>
         </div>
 
-        <div className="bg-zinc-950 border border-zinc-900 p-4 rounded space-y-3">
+        <div className="telemetry-card space-y-3">
           <div className="flex justify-between items-center text-zinc-500">
-            <span className="text-[10px] font-mono uppercase tracking-wider block">SESSION RUNTIME</span>
+            <span className="telemetry-label block">SESSION RUNTIME</span>
             <Radio className="w-4 h-4 text-amber-500" />
           </div>
           <div>
-            <div className="text-xl font-black text-amber-400 font-mono">{metrics.uptime}</div>
+            <div className="telemetry-value-lg text-amber-400">{metrics.uptime}</div>
             <span className="text-[10px] font-mono text-zinc-500 block mt-1">PACKETS RECEIVED: {metrics.totalPacketsStreamed}</span>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-zinc-950 border border-zinc-900 p-6 rounded space-y-6 md:col-span-2">
-          <h3 className="text-xs font-bold font-mono uppercase text-white tracking-wide border-b border-zinc-900 pb-3">// HARDWARE ALLOCATION PERFORMANCE</h3>
+        <div className="telemetry-card space-y-6 md:col-span-2">
+          <h3 className="telemetry-section border-b border-zinc-900 pb-3">// HARDWARE ALLOCATION PERFORMANCE</h3>
 
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-mono">
@@ -137,8 +137,8 @@ export default function SystemTelemetryView() {
           </div>
         </div>
 
-        <div className="bg-zinc-950 border border-zinc-900 p-6 rounded space-y-4">
-          <h3 className="text-xs font-bold font-mono uppercase text-white tracking-wide border-b border-zinc-900 pb-3">// DUPLEX SUBSYSTEMS MAPPED</h3>
+        <div className="telemetry-card space-y-4">
+          <h3 className="telemetry-section border-b border-zinc-900 pb-3">// DUPLEX SUBSYSTEMS MAPPED</h3>
 
           <div className="space-y-3 font-mono text-[11px]">
             <div className="flex justify-between items-center py-1.5 border-b border-zinc-900/40">
@@ -180,5 +180,3 @@ export default function SystemTelemetryView() {
     </div>
   );
 }
-
-

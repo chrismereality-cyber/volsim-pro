@@ -136,92 +136,202 @@ export default function OrderBookView() {
     ? Math.max(0, Math.trunc(currentMarket.digits))
     : 2;
 
+  const connected = Boolean(isFastApiConnected && currentMarket);
+
+  const formatPrice = (value: number) =>
+    value.toLocaleString(undefined, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+
   return (
-    <div className="space-y-4">
+    <div className="telemetry-shell space-y-5">
 
-      {/* Order Book Status */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border border-zinc-800 bg-zinc-950/40 p-4 rounded-sm font-mono text-xs tracking-wider gap-3">
-        <div className="space-y-1">
-          <div className="text-emerald-400 flex items-center gap-2">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isFastApiConnected && currentMarket
-                  ? 'bg-emerald-500 animate-pulse'
-                  : 'bg-zinc-600'
-              }`}
-            ></span>
+      {/* HEADER / CONNECTION STATE */}
+      <div className="telemetry-card overflow-hidden">
+        <div className="p-4 md:p-5">
+          <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
 
-            // LIQUIDITY ORDER BOOK LAYER HANDSHAKE ACTIVE...
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Layers className="w-5 h-5 text-emerald-400" />
+
+                <span className="telemetry-label">
+                  EXECUTION MARKET DATA
+                </span>
+
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    connected
+                      ? 'bg-emerald-400 animate-pulse'
+                      : 'bg-zinc-600'
+                  }`}
+                />
+              </div>
+
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-white uppercase">
+                ORDER BOOK
+              </h2>
+
+              <p className="mt-1 text-[10px] md:text-xs text-zinc-500 uppercase tracking-[0.16em]">
+                MT5 top-of-book execution ladder
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+
+              <div className="telemetry-card px-4 py-3 min-w-[150px]">
+                <div className="telemetry-label">
+                  STREAM
+                </div>
+
+                <div
+                  className={`mt-1 text-sm font-black uppercase tracking-wider ${
+                    connected
+                      ? 'text-emerald-400'
+                      : 'text-zinc-500'
+                  }`}
+                >
+                  {connected ? 'LIVE' : 'WAITING'}
+                </div>
+              </div>
+
+              <div className="telemetry-card px-4 py-2">
+                <div className="telemetry-label mb-1">
+                  ACTIVE MARKET
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-emerald-400" />
+
+                  <select
+                    value={activeSymbol}
+                    onChange={(e) => setSelectedSymbol(e.target.value)}
+                    disabled={availableSymbols.length === 0}
+                    className="bg-transparent text-white border-none outline-none focus:ring-0 font-mono text-sm font-black uppercase cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    {availableSymbols.length > 0 ? (
+                      availableSymbols.map((symbol) => (
+                        <option
+                          key={symbol}
+                          value={symbol}
+                          className="bg-zinc-950 text-zinc-200"
+                        >
+                          {MARKET_NAMES[symbol] ?? 'MT5 Market'} ({symbol})
+                        </option>
+                      ))
+                    ) : (
+                      <option className="bg-zinc-950 text-zinc-500">
+                        Awaiting MT5 Market
+                      </option>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+            </div>
           </div>
-
-          <p className="text-zinc-500">
-            MT5 top-of-book quote stream with price-derived depth ladder.
-          </p>
         </div>
 
-        <div className="flex items-center gap-2 border border-zinc-850 bg-zinc-900 rounded-sm p-1">
-          <Layers className="w-3.5 h-3.5 text-zinc-500 ml-1.5" />
+        <div className="telemetry-divider" />
 
-          <select
-            value={activeSymbol}
-            onChange={(e) => setSelectedSymbol(e.target.value)}
-            disabled={availableSymbols.length === 0}
-            className="bg-transparent text-zinc-200 border-none outline-none focus:ring-0 font-mono text-xs font-bold py-1 px-2 cursor-pointer uppercase disabled:cursor-not-allowed"
-          >
-            {availableSymbols.length > 0 ? (
-              availableSymbols.map((symbol) => (
-                <option
-                  key={symbol}
-                  value={symbol}
-                  className="bg-zinc-950 text-zinc-200"
-                >
-                  {MARKET_NAMES[symbol] ?? 'MT5 Market'} ({symbol})
-                </option>
-              ))
-            ) : (
-              <option className="bg-zinc-950 text-zinc-500">
-                Awaiting MT5 Market
-              </option>
-            )}
-          </select>
+        <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-zinc-800/70">
+
+          <div className="px-4 py-3">
+            <div className="telemetry-label">BID</div>
+            <div className="telemetry-value-lg text-emerald-400 mt-1">
+              {currentMarket ? formatPrice(currentMarket.bid) : '--'}
+            </div>
+          </div>
+
+          <div className="px-4 py-3">
+            <div className="telemetry-label">ASK</div>
+            <div className="telemetry-value-lg text-rose-400 mt-1">
+              {currentMarket ? formatPrice(currentMarket.ask) : '--'}
+            </div>
+          </div>
+
+          <div className="px-4 py-3">
+            <div className="telemetry-label">SPREAD</div>
+            <div className="telemetry-value-lg text-white mt-1">
+              {currentMarket ? formatPrice(spread) : '--'}
+            </div>
+          </div>
+
+          <div className="px-4 py-3">
+            <div className="telemetry-label">MID PRICE</div>
+            <div className="telemetry-value-lg text-white mt-1">
+              {currentMarket ? formatPrice(midPrice) : '--'}
+            </div>
+          </div>
+
         </div>
       </div>
 
       {!currentMarket ? (
-        <div className="border border-zinc-800 bg-zinc-950/20 rounded-sm p-10 text-center font-mono">
-          <Activity className="w-5 h-5 text-zinc-600 mx-auto mb-3" />
+        <div className="telemetry-card p-12 text-center font-mono">
+          <Activity className="w-6 h-6 text-zinc-600 mx-auto mb-4" />
 
-          <div className="text-zinc-500 text-[10px] uppercase tracking-widest">
-            Awaiting canonical MT5 market state...
+          <div className="telemetry-label">
+            AWAITING CANONICAL MT5 MARKET STATE
           </div>
 
-          <div className="text-zinc-700 text-[9px] mt-2">
+          <div className="text-[10px] text-zinc-700 mt-2 uppercase tracking-widest">
             No executable bid/ask quote is currently available.
           </div>
         </div>
       ) : (
-        <div className="border border-zinc-800 bg-zinc-950/20 rounded-sm overflow-hidden shadow-2xl font-mono text-xs">
+        <div className="telemetry-card overflow-hidden font-mono">
 
-          <div className="grid grid-cols-3 p-3 text-zinc-500 border-b border-zinc-900 bg-zinc-950 text-[10px] uppercase tracking-widest font-bold">
-            <div>
-              Price ({activeSymbol.includes('XAU') ? 'USD' : 'QUOTE'})
-            </div>
+          {/* BOOK TITLE */}
+          <div className="px-4 py-4 border-b border-zinc-800/80 bg-zinc-950/70">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
 
-            <div className="text-right">
-              Display Size
-            </div>
+              <div>
+                <div className="telemetry-section">
+                  LIVE PRICE LADDER
+                </div>
 
-            <div className="text-right">
-              Display Total
+                <div className="text-[10px] text-zinc-600 uppercase tracking-widest mt-1">
+                  {MARKET_NAMES[activeSymbol] ?? 'MT5 Market'}
+                </div>
+              </div>
+
+              <div className="text-[9px] text-zinc-600 uppercase tracking-widest">
+                Execution terminal view
+              </div>
+
             </div>
           </div>
 
-          <div className="px-3 py-1.5 border-b border-zinc-900 bg-zinc-950/70 text-[9px] text-zinc-600 uppercase tracking-widest">
-            Depth quantities are display-derived until a genuine MT5 Level-2 feed is connected.
+          {/* DATA DISCLAIMER */}
+          <div className="px-4 py-2.5 border-b border-zinc-900 bg-amber-950/10">
+            <div className="flex items-center gap-2 text-[9px] md:text-[10px] text-amber-500/80 uppercase tracking-widest">
+              <Activity className="w-3 h-3 shrink-0" />
+              Display depth is price-derived until a genuine MT5 Level-2 feed is connected.
+            </div>
+          </div>
+
+          {/* COLUMN HEADERS */}
+          <div className="grid grid-cols-3 px-4 py-2.5 bg-zinc-950 border-b border-zinc-900 text-[9px] uppercase tracking-[0.16em] font-black text-zinc-600">
+            <div>Price</div>
+            <div className="text-right">Size</div>
+            <div className="text-right">Cumulative</div>
+          </div>
+
+          {/* ASK LABEL */}
+          <div className="flex items-center justify-between px-4 py-2 bg-rose-950/10 border-b border-rose-950/20">
+            <span className="text-[10px] font-black tracking-[0.2em] text-rose-400">
+              ASK / OFFER
+            </span>
+
+            <span className="text-[9px] text-zinc-600 uppercase tracking-widest">
+              SELL SIDE
+            </span>
           </div>
 
           {/* ASK SIDE */}
-          <div className="divide-y divide-zinc-900/40">
+          <div className="divide-y divide-zinc-900/50">
             {orderBookData.asks.map((ask, idx) => {
               const sizePercent = Math.min(
                 100,
@@ -231,25 +341,22 @@ export default function OrderBookView() {
               return (
                 <div
                   key={`ask-${idx}-${ask.price}`}
-                  className="grid grid-cols-3 px-3 py-1.5 relative hover:bg-zinc-900/10 transition-colors items-center"
+                  className="grid grid-cols-3 px-4 py-2.5 relative hover:bg-rose-950/10 transition-colors items-center"
                 >
                   <div
-                    className="absolute right-0 top-0 bottom-0 bg-rose-950/15 border-r-2 border-rose-500/10 pointer-events-none transition-all duration-300"
+                    className="absolute right-0 top-0 bottom-0 bg-rose-950/20 border-r-2 border-rose-500/20 pointer-events-none transition-all duration-300"
                     style={{ width: `${sizePercent}%` }}
                   />
 
-                  <div className="text-rose-500 font-bold z-10">
-                    {ask.price.toLocaleString(undefined, {
-                      minimumFractionDigits: decimals,
-                      maximumFractionDigits: decimals,
-                    })}
+                  <div className="text-rose-400 font-black text-sm md:text-base z-10">
+                    {formatPrice(ask.price)}
                   </div>
 
-                  <div className="text-right text-zinc-300 font-semibold z-10">
+                  <div className="text-right text-zinc-200 font-bold text-sm z-10">
                     {ask.size.toFixed(2)}
                   </div>
 
-                  <div className="text-right text-zinc-500 z-10">
+                  <div className="text-right text-zinc-500 text-xs z-10">
                     {ask.total.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                     })}
@@ -259,52 +366,76 @@ export default function OrderBookView() {
             })}
           </div>
 
-          {/* LIVE MID / SPREAD */}
-          <div className="grid grid-cols-3 px-3 py-3 border-y border-zinc-900 bg-zinc-950 items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] text-zinc-100 font-bold">
-                {midPrice.toLocaleString(undefined, {
-                  minimumFractionDigits: decimals,
-                  maximumFractionDigits: decimals,
-                })}
-              </span>
+          {/* MID / SPREAD CORE */}
+          <div className="border-y border-zinc-700/60 bg-zinc-900/40">
 
-              <Activity className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
-            </div>
+            <div className="px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
 
-            <div className="col-span-2 text-right flex items-center justify-end gap-3 text-[10px] text-zinc-400 font-semibold">
-              <span className="flex items-center gap-1">
-                <ArrowUpDown className="w-3 h-3 text-zinc-600" />
+              <div className="flex items-center gap-3">
+                <div>
+                  <div className="telemetry-label">
+                    LIVE MID
+                  </div>
 
-                SPREAD:
+                  <div className="text-xl md:text-2xl font-black text-white tracking-tight">
+                    {formatPrice(midPrice)}
+                  </div>
+                </div>
 
-                <span className="text-zinc-200 font-bold">
-                  {spread.toLocaleString(undefined, {
-                    minimumFractionDigits: decimals,
-                    maximumFractionDigits: decimals,
-                  })}
-                </span>
-              </span>
+                <Activity className="w-4 h-4 text-emerald-400 animate-pulse" />
+              </div>
 
-              <span className="h-3 w-[1px] bg-zinc-800"></span>
+              <div className="flex items-center gap-4 text-[10px] uppercase tracking-wider">
 
-              <span className="flex items-center gap-1 text-[9.5px]">
-                <Percent className="w-2.5 h-2.5 text-zinc-600" />
+                <div>
+                  <div className="text-zinc-600">Spread</div>
+                  <div className="text-white font-black text-sm">
+                    {formatPrice(spread)}
+                  </div>
+                </div>
 
-                SPREAD %:
+                <div className="h-8 w-px bg-zinc-800" />
 
-                <span className="text-zinc-400 font-bold">
-                  {midPrice > 0
-                    ? ((spread / midPrice) * 100).toFixed(4)
-                    : '0.0000'}
-                  %
-                </span>
-              </span>
+                <div>
+                  <div className="text-zinc-600 flex items-center gap-1">
+                    <Percent className="w-2.5 h-2.5" />
+                    Spread %
+                  </div>
+
+                  <div className="text-zinc-300 font-black text-sm">
+                    {midPrice > 0
+                      ? ((spread / midPrice) * 100).toFixed(4)
+                      : '0.0000'}
+                    %
+                  </div>
+                </div>
+
+                <div className="h-8 w-px bg-zinc-800" />
+
+                <div>
+                  <div className="text-zinc-600">State</div>
+                  <div className="text-emerald-400 font-black text-sm">
+                    LIVE
+                  </div>
+                </div>
+
+              </div>
             </div>
           </div>
 
+          {/* BID LABEL */}
+          <div className="flex items-center justify-between px-4 py-2 bg-emerald-950/10 border-b border-emerald-950/20">
+            <span className="text-[10px] font-black tracking-[0.2em] text-emerald-400">
+              BID / DEMAND
+            </span>
+
+            <span className="text-[9px] text-zinc-600 uppercase tracking-widest">
+              BUY SIDE
+            </span>
+          </div>
+
           {/* BID SIDE */}
-          <div className="divide-y divide-zinc-900/40">
+          <div className="divide-y divide-zinc-900/50">
             {orderBookData.bids.map((bid, idx) => {
               const sizePercent = Math.min(
                 100,
@@ -314,25 +445,22 @@ export default function OrderBookView() {
               return (
                 <div
                   key={`bid-${idx}-${bid.price}`}
-                  className="grid grid-cols-3 px-3 py-1.5 relative hover:bg-zinc-900/10 transition-colors items-center"
+                  className="grid grid-cols-3 px-4 py-2.5 relative hover:bg-emerald-950/10 transition-colors items-center"
                 >
                   <div
-                    className="absolute right-0 top-0 bottom-0 bg-emerald-950/15 border-r-2 border-emerald-500/10 pointer-events-none transition-all duration-300"
+                    className="absolute right-0 top-0 bottom-0 bg-emerald-950/20 border-r-2 border-emerald-500/20 pointer-events-none transition-all duration-300"
                     style={{ width: `${sizePercent}%` }}
                   />
 
-                  <div className="text-emerald-500 font-bold z-10">
-                    {bid.price.toLocaleString(undefined, {
-                      minimumFractionDigits: decimals,
-                      maximumFractionDigits: decimals,
-                    })}
+                  <div className="text-emerald-400 font-black text-sm md:text-base z-10">
+                    {formatPrice(bid.price)}
                   </div>
 
-                  <div className="text-right text-zinc-300 font-semibold z-10">
+                  <div className="text-right text-zinc-200 font-bold text-sm z-10">
                     {bid.size.toFixed(2)}
                   </div>
 
-                  <div className="text-right text-zinc-500 z-10">
+                  <div className="text-right text-zinc-500 text-xs z-10">
                     {bid.total.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                     })}
@@ -340,6 +468,20 @@ export default function OrderBookView() {
                 </div>
               );
             })}
+          </div>
+
+          {/* FOOTER STATE */}
+          <div className="px-4 py-3 border-t border-zinc-900 bg-zinc-950/70 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="text-[9px] text-zinc-600 uppercase tracking-widest">
+              Canonical source: MT5 market state
+            </div>
+
+            <div className="flex items-center gap-2 text-[9px] uppercase tracking-widest">
+              <span className="text-zinc-600">Feed</span>
+              <span className={connected ? 'text-emerald-400 font-bold' : 'text-zinc-500'}>
+                {connected ? 'CONNECTED' : 'WAITING'}
+              </span>
+            </div>
           </div>
 
         </div>
