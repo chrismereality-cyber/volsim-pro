@@ -4,7 +4,7 @@ import {
     Activity,
     Shield,
     AlertOctagon,
-    BarChart3
+    BarChart3,
 } from "lucide-react";
 
 import { useTradingStore } from "../../store/useTradingStore";
@@ -40,162 +40,370 @@ export default function RegimeRobustnessView() {
     const var1d95 =
         Number(valueAtRisk || 0);
 
+    const regimeIsKnown =
+        Boolean(riskStatus);
+
+    const marginStable =
+        marginViability >= 70;
+
     return (
-        <div className="space-y-6 p-6 font-mono text-zinc-100 bg-black min-h-screen">
+        <div className="telemetry-shell space-y-6">
 
-            <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
+            <header className="border-b border-zinc-800 pb-5">
 
-                <div>
-                    <h1 className="text-xl font-bold tracking-tight text-white">
-                        // REGIME & PORTFOLIO ROBUSTNESS ENGINE
-                    </h1>
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
 
-                    <p className="text-xs text-zinc-500 mt-1">
-                        Real-time regime monitoring and deterministic portfolio stress analysis.
-                    </p>
-                </div>
+                    <div>
+                        <div className="telemetry-sublabel">
+                            RISK / REGIME INTELLIGENCE
+                        </div>
 
-                <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 text-[10px] px-3 py-1.5 font-bold uppercase text-zinc-400">
+                        <h1 className="mt-1 text-2xl md:text-3xl font-black tracking-tight text-white uppercase">
+                            Regime &amp; Portfolio Robustness
+                        </h1>
 
-                    <span
-                        className={`w-2 h-2 rounded-full ${
+                        <p className="mt-2 text-sm font-medium text-zinc-400">
+                            Real-time regime monitoring and deterministic portfolio stress analysis.
+                        </p>
+                    </div>
+
+                    <div
+                        className={`telemetry-status ${
                             connected
-                                ? "bg-emerald-500 animate-pulse"
-                                : "bg-rose-500"
+                                ? "telemetry-status-online"
+                                : "telemetry-status-danger"
                         }`}
-                    />
+                    >
+                        <span
+                            className={`mr-2 inline-block h-2 w-2 rounded-full ${
+                                connected
+                                    ? "bg-emerald-400 animate-pulse"
+                                    : "bg-rose-500"
+                            }`}
+                        />
 
-                    CORE_ENGINE:{" "}
-                    {connected
-                        ? "ONLINE"
-                        : "LINK_OFFLINE"}
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-                <div className="bg-zinc-950 border border-zinc-800 p-4 space-y-2">
-
-                    <div className="text-zinc-500 text-[10px] font-bold uppercase flex items-center gap-2">
-                        <Activity className="w-3.5 h-3.5 text-emerald-400" />
-
-                        Current Phase Regime
+                        CORE ENGINE:
+                        {" "}
+                        {connected
+                            ? "ONLINE"
+                            : "LINK OFFLINE"}
                     </div>
 
-                    <div className="text-lg font-black text-emerald-400">
-                        {regimeName}
-                    </div>
-
-                    <div className="text-[10px] text-zinc-500">
-                        // Current risk-derived volatility state
-                    </div>
                 </div>
 
-                <div className="bg-zinc-950 border border-zinc-800 p-4 space-y-2">
+            </header>
 
-                    <div className="text-zinc-500 text-[10px] font-bold uppercase flex items-center gap-2">
-                        <Shield className="w-3.5 h-3.5 text-blue-400" />
+            <section>
 
-                        Margin Viability Threshold
-                    </div>
-
-                    <div className="text-lg font-black text-white">
-                        {marginViability.toFixed(2)}% STABLE
-                    </div>
-
-                    <div className="text-[10px] text-zinc-500">
-                        // Derived from centralized margin telemetry
-                    </div>
+                <div className="telemetry-section">
+                    RISK STATE TELEMETRY
                 </div>
 
-                <div className="bg-zinc-950 border border-zinc-800 p-4 space-y-2">
+                <div className="telemetry-grid mt-3 grid-cols-1 md:grid-cols-3">
 
-                    <div className="text-zinc-500 text-[10px] font-bold uppercase flex items-center gap-2">
-                        <AlertOctagon className="w-3.5 h-3.5 text-amber-500" />
+                    <div className="telemetry-card">
 
-                        1-Day Parametric VaR
+                        <div className="flex items-center justify-between gap-3">
+
+                            <div className="telemetry-label flex items-center gap-2">
+                                <Activity className="h-4 w-4 text-emerald-400" />
+                                CURRENT PHASE REGIME
+                            </div>
+
+                            <span
+                                className={`telemetry-status ${
+                                    regimeIsKnown
+                                        ? "telemetry-status-online"
+                                        : "telemetry-status-neutral"
+                                }`}
+                            >
+                                {regimeIsKnown
+                                    ? "DETECTED"
+                                    : "UNKNOWN"}
+                            </span>
+
+                        </div>
+
+                        <div className="telemetry-value-lg mt-4 text-emerald-400">
+                            {regimeName}
+                        </div>
+
+                        <div className="mt-3 text-xs leading-5 text-zinc-500">
+                            Current risk-derived volatility state from centralized
+                            portfolio telemetry.
+                        </div>
+
                     </div>
 
-                    <div className="text-lg font-black text-amber-500">
-                        ${var1d95.toFixed(2)}
+                    <div className="telemetry-card">
+
+                        <div className="telemetry-label flex items-center gap-2">
+                            <Shield className="h-4 w-4 text-sky-400" />
+                            MARGIN VIABILITY
+                        </div>
+
+                        <div className="telemetry-value-lg mt-4 text-white">
+                            {marginViability.toFixed(2)}%
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-between">
+
+                            <span
+                                className={`telemetry-status ${
+                                    marginStable
+                                        ? "telemetry-status-online"
+                                        : "telemetry-status-warning"
+                                }`}
+                            >
+                                {marginStable
+                                    ? "STABLE"
+                                    : "COMPRESSED"}
+                            </span>
+
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">
+                                DERIVED TELEMETRY
+                            </span>
+
+                        </div>
+
+                        <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-zinc-900">
+
+                            <div
+                                className="h-full rounded-full bg-emerald-500 transition-all"
+                                style={{
+                                    width: `${Math.min(
+                                        100,
+                                        Math.max(0, marginViability)
+                                    )}%`,
+                                }}
+                            />
+
+                        </div>
+
                     </div>
 
-                    <div className="text-[10px] text-zinc-500">
-                        // 95% confidence boundary criteria
+                    <div className="telemetry-card">
+
+                        <div className="telemetry-label flex items-center gap-2">
+                            <AlertOctagon className="h-4 w-4 text-amber-400" />
+                            1-DAY PARAMETRIC VaR
+                        </div>
+
+                        <div className="telemetry-value-lg mt-4 text-amber-400">
+                            ${var1d95.toFixed(2)}
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-between">
+
+                            <span className="telemetry-status telemetry-status-warning">
+                                95% BOUNDARY
+                            </span>
+
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">
+                                CURRENT VaR
+                            </span>
+
+                        </div>
+
                     </div>
+
                 </div>
 
-            </div>
+            </section>
 
-            <div className="space-y-2">
+            <section>
 
-                <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-emerald-500" />
+                <div className="flex items-center justify-between gap-4">
 
-                    // Live Macro Stress Shock Allocations
-                </h2>
+                    <div>
+                        <div className="telemetry-section">
+                            MACRO STRESS MATRIX
+                        </div>
 
-                <div className="overflow-x-auto border border-zinc-800 bg-zinc-950">
+                        <p className="mt-1 text-xs text-zinc-500">
+                            Deterministic scenario references against the current risk telemetry.
+                        </p>
+                    </div>
 
-                    <table className="w-full text-left text-xs text-zinc-400">
+                    <BarChart3 className="hidden h-5 w-5 text-emerald-500 sm:block" />
 
-                        <thead className="bg-zinc-900 border-b border-zinc-800 text-[10px] uppercase font-bold text-zinc-500 tracking-wider">
-
-                            <tr>
-                                <th className="p-3">
-                                    Scenario Identifier
-                                </th>
-
-                                <th className="p-3">
-                                    Asset Target Vector Shifts
-                                </th>
-
-                                <th className="p-3 text-right">
-                                    Projected Balance Impact
-                                </th>
-                            </tr>
-
-                        </thead>
-
-                        <tbody className="divide-y divide-zinc-900">
-
-                            <tr className="hover:bg-zinc-900/20">
-
-                                <td className="p-3 font-bold text-zinc-200">
-                                    Systemic Liquidity Squeeze
-                                </td>
-
-                                <td className="p-3 text-zinc-400">
-                                    Gold Slips -12.5%, Equities Tumble -20%
-                                </td>
-
-                                <td className="p-3 text-right text-rose-500 font-bold">
-                                    ${varianceSigma.toFixed(2)}
-                                </td>
-
-                            </tr>
-
-                            <tr className="hover:bg-zinc-900/20">
-
-                                <td className="p-3 font-bold text-zinc-200">
-                                    Black Swan Tail-Risk Volatility
-                                </td>
-
-                                <td className="p-3 text-zinc-400">
-                                    Volatility Index Induces Breakout Spikes +150%
-                                </td>
-
-                                <td className="p-3 text-right text-rose-500 font-bold">
-                                    ${var1d95.toFixed(2)}
-                                </td>
-
-                            </tr>
-
-                        </tbody>
-
-                    </table>
                 </div>
-            </div>
+
+                <div className="telemetry-card mt-3 overflow-hidden p-0">
+
+                    <div className="overflow-x-auto">
+
+                        <table className="w-full min-w-[760px] text-left">
+
+                            <thead>
+
+                                <tr className="border-b border-zinc-800 bg-zinc-950/80">
+
+                                    <th className="telemetry-label px-4 py-4">
+                                        SCENARIO
+                                    </th>
+
+                                    <th className="telemetry-label px-4 py-4">
+                                        ASSET SHOCK VECTOR
+                                    </th>
+
+                                    <th className="telemetry-label px-4 py-4 text-right">
+                                        PROJECTED BALANCE IMPACT
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody className="divide-y divide-zinc-900">
+
+                                <tr className="transition-colors hover:bg-zinc-900/40">
+
+                                    <td className="px-4 py-5">
+
+                                        <div className="text-sm font-black uppercase tracking-wide text-white">
+                                            Systemic Liquidity Squeeze
+                                        </div>
+
+                                        <div className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+                                            Stress Scenario 01
+                                        </div>
+
+                                    </td>
+
+                                    <td className="px-4 py-5">
+
+                                        <div className="text-sm font-semibold text-zinc-300">
+                                            Gold −12.5%
+                                        </div>
+
+                                        <div className="mt-1 text-xs text-zinc-500">
+                                            Equities −20%
+                                        </div>
+
+                                    </td>
+
+                                    <td className="px-4 py-5 text-right">
+
+                                        <div className="text-lg font-black text-rose-400">
+                                            ${varianceSigma.toFixed(2)}
+                                        </div>
+
+                                        <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-zinc-600">
+                                            Current VaR-derived readout
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+
+                                <tr className="transition-colors hover:bg-zinc-900/40">
+
+                                    <td className="px-4 py-5">
+
+                                        <div className="text-sm font-black uppercase tracking-wide text-white">
+                                            Black Swan Tail-Risk Volatility
+                                        </div>
+
+                                        <div className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+                                            Stress Scenario 02
+                                        </div>
+
+                                    </td>
+
+                                    <td className="px-4 py-5">
+
+                                        <div className="text-sm font-semibold text-zinc-300">
+                                            Volatility Index +150%
+                                        </div>
+
+                                        <div className="mt-1 text-xs text-zinc-500">
+                                            Breakout volatility shock
+                                        </div>
+
+                                    </td>
+
+                                    <td className="px-4 py-5 text-right">
+
+                                        <div className="text-lg font-black text-rose-400">
+                                            ${var1d95.toFixed(2)}
+                                        </div>
+
+                                        <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-zinc-600">
+                                            Current VaR-derived readout
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            <section>
+
+                <div className="telemetry-section">
+                    ROBUSTNESS INTERPRETATION
+                </div>
+
+                <div className="telemetry-card mt-3">
+
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+
+                        <div>
+                            <div className="telemetry-label">
+                                ENGINE LINK
+                            </div>
+
+                            <div className="telemetry-value-md mt-2">
+                                {connected
+                                    ? "CONNECTED"
+                                    : "OFFLINE"}
+                            </div>
+                        </div>
+
+                        <div>
+                            <div className="telemetry-label">
+                                REGIME SOURCE
+                            </div>
+
+                            <div className="telemetry-value-md mt-2">
+                                RISK TELEMETRY
+                            </div>
+                        </div>
+
+                        <div>
+                            <div className="telemetry-label">
+                                STRESS MODEL
+                            </div>
+
+                            <div className="telemetry-value-md mt-2">
+                                DETERMINISTIC
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div className="telemetry-divider my-5" />
+
+                    <p className="text-xs leading-5 text-zinc-500">
+                        The displayed stress scenarios are presentation-level
+                        deterministic references using the existing centralized
+                        risk telemetry. They are not represented as a live
+                        macroeconomic simulation or independent stress engine.
+                    </p>
+
+                </div>
+
+            </section>
+
         </div>
     );
 }
