@@ -74,6 +74,18 @@ export default function MainChartView() {
   const executionQueue = useTradingStore((state) => state.executionQueue);
   const positions = useTradingStore((state) => state.positions);
 
+  const marketRegimeBySymbol = useTradingStore(
+    (state) => state.marketRegimeBySymbol
+  );
+
+  const trendBySymbol = useTradingStore(
+    (state) => state.trendBySymbol
+  );
+
+  const counterTrendBySymbol = useTradingStore(
+    (state) => state.counterTrendBySymbol
+  );
+
   const activeVenueProvider = String(
     venueContext?.active_provider ?? 'UNKNOWN'
   );
@@ -218,6 +230,17 @@ export default function MainChartView() {
     message: string;
     ticket?: string;
   } | null>(null);
+
+  const selectedSymbol = selectedAsset.backendSymbol;
+
+  const selectedMarketRegime =
+    marketRegimeBySymbol[selectedSymbol];
+
+  const selectedTrend =
+    trendBySymbol[selectedSymbol];
+
+  const selectedCounterTrend =
+    counterTrendBySymbol[selectedSymbol];
 
   const aiDecisionStatus = String(aiDecision?.status ?? 'OFFLINE');
 
@@ -1080,7 +1103,7 @@ export default function MainChartView() {
                 Regime
               </div>
               <div className="telemetry-value-md mt-1">
-                —
+                {String(selectedMarketRegime ?? '—')}
               </div>
             </div>
 
@@ -1089,7 +1112,7 @@ export default function MainChartView() {
                 Trend
               </div>
               <div className="telemetry-value-md mt-1">
-                —
+                {String(selectedTrend ?? '—')}
               </div>
             </div>
 
@@ -1098,7 +1121,7 @@ export default function MainChartView() {
                 Counter Trend
               </div>
               <div className="telemetry-value-md mt-1">
-                —
+                {String(selectedCounterTrend ?? '—')}
               </div>
             </div>
 
