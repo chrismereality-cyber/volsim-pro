@@ -184,6 +184,11 @@ class OrderBuilderService:
                 "status":
                     "BLOCKED",
 
+                "decision_id":
+                    ai_decision.get(
+                        "decision_id"
+                    ),
+
                 "symbol":
                     symbol,
 
@@ -229,6 +234,11 @@ class OrderBuilderService:
 
                     "status":
                         "MISSING_TRADE_ID",
+
+                    "decision_id":
+                        ai_decision.get(
+                            "decision_id"
+                        ),
 
                     "symbol":
                         symbol,
@@ -321,6 +331,11 @@ class OrderBuilderService:
                 "status":
                     "WAITING",
 
+                "decision_id":
+                    ai_decision.get(
+                        "decision_id"
+                    ),
+
                 "symbol":
                     symbol,
 
@@ -369,6 +384,11 @@ class OrderBuilderService:
                 "status":
                     "ERROR",
 
+                "decision_id":
+                    ai_decision.get(
+                        "decision_id"
+                    ),
+
                 "symbol":
                     symbol,
 
@@ -399,6 +419,11 @@ class OrderBuilderService:
 
                 "status":
                     "BROKER_CONTEXT_UNAVAILABLE",
+
+                "decision_id":
+                    ai_decision.get(
+                        "decision_id"
+                    ),
 
                 "symbol":
                     symbol,
@@ -453,6 +478,11 @@ class OrderBuilderService:
 
                 "status":
                     "INVALID_MARKET_PRICE",
+
+                "decision_id":
+                    ai_decision.get(
+                        "decision_id"
+                    ),
 
                 "symbol":
                     symbol,
