@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any, Dict, List
 
@@ -62,6 +62,7 @@ class TradingStateContract(BaseModel):
     trend: Any = None
     counter_trend_execution: Any = None
     ai_decision: Any = None
+    execution_decision: Any = None
     ai_execution: Any = None
     execution_risk: Any = None
     order_builder: Any = None
@@ -75,6 +76,7 @@ class TradingStateContract(BaseModel):
     trend_by_symbol: Dict[str, Any] = Field(default_factory=dict)
     counter_trend_by_symbol: Dict[str, Any] = Field(default_factory=dict)
     ai_decision_by_symbol: Dict[str, Any] = Field(default_factory=dict)
+    execution_decision_by_symbol: Dict[str, Any] = Field(default_factory=dict)
     ai_execution_by_symbol: Dict[str, Any] = Field(default_factory=dict)
     execution_risk_by_symbol: Dict[str, Any] = Field(default_factory=dict)
     order_builder_by_symbol: Dict[str, Any] = Field(default_factory=dict)
