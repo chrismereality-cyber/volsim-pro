@@ -37,8 +37,7 @@ class RiskEngineService:
 
     ALLOWED_SYMBOLS = {
         "XAUUSDm",
-        "EURUSD",
-        "GBPUSD",
+        "BTCUSDm",
     }
 
     def __init__(self):
