@@ -370,8 +370,35 @@ class OrderBuilderService:
 
         volume = ai_decision.get(
             "volume",
-            self.DEFAULT_VOLUME,
         )
+
+        if volume is None:
+
+            state.update({
+
+                "status":
+                    "MISSING_RISK_SIZING_VOLUME",
+
+                "decision_id":
+                    ai_decision.get(
+                        "decision_id"
+                    ),
+
+                "symbol":
+                    symbol,
+
+                "order_ready":
+                    False,
+
+                "order_request":
+                    None,
+
+                "last_update":
+                    time.time(),
+
+            })
+
+            return state
 
         try:
 
@@ -382,7 +409,35 @@ class OrderBuilderService:
             state.update({
 
                 "status":
-                    "ERROR",
+                    "INVALID_RISK_SIZING_VOLUME",
+
+                "decision_id":
+                    ai_decision.get(
+                        "decision_id"
+                    ),
+
+                "symbol":
+                    symbol,
+
+                "order_ready":
+                    False,
+
+                "order_request":
+                    None,
+
+                "last_update":
+                    time.time(),
+
+            })
+
+            return state
+
+        if volume <= 0:
+
+            state.update({
+
+                "status":
+                    "INVALID_RISK_SIZING_VOLUME",
 
                 "decision_id":
                     ai_decision.get(
@@ -526,6 +581,34 @@ class OrderBuilderService:
             take_profit,
             digits,
         )
+
+        if stop_loss <= 0:
+
+            state.update({
+
+                "status":
+                    "MISSING_PROTECTIVE_STOP",
+
+                "decision_id":
+                    ai_decision.get(
+                        "decision_id"
+                    ),
+
+                "symbol":
+                    symbol,
+
+                "order_ready":
+                    False,
+
+                "order_request":
+                    None,
+
+                "last_update":
+                    time.time(),
+
+            })
+
+            return state
 
         # --------------------------------------------------------------
         # Construct normalized OMS order
