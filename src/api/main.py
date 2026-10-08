@@ -30,6 +30,7 @@ from src.services.vault_service import vault_service
 from src.services.mt5_service import mt5_service
 from src.providers.registry import provider_registry
 from src.services.statistics_service import statistics_service
+from src.services.risk_service import risk_engine_service
 
 from src.vfia.core.orchestrator import intelligence_orchestrator
 from src.vfia.core.world_state_adapter import vfia_world_state_adapter
@@ -64,6 +65,21 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         print(
             "Database pool warm-up: FAILED "
+            f"{type(exc).__name__}: {exc}"
+        )
+        raise
+
+    print("Risk policy recovery: START")
+
+    try:
+        risk_policy = risk_engine_service.load_persistent_policy()
+        print(
+            "Risk policy recovery: COMPLETE "
+            f"policy={risk_policy}"
+        )
+    except Exception as exc:
+        print(
+            "Risk policy recovery: FAILED "
             f"{type(exc).__name__}: {exc}"
         )
         raise
