@@ -3,9 +3,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from src.services.global_trading_state_service import (
-    global_trading_state_service,
-)
 
 from src.vfia.core.world_state import FinancialWorldState
 
@@ -76,6 +73,9 @@ class VFIAWorldStateAdapter:
                 "counter_trend_execution": state.get(
                     "counter_trend_execution"
                 ),
+                "cross_market_analytics": state.get(
+                    "cross_market_analytics"
+                ),
             },
 
             volatility={
@@ -132,23 +132,6 @@ class VFIAWorldStateAdapter:
                 "vfia_version": "0.1.0",
             },
         )
-
-    def snapshot(self) -> FinancialWorldState:
-        """
-        Explicit capture operation.
-
-        WARNING:
-        GlobalTradingStateService.snapshot() is not a pure getter.
-        It may evaluate existing VolSim-Pro intelligence,
-        risk, execution, and downstream orchestration.
-
-        Therefore VFIA should normally prefer from_state()
-        when an authoritative state snapshot is already available.
-        """
-
-        state = global_trading_state_service.snapshot()
-
-        return self.from_state(state)
 
 
 def _timestamp(

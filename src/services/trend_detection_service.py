@@ -105,8 +105,15 @@ class TrendDetectionService:
             0
         )
 
-        ema200 = features.get(
-            "ema200",
+        # Slow confirmation remains an explicit SMA200.
+        # "ema200" is retained upstream only for compatibility.
+        sma200 = features.get(
+            "sma200",
+            features.get("ema200", 0)
+        )
+
+        price = features.get(
+            "price",
             0
         )
 
@@ -129,20 +136,22 @@ class TrendDetectionService:
 
         market_phase = "WAITING"
 
-        # Bullish structure
+        # Bullish structure:
+        # responsive EMA trend confirmed by price above SMA200.
         if (
             ema20 > ema50
-            and ema50 > ema200
+            and price > sma200
         ):
 
             trend = "BULLISH"
 
             market_phase = "TRENDING_UP"
 
-        # Bearish structure
+        # Bearish structure:
+        # responsive EMA trend confirmed by price below SMA200.
         elif (
             ema20 < ema50
-            and ema50 < ema200
+            and price < sma200
         ):
 
             trend = "BEARISH"

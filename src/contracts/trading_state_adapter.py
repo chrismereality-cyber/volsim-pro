@@ -202,6 +202,9 @@ def build_trading_state_contract(
         market_features_by_symbol=(
             state.get("market_features_by_symbol") or {}
         ),
+        cross_market_analytics=(
+            state.get("cross_market_analytics") or {}
+        ),
         market_regime_by_symbol=(
             state.get("market_regime_by_symbol") or {}
         ),

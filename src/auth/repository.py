@@ -116,6 +116,43 @@ class AuthRepository:
         db.flush()
         return session
     @staticmethod
+    def get_sessions(
+        db: Session,
+    ) -> list[AuthSession]:
+        return db.execute(
+            select(AuthSession).order_by(
+                AuthSession.created_at.desc()
+            )
+        ).scalars().all()
+
+    @staticmethod
+    def get_session_by_id(
+        db: Session,
+        session_id: int,
+    ) -> AuthSession | None:
+        return db.get(AuthSession, session_id)
+
+    @staticmethod
+    def revoke_all_user_sessions(
+        db: Session,
+        user_id: int,
+    ) -> int:
+        sessions = db.execute(
+            select(AuthSession).where(
+                AuthSession.user_id == user_id,
+                AuthSession.revoked_at.is_(None),
+            )
+        ).scalars().all()
+
+        revoked_at = datetime.utcnow()
+
+        for session in sessions:
+            session.revoked_at = revoked_at
+
+        db.flush()
+
+        return len(sessions)
+    @staticmethod
     def create_webauthn_challenge(
         db: Session,
         *,
@@ -163,6 +200,16 @@ class AuthRepository:
         ).scalar_one_or_none()
 
     @staticmethod
+    @staticmethod
+    def get_webauthn_credentials(
+        db: Session,
+    ) -> list[WebAuthnCredential]:
+        return db.execute(
+            select(WebAuthnCredential).order_by(
+                WebAuthnCredential.created_at.desc()
+            )
+        ).scalars().all()
+
     def consume_webauthn_challenge(
         db: Session,
         challenge_record: WebAuthnChallenge,
@@ -172,6 +219,9 @@ class AuthRepository:
         challenge_record.used_at = consumed_at or datetime.utcnow()
         db.flush()
         return challenge_record
+
+
+
 
 
 

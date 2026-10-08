@@ -72,6 +72,7 @@ class TradingStateContract(BaseModel):
     symbols: List[str] = Field(default_factory=list)
     symbol_states: Dict[str, Any] = Field(default_factory=dict)
     market_features_by_symbol: Dict[str, Any] = Field(default_factory=dict)
+    cross_market_analytics: Dict[str, Any] = Field(default_factory=dict)
     market_regime_by_symbol: Dict[str, Any] = Field(default_factory=dict)
     trend_by_symbol: Dict[str, Any] = Field(default_factory=dict)
     counter_trend_by_symbol: Dict[str, Any] = Field(default_factory=dict)

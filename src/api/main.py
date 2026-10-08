@@ -25,6 +25,7 @@ from src.auth.tokens import decode_access_token
 from src.services.global_trading_state_service import global_trading_state_service
 from src.contracts.trading_state_adapter import build_trading_state_contract
 from src.services.position_service import position_service
+from src.services.portfolio_service import portfolio_service
 from src.services.vault_service import vault_service
 from src.services.mt5_service import mt5_service
 from src.providers.registry import provider_registry
@@ -91,6 +92,16 @@ async def lifespan(app: FastAPI):
             "Execution mode: "
             f"{execution_mode}"
         )
+
+        if execution_mode == "PAPER":
+            paper_realized_pl = (
+                await portfolio_service.refresh_paper_realized_pl()
+            )
+
+            print(
+                "PAPER realized P/L recovery: "
+                f"{paper_realized_pl:.2f}"
+            )
 
         if execution_mode == "LIVE":
             print(

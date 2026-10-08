@@ -10,6 +10,7 @@ from src.services.mt5_service import mt5_service
 from src.services.risk_service import risk_engine_service
 from src.services.oms_service import oms_service
 from src.services.position_service import position_service
+from src.services.portfolio_service import portfolio_service
 from src.services.database_service import database_service
 import os
 logger = logging.getLogger('volsim.execution_service')
@@ -188,6 +189,46 @@ class ExecutionService:
         client_order_id = order_request.get('client_order_id') or order_request.get('idempotency_key') or 'VOLSIM-' + uuid.uuid4().hex
         order_request['client_order_id'] = client_order_id
         decision_id = order_request.get('decision_id')
+
+        # AI provenance is mandatory for new BUY/SELL entries.
+        # EXIT orders remain governed by the existing AI position-management
+        # and execution-risk path and are therefore not blocked here.
+        execution_action = str(
+            order_request.get(
+                'action',
+                order_request.get(
+                    'type',
+                    order_request.get('side', '')
+                )
+            )
+        ).upper().strip()
+
+        if execution_action in {'BUY', 'SELL'} and not decision_id:
+            self.orders_rejected += 1
+            self.last_error = 'AI_PROVENANCE_REQUIRED'
+            provenance_result = {
+                'success': False,
+                'order_id': None,
+                'ticket': None,
+                'retcode': 'AI_PROVENANCE_REQUIRED',
+                'message': (
+                    'BUY/SELL execution requires an AI decision_id '
+                    'from the authorized AI execution path.'
+                ),
+                'client_order_id': client_order_id,
+                'decision_id': None,
+                'execution_mode': self.execution_mode,
+            }
+            logger.warning(
+                'ENTRY EXECUTION DENIED: AI provenance missing '
+                'client_order_id=%s symbol=%s action=%s',
+                client_order_id,
+                order_request.get('symbol'),
+                execution_action,
+            )
+            await self._release_execution_idempotency(client_order_id)
+            return provenance_result
+
         claimed, previous_result = await self._claim_execution_idempotency(client_order_id)
         if not claimed:
             previous_execution_result = previous_result.get('result') if previous_result else None
@@ -282,6 +323,7 @@ class ExecutionService:
                     'decision_id': decision_id,
                 }
                 oms_service.update_status(order_id, 'REJECTED', rejection_result)
+                await self._release_execution_idempotency(client_order_id)
                 logger.warning('Order rejected by market context guard: oms_order_id=%s symbol=%s action=%s reason=%s', order_id, guard_symbol, guard_action, guard_reason)
                 return rejection_result
             logger.info('Market context guard APPROVED: oms_order_id=%s symbol=%s action=%s status=%s', order_id, guard_symbol, guard_action, guard_status)
@@ -473,6 +515,7 @@ class ExecutionService:
                 result = {
                     'success': True,
                     'mode': 'PAPER',
+                    'execution_mode': self.execution_mode,
                     'oms_order_id': order_id,
                     'trade_id': paper_trade_id,
                     'position_ticket': None,
@@ -1165,6 +1208,13 @@ class ExecutionService:
             trade_id = result.get('trade_id') or broker_position_ticket or broker_order_ticket or result.get('ticket') or 'UNKNOWN'
             await database_service.execute('\n                INSERT INTO trade_ledger\n                (\n                    id,\n                    trade_id,\n                    oms_order_id,\n                    broker_order_ticket,\n                    broker_deal_ticket,\n                    broker_position_ticket,\n                    symbol,\n                    side,\n                    quantity,\n                    price,\n                    status,\n                    event_type,\n                    timestamp,\n                    metadata,\n                    execution_mode\n                )\n                VALUES\n                (\n                    gen_random_uuid(),\n                    $1,\n                    $2,\n                    $3,\n                    $4,\n                    $5,\n                    $6,\n                    $7,\n                    $8,\n                    $9,\n                    $10,\n                    $11,\n                    NOW(),\n                    $12,\n                    $13\n                )\n                ', str(trade_id), str(oms_order_id) if oms_order_id else None, broker_order_ticket, broker_deal_ticket, broker_position_ticket, order_request.get('symbol'), order_request.get('type'), order_request.get('volume', 0), result.get('price', order_request.get('price', 0)), status, 'RISK_REJECTION' if status == 'REJECTED' and result.get('retcode') == 'RISK_REJECTED' else 'EXECUTION', json.dumps(result, default=str), self.execution_mode)
             logger.info('Trade ledger persisted: oms_order_id=%s order_ticket=%s deal_ticket=%s position_ticket=%s status=%s', oms_order_id, broker_order_ticket, broker_deal_ticket, broker_position_ticket, status)
+
+            if (
+                status == 'CLOSED'
+                and self.execution_mode == 'PAPER'
+            ):
+                await portfolio_service.refresh_paper_realized_pl()
+
             return True
         except Exception as e:
             print('TRADE LEDGER INSERT ERROR:', repr(e))
@@ -1380,18 +1430,27 @@ class ExecutionService:
             return None
     def snapshot(self):
         try:
-            bridge = mt5_bridge_service.snapshot()
-            bridge_status = bridge.get('status', 'unknown')
-            terminal = {}
-            try:
-                terminal = bridge.get('terminal', {})
-            except Exception:
-                terminal = {}
+            bridge_status = mt5_bridge_service.connection_status()
             connected = 'ONLINE' if bridge_status == 'connected' else 'OFFLINE'
-            return {'status': 'ONLINE', 'engine_status': 'ACTIVE', 'bridge_connection_status': connected, 'broker_connection_status': connected, 'execution_latency_ms': self.execution_latency_ms, 'broker_latency_ms': 0, 'slippage_average': 0, 'orders_sent': self.orders_sent, 'orders_filled': self.orders_filled, 'orders_rejected': self.orders_rejected, 'orders_pending': len(bridge.get('orders', [])), 'open_positions': len(position_service.snapshot().get('open_positions', [])) if self.execution_mode == 'PAPER' else len(bridge.get('positions', [])), 'last_order_time': self.last_order_time, 'last_fill_time': self.last_fill_time, 'last_error': self.last_error, 'execution_mode': self.execution_mode, 'heartbeat': time.time(), 'health_score': 100 if connected == 'ONLINE' else 50, 'uptime': round(time.time() - self.started_at, 2)}
+            if self.execution_mode == 'PAPER':
+                open_positions = len(
+                    position_service.snapshot().get(
+                        'open_positions',
+                        [],
+                    )
+                )
+            else:
+                bridge = mt5_bridge_service.snapshot(
+                    include_market=False,
+                )
+                open_positions = len(
+                    bridge.get('positions', [])
+                )
+
+            return {'bridge_connection_status': connected, 'execution_latency_ms': self.execution_latency_ms, 'orders_sent': self.orders_sent, 'orders_filled': self.orders_filled, 'orders_rejected': self.orders_rejected, 'open_positions': open_positions, 'last_order_time': self.last_order_time, 'last_fill_time': self.last_fill_time, 'last_error': self.last_error, 'execution_mode': self.execution_mode, 'heartbeat': time.time(), 'uptime': round(time.time() - self.started_at, 2)}
         except Exception as e:
             logger.error('Execution snapshot failure: %s', e)
-            return {'status': 'ERROR', 'engine_status': 'DEGRADED', 'bridge_connection_status': 'UNKNOWN', 'broker_connection_status': 'UNKNOWN', 'last_error': str(e), 'heartbeat': time.time(), 'health_score': 0}
+            return {'bridge_connection_status': 'UNKNOWN', 'last_error': str(e), 'heartbeat': time.time()}
 execution_service = ExecutionService()
 
 

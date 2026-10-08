@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 import time
 
 from src.services.database_service import database_service
@@ -116,6 +116,20 @@ class PositionService:
                     ) or 0
                 ),
 
+
+                "stop_loss": float(
+                    order.get(
+                        "stop_loss",
+                        0
+                    ) or 0
+                ),
+
+                "take_profit": float(
+                    order.get(
+                        "take_profit",
+                        0
+                    ) or 0
+                ),
                 # ----------------------------------------------------------
                 # Pricing
                 # ----------------------------------------------------------

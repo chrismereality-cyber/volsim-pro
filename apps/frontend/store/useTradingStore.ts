@@ -672,10 +672,32 @@ export const useTradingStore = create<TradingState>(
                 ),
 
                 // POSITIONS
-                positions: arrayValue<TradingPosition>(
+                positions: arrayValue<any>(
                     positions.open_positions ??
                     positions.positions
-                ),
+                ).map((position: any) => ({
+                    ...position,
+                    ticket:
+                        position.ticket ??
+                        position.trade_id ??
+                        "",
+                    type:
+                        position.type ??
+                        position.side ??
+                        "",
+                    openPrice: numberOrZero(
+                        position.openPrice ??
+                        position.open_price
+                    ),
+                    currentPrice: numberOrZero(
+                        position.currentPrice ??
+                        position.current_price
+                    ),
+                    profit: numberOrZero(
+                        position.profit ??
+                        position.floating_pl
+                    ),
+                })),
 
                 netExposure: numberOrZero(
                     payload.netExposure ??
@@ -815,6 +837,7 @@ export const useTradingStore = create<TradingState>(
         },
     })
 );
+
 
 
 
