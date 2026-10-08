@@ -1,4 +1,6 @@
-import logging
+﻿import logging
+from database import SessionLocal
+from src.risk.risk_policy_repository import RiskPolicyRepository
 
 from src.services.portfolio_service import portfolio_service
 
@@ -47,23 +49,55 @@ class RiskEngineService:
         # These values preserve the existing production defaults.
         # Admin configuration updates this policy through the service;
         # execution, sizing, and global state all consume the same policy.
-        self._risk_policy = {
-            "max_daily_drawdown_percent":
-                float(self.MAX_DAILY_DRAWDOWN_PERCENT),
-            "risk_per_trade_percent":
-                float(self.RISK_PER_TRADE_PERCENT),
-            "max_position_size":
-                float(self.MAX_POSITION_SIZE),
-            "liquidation_drawdown_percent":
-                float(self.LIQUIDATION_DRAWDOWN_PERCENT),
-            "liquidation_margin_usage_percent":
-                float(self.LIQUIDATION_MARGIN_USAGE_PERCENT),
-        }
+        # Persistent PostgreSQL policy is the authoritative production
+        # source. Class constants remain migration/default reference
+        # values only and are never an operational fallback.
+        self._risk_policy = None
+        self._risk_policy_ready = False
 
     # ------------------------------------------------------------------
     # Authoritative risk policy
     # ------------------------------------------------------------------
 
+    def load_persistent_policy(self):
+        """
+        Load the authoritative production risk policy from PostgreSQL.
+
+        Failure is fail-closed: no hard-coded production policy is used
+        when persistent policy state cannot be loaded.
+        """
+
+        db = SessionLocal()
+
+        try:
+            policy = RiskPolicyRepository.load_policy(db)
+
+        except Exception:
+            self._risk_policy = None
+            self._risk_policy_ready = False
+
+            logging.getLogger(__name__).exception(
+                "Authoritative persistent risk policy load failed"
+            )
+
+            raise
+
+        finally:
+            db.close()
+
+        self._risk_policy = dict(policy)
+        self._risk_policy_ready = True
+
+        logging.getLogger(__name__).info(
+            "Authoritative persistent risk policy loaded successfully"
+        )
+
+        return self.get_policy()
+
+    def is_policy_ready(self):
+        """Return whether the authoritative persistent policy is loaded."""
+
+        return self._risk_policy_ready
     def get_policy(self):
         """
         Return the active authoritative risk policy.
@@ -71,15 +105,26 @@ class RiskEngineService:
         A copy is returned so callers cannot mutate the service policy
         without going through update_policy().
         """
+        if not self._risk_policy_ready or self._risk_policy is None:
+            raise RuntimeError(
+                "Authoritative persistent risk policy is not loaded"
+            )
+
         return dict(self._risk_policy)
 
     def update_policy(self, payload: dict):
         """
-        Update the authoritative runtime risk policy.
+        Validate and persist the authoritative risk policy.
 
-        Only supported numerical risk-policy fields may be changed.
-        Existing values are retained when a field is omitted.
+        The database commit must succeed before the runtime singleton
+        is replaced. This prevents runtime/DB divergence when
+        persistence fails.
         """
+
+        if not self._risk_policy_ready or self._risk_policy is None:
+            raise RuntimeError(
+                "Authoritative persistent risk policy is not loaded"
+            )
 
         if not isinstance(payload, dict):
             raise ValueError("Risk policy payload must be an object")
@@ -140,7 +185,18 @@ class RiskEngineService:
                 "max_daily_drawdown_percent"
             )
 
-        self._risk_policy = updated
+        db = SessionLocal()
+
+        try:
+            persisted_policy = RiskPolicyRepository.update_policy(
+                db,
+                updated,
+            )
+        finally:
+            db.close()
+
+        # Runtime state changes only after the database commit succeeds.
+        self._risk_policy = dict(persisted_policy)
 
         return self.get_policy()
 
@@ -209,6 +265,11 @@ class RiskEngineService:
         """
 
         try:
+            if not self._risk_policy_ready or self._risk_policy is None:
+                raise RuntimeError(
+                    "Authoritative persistent risk policy is not loaded"
+                )
+
             if isinstance(portfolio_state, dict):
                 portfolio = portfolio_state
             else:
@@ -445,6 +506,13 @@ class RiskEngineService:
 
         EXIT remains exempt from entry protective-stop requirements.
         """
+
+        if not self._risk_policy_ready or self._risk_policy is None:
+            return {
+                "approved": False,
+                "reason": "Authoritative persistent risk policy is not loaded",
+                "risk_engine_ready": False,
+            }
 
         state = self.snapshot()
 
