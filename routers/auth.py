@@ -1,10 +1,10 @@
-import json
+﻿import json
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
-from webauthn import verify_registration_response
+from webauthn import verify_authentication_response, verify_registration_response
 
 from database import get_db
 from src.auth.authentication import AuthenticationService
@@ -423,11 +423,13 @@ def webauthn_registration_verify(
             credential_public_key=credential_public_key,
             sign_count=verified.sign_count,
             aaguid=verified.aaguid,
-            fmt=verified.fmt.value,
-            credential_type=verified.credential_type.value,
+            fmt=(verified.fmt.value if hasattr(verified.fmt, "value") else verified.fmt),
+            credential_type=(verified.credential_type.value if hasattr(verified.credential_type, "value") else verified.credential_type),
             user_verified=verified.user_verified,
             credential_device_type=(
                 verified.credential_device_type.value
+                if hasattr(verified.credential_device_type, "value")
+                else verified.credential_device_type
             ),
             credential_backed_up=verified.credential_backed_up,
             attestation_object=base64.b64encode(
@@ -726,6 +728,4 @@ def webauthn_authentication_options(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Unable to create WebAuthn authentication options.",
         ) from None
-
-
 

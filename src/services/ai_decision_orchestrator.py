@@ -1,9 +1,6 @@
 ﻿import time
 import uuid
 
-from src.services.mt5_service import mt5_service
-from src.services.portfolio_service import portfolio_service
-from src.services.risk_service import risk_engine_service
 from src.services.statistics_service import statistics_service
 from src.services.counter_trend_execution_service import (
     counter_trend_execution_service,
@@ -106,29 +103,32 @@ class AIDecisionOrchestrator:
         return self.states[symbol]
 
 
-    def evaluate(self, symbol=None):
+    def evaluate(
+        self,
+        symbol=None,
+        trend_state=None,
+        regime_state=None,
+    ):
 
         symbol = symbol or self.DEFAULT_SYMBOL
 
         state = self._ensure_symbol(symbol)
 
-        account = mt5_service.get_account_state()
+        # Use authoritative upstream states when supplied by
+        # GlobalTradingStateService. Preserve standalone behavior
+        # when callers do not provide them.
 
-        portfolio = portfolio_service.get_portfolio_state()
+        if trend_state is None:
+            trend_detection_service.evaluate(symbol)
+            trend = trend_detection_service.snapshot(symbol)
+        else:
+            trend = trend_state
 
-        risk = risk_engine_service.snapshot()
-
-
-        # Evaluate upstream intelligence for this instrument.
-
-        trend_detection_service.evaluate(symbol)
-
-        trend = trend_detection_service.snapshot(symbol)
-
-
-        market_regime_service.evaluate(symbol)
-
-        regime = market_regime_service.snapshot(symbol)
+        if regime_state is None:
+            market_regime_service.evaluate(symbol)
+            regime = market_regime_service.snapshot(symbol)
+        else:
+            regime = regime_state
 
 
         counter = counter_trend_execution_service.snapshot(symbol)

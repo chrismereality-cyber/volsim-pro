@@ -30,6 +30,9 @@ from src.services.ai_execution_orchestrator import (
 from src.services.execution_risk_gate_service import (
     execution_risk_gate_service,
 )
+from src.services.risk_position_sizing_service import (
+    risk_position_sizing_service,
+)
 from src.services.order_builder_service import (
     order_builder_service,
 )
@@ -38,6 +41,9 @@ from src.services.execution_queue_service import (
 )
 from src.services.global_venue_context_service import (
     global_venue_context_service,
+)
+from src.services.cross_market_analytics_service import (
+    cross_market_analytics_service,
 )
 
 
@@ -167,7 +173,9 @@ class GlobalTradingStateService:
 
         ai_decision = (
             ai_decision_orchestrator.evaluate(
-                symbol=symbol
+                symbol=symbol,
+                trend_state=trend_state,
+                regime_state=market_regime,
             )
         )
 
@@ -220,6 +228,29 @@ class GlobalTradingStateService:
             execution_decision["decision"] = "EXIT"
             execution_decision["trade_id"] = position_management.get("trade_id")
             execution_decision["position_side"] = position_management.get("position_side")
+
+        # --------------------------------------------------------------
+        # RISK-AWARE POSITION SIZING
+        # --------------------------------------------------------------
+
+        risk_position_sizing = (
+            risk_position_sizing_service.evaluate(
+                execution_decision,
+                risk_state,
+                symbol=symbol,
+            )
+        )
+
+        if execution_decision.get("decision") in {"BUY", "SELL"}:
+            if risk_position_sizing.get("status") == "READY":
+                execution_decision["volume"] = risk_position_sizing.get("volume")
+                execution_decision["stop_loss"] = risk_position_sizing.get("stop_loss")
+            else:
+                execution_decision["execution_allowed"] = False
+                execution_decision["risk_position_sizing_status"] = "NO_TRADE"
+                execution_decision["risk_position_sizing_reason"] = (
+                    risk_position_sizing.get("reason")
+                )
 
         # --------------------------------------------------------------
         # AI EXECUTION SIGNAL
@@ -285,6 +316,7 @@ class GlobalTradingStateService:
             "ai_decision": ai_decision,
             "execution_decision": execution_decision,
             "ai_position_management": position_management,
+            "risk_position_sizing": risk_position_sizing,
             "ai_execution": ai_execution,
             "execution_risk": execution_risk,
             "order_builder": order_state,
@@ -310,16 +342,19 @@ class GlobalTradingStateService:
                 f"Unsupported trading symbol: {symbol}"
             )
 
-        # --------------------------------------------------------------
-        # Shared global state
-        # --------------------------------------------------------------
-
         portfolio_state = (
             portfolio_service.get_portfolio_state()
         )
 
+        # --------------------------------------------------------------
+        # Shared global state
+        # --------------------------------------------------------------
+
+
         risk_state = (
-            risk_engine_service.snapshot()
+            risk_engine_service.snapshot(
+                portfolio_state=portfolio_state,
+            )
         )
 
         # --------------------------------------------------------------
@@ -468,7 +503,9 @@ class GlobalTradingStateService:
         # ==============================================================
 
         portfolio_state = (
-            portfolio_service.get_portfolio_state()
+            portfolio_service.get_portfolio_state(
+                account_state=account_state,
+            )
         )
 
         # ==============================================================
@@ -504,7 +541,9 @@ class GlobalTradingStateService:
         # ==============================================================
 
         risk_state = (
-            risk_engine_service.snapshot()
+            risk_engine_service.snapshot(
+                portfolio_state=portfolio_state,
+            )
         )
 
         # ==============================================================
@@ -657,6 +696,17 @@ class GlobalTradingStateService:
         )
 
         # ==============================================================
+        # CROSS-MARKET ANALYTICS
+        # ==============================================================
+        # Global multi-symbol analytical state.
+        # Kept outside _evaluate_symbol() so it remains separate
+        # from the symbol-specific execution path.
+
+        cross_market_analytics = (
+            cross_market_analytics_service.evaluate()
+        )
+
+        # ==============================================================
         # FINAL GLOBAL STATE
         # ==============================================================
 
@@ -673,7 +723,7 @@ class GlobalTradingStateService:
                 account_state,
 
             "market":
-                mt5_service.get_market_state(),
+                market_snapshot,
 
             "venue_context":
                 global_venue_context_service.snapshot(),
@@ -701,6 +751,9 @@ class GlobalTradingStateService:
 
             "execution_queue":
                 execution_queue_state,
+
+            "cross_market_analytics":
+                cross_market_analytics,
 
             # ----------------------------------------------------------
             # Legacy XAUUSDm-compatible fields
