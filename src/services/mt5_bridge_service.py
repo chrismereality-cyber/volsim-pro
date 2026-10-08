@@ -12,17 +12,56 @@ class MT5BridgeService:
     def __init__(self, mt5_client=None):
         self.mt5_client = mt5_client
 
-    def snapshot(self) -> dict:
+    def connection_status(self) -> str:
+        """
+        Return lightweight MT5 bridge connection status.
+
+        This intentionally avoids fetching account, position, or market
+        snapshots because callers may only need connectivity telemetry.
+        """
+        try:
+            if not self.mt5_client:
+                return "disconnected"
+
+            if not self.mt5_client.connect():
+                return "disconnected"
+
+            terminal = self.mt5_client.get_terminal_state()
+
+            if terminal.get("connected", False):
+                return "connected"
+
+            return "disconnected"
+        except Exception as exc:
+            logger.error("Failed to read MT5 bridge connection status: %s", exc)
+            return "error"
+
+    def snapshot(
+        self,
+        account_override=None,
+        include_market=True,
+    ) -> dict:
         """
         Retrieves live production snapshot from MT5 terminal via bridge.
-        Returns exact structures expected by the Global Trading State orchestrator.
+
+        An authoritative account snapshot may be supplied by an upstream
+        caller to avoid reacquiring identical account data. Positions and
+        market prices remain independently sourced from MT5.
         """
         try:
             # If a live MT5 client is attached, fetch real data
             if self.mt5_client and hasattr(self.mt5_client, "get_account_info"):
-                account_info = self.mt5_client.get_account_info()
+                account_info = (
+                    account_override
+                    if isinstance(account_override, dict)
+                    else self.mt5_client.get_account_info()
+                )
                 positions = self.mt5_client.get_positions()
-                market_prices = self.mt5_client.get_market_prices()
+                market_prices = (
+                    self.mt5_client.get_market_prices()
+                    if include_market
+                    else {}
+                )
 
                 return {
                     "account": account_info,

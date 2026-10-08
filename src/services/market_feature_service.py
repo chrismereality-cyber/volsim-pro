@@ -64,6 +64,8 @@ class MarketFeatureService:
 
             "ema200": 0.0,
 
+            "sma200": 0.0,
+
             "rsi": 0.0,
 
             "volume": 0.0,
@@ -140,17 +142,48 @@ class MarketFeatureService:
 
         price = closes[-1]
 
-        ema20 = sum(
-            closes[-20:]
-        ) / 20
+        # Responsive trend layer:
+        # genuine exponential moving averages.
+        def calculate_ema(
+            values,
+            period,
+        ):
+            if not values:
+                return 0.0
 
-        ema50 = sum(
-            closes[-50:]
-        ) / 50
+            alpha = 2.0 / (period + 1)
 
-        ema200 = sum(
-            closes[-200:]
-        ) / 200
+            ema = float(values[0])
+
+            for value in values[1:]:
+                ema = (
+                    alpha * float(value)
+                    + (1.0 - alpha) * ema
+                )
+
+            return ema
+
+        ema20 = calculate_ema(
+            closes,
+            20,
+        )
+
+        ema50 = calculate_ema(
+            closes,
+            50,
+        )
+
+        # Slow confirmation layer:
+        # simple moving average of the full 200-bar window.
+        sma200 = (
+            sum(closes[-200:])
+            / 200
+        )
+
+        # Compatibility field retained because existing
+        # consumers expect "ema200". It now represents
+        # the intended slow SMA200 confirmation level.
+        ema200 = sma200
 
         atr_values = []
 
@@ -230,9 +263,11 @@ class MarketFeatureService:
             else 0.0
         )
 
+        # Trend strength measures separation inside the
+        # responsive EMA trend layer.
         trend_strength = (
             abs(
-                ema20 - ema200
+                ema20 - ema50
             )
             / price
             * 100
@@ -268,6 +303,8 @@ class MarketFeatureService:
             "ema50": ema50,
 
             "ema200": ema200,
+
+            "sma200": sma200,
 
             "rsi": rsi,
 
