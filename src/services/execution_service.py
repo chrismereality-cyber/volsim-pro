@@ -203,6 +203,103 @@ class ExecutionService:
             )
         ).upper().strip()
 
+        async def reject_untransmitted_entry(validation_result):
+            try:
+                await self._release_execution_idempotency(client_order_id)
+            except Exception:
+                logger.exception(
+                    'Failed to release idempotency claim after pre-transmission '
+                    'entry validation rejection client_order_id=%s',
+                    client_order_id,
+                )
+                self.last_error = 'EXECUTION_STATE_UNRESOLVED'
+                return {
+                    'success': False,
+                    'order_id': None,
+                    'ticket': None,
+                    'retcode': 'EXECUTION_STATE_UNRESOLVED',
+                    'message': (
+                        'Entry validation failed and the idempotency claim '
+                        'could not be released; reconcile execution state '
+                        'before retrying.'
+                    ),
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                    'execution_mode': self.execution_mode,
+                    'retryable': False,
+                    'reconciliation_required': True,
+                    'broker_transmission_started': False,
+                    'duplicate_execution': False,
+                }
+
+            return {
+                **validation_result,
+                'broker_transmission_started': False,
+                'duplicate_execution': False,
+            }
+
+        claimed, previous_result = await self._claim_execution_idempotency(client_order_id)
+        if not claimed:
+            previous_record = previous_result if isinstance(previous_result, dict) else {}
+            previous_execution_result = previous_record.get('result')
+
+            if not isinstance(previous_execution_result, dict) or not previous_execution_result:
+                return {
+                    'success': False,
+                    'order_id': previous_record.get('order_id'),
+                    'ticket': None,
+                    'retcode': 'EXECUTION_STATE_UNRESOLVED',
+                    'message': (
+                        'A previous idempotency claim has no complete execution result; '
+                        'reconcile broker state before retrying.'
+                    ),
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                    'execution_mode': self.execution_mode,
+                    'retryable': False,
+                    'reconciliation_required': True,
+                    'broker_transmission_started': None,
+                    'duplicate_execution': True,
+                }
+
+            previous_retcode = previous_execution_result.get('retcode')
+            previous_uncertain = (
+                previous_retcode == 'TRANSMISSION_UNKNOWN'
+                or previous_execution_result.get('reconciliation_required') is True
+            )
+            if previous_uncertain:
+                return {
+                    **previous_execution_result,
+                    'success': False,
+                    'retcode': previous_retcode or 'TRANSMISSION_UNKNOWN',
+                    'message': previous_execution_result.get('message') or (
+                        'Previous broker transmission outcome remains unknown; '
+                        'reconcile broker state before retrying.'
+                    ),
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                    'execution_mode': self.execution_mode,
+                    'retryable': False,
+                    'reconciliation_required': True,
+                    'broker_transmission_started': (
+                        True if previous_retcode == 'TRANSMISSION_UNKNOWN'
+                        else previous_execution_result.get('broker_transmission_started')
+                    ),
+                    'duplicate_execution': True,
+                }
+
+            duplicate_result = {
+                'success': False,
+                'order_id': previous_execution_result.get('order_id'),
+                'ticket': previous_execution_result.get('ticket'),
+                'retcode': 'DUPLICATE_EXECUTION',
+                'message': 'Execution rejected because client_order_id has already been claimed.',
+                'client_order_id': client_order_id,
+                'decision_id': decision_id,
+                'execution_mode': self.execution_mode
+            }
+            return duplicate_result
+
         if execution_action in {'BUY', 'SELL'} and not decision_id:
             self.orders_rejected += 1
             self.last_error = 'AI_PROVENANCE_REQUIRED'
@@ -226,28 +323,157 @@ class ExecutionService:
                 order_request.get('symbol'),
                 execution_action,
             )
-            await self._release_execution_idempotency(client_order_id)
-            return provenance_result
+            return await reject_untransmitted_entry(provenance_result)
 
-        claimed, previous_result = await self._claim_execution_idempotency(client_order_id)
-        if not claimed:
-            previous_execution_result = previous_result.get('result') if previous_result else None
-            if not isinstance(previous_execution_result, dict):
-                previous_execution_result = {}
+        # FINAL ENTRY EXECUTION BOUNDARY:
+        # BUY/SELL must carry the positive risk-sized volume produced upstream.
+        # Execution must never invent a position quantity.
+        if execution_action in {'BUY', 'SELL'}:
+            raw_volume = order_request.get('volume')
+            try:
+                entry_volume = float(raw_volume)
+            except (TypeError, ValueError):
+                entry_volume = 0.0
 
-            duplicate_result = {
+            if not (entry_volume > 0):
+                self.orders_rejected += 1
+                self.last_error = 'ENTRY_EXECUTION_INVALID_VOLUME'
+                volume_result = {
+                    'success': False,
+                    'order_id': None,
+                    'ticket': None,
+                    'retcode': 'INVALID_RISK_SIZING_VOLUME',
+                    'message': (
+                        'BUY/SELL execution requires a positive '
+                        'risk-sized volume.'
+                    ),
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                    'execution_mode': self.execution_mode,
+                    'volume': raw_volume,
+                }
+                logger.warning(
+                    'ENTRY EXECUTION DENIED: invalid risk-sized volume '
+                    'client_order_id=%s symbol=%s action=%s volume=%r',
+                    client_order_id,
+                    order_request.get('symbol'),
+                    execution_action,
+                    raw_volume,
+                )
+                return await reject_untransmitted_entry(volume_result)
+
+            # FINAL ENTRY PRICE / PROTECTIVE STOP BOUNDARY:
+            # BUY/SELL must carry a valid executable entry price and
+            # protective stop produced upstream. Execution must never
+            # invent or silently default these values.
+            raw_price = order_request.get('price')
+            raw_stop_loss = order_request.get('stop_loss')
+
+            try:
+                entry_price = float(raw_price)
+            except (TypeError, ValueError):
+                entry_price = 0.0
+
+            if not (entry_price > 0):
+                self.orders_rejected += 1
+                self.last_error = 'ENTRY_EXECUTION_INVALID_PRICE'
+                price_result = {
+                    'success': False,
+                    'order_id': None,
+                    'ticket': None,
+                    'retcode': 'INVALID_MARKET_PRICE',
+                    'message': (
+                        'BUY/SELL execution requires a positive '
+                        'executable entry price.'
+                    ),
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                    'execution_mode': self.execution_mode,
+                    'price': raw_price,
+                }
+                logger.warning(
+                    'ENTRY EXECUTION DENIED: invalid executable entry price '
+                    'client_order_id=%s symbol=%s action=%s price=%r',
+                    client_order_id,
+                    order_request.get('symbol'),
+                    execution_action,
+                    raw_price,
+                )
+                return await reject_untransmitted_entry(price_result)
+
+            try:
+                protective_stop = float(raw_stop_loss)
+            except (TypeError, ValueError):
+                protective_stop = 0.0
+
+            if not (protective_stop > 0):
+                self.orders_rejected += 1
+                self.last_error = 'ENTRY_EXECUTION_INVALID_STOP_LOSS'
+                stop_result = {
+                    'success': False,
+                    'order_id': None,
+                    'ticket': None,
+                    'retcode': 'INVALID_PROTECTIVE_STOP',
+                    'message': (
+                        'BUY/SELL execution requires a positive '
+                        'protective stop-loss.'
+                    ),
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                    'execution_mode': self.execution_mode,
+                    'stop_loss': raw_stop_loss,
+                }
+                logger.warning(
+                    'ENTRY EXECUTION DENIED: invalid protective stop-loss '
+                    'client_order_id=%s symbol=%s action=%s stop_loss=%r',
+                    client_order_id,
+                    order_request.get('symbol'),
+                    execution_action,
+                    raw_stop_loss,
+                )
+                return await reject_untransmitted_entry(stop_result)
+
+        try:
+            order = oms_service.create_order(order_request)
+            order_id = order['order_id']
+        except Exception as oms_error:
+            self.orders_rejected += 1
+            self.last_error = 'EXECUTION_STATE_UNRESOLVED'
+            unresolved_result = {
                 'success': False,
-                'order_id': previous_execution_result.get('order_id'),
-                'ticket': previous_execution_result.get('ticket'),
-                'retcode': 'DUPLICATE_EXECUTION',
-                'message': 'Execution rejected because client_order_id has already been claimed.',
+                'order_id': None,
+                'ticket': None,
+                'retcode': 'EXECUTION_STATE_UNRESOLVED',
+                'message': (
+                    'OMS order creation or identity retrieval failed; '
+                    'execution identity is retained pending reconciliation.'
+                ),
                 'client_order_id': client_order_id,
                 'decision_id': decision_id,
-                'execution_mode': self.execution_mode
+                'execution_mode': self.execution_mode,
+                'retryable': False,
+                'reconciliation_required': True,
+                'broker_transmission_started': False,
+                'duplicate_execution': False,
             }
-            return duplicate_result
-        order = oms_service.create_order(order_request)
-        order_id = order['order_id']
+            logger.error(
+                'Execution state unresolved during OMS creation: '
+                'client_order_id=%s error=%s',
+                client_order_id,
+                oms_error,
+            )
+            try:
+                await self._finalize_execution_idempotency(
+                    client_order_id, unresolved_result, None
+                )
+            except Exception as persistence_error:
+                logger.critical(
+                    'Could not persist unresolved execution state: '
+                    'client_order_id=%s error=%s',
+                    client_order_id,
+                    persistence_error,
+                )
+            return unresolved_result
         try:
             live_transmission_authorized = order_request.get('live_transmission_authorized') is True
 
@@ -525,7 +751,7 @@ class ExecutionService:
                     'retcode': 'SIMULATED_FILL',
                     'symbol': order_request.get('symbol', ''),
                     'side': order_request.get('type', order_request.get('side', '')),
-                    'volume': float(order_request.get('volume', 0.01) or 0.01),
+                    'volume': float(order_request['volume']),
                     'price': execution_price,
                     'comment': order_request.get('comment', 'VolSim-Pro PAPER'),
                     'client_order_id': client_order_id,
@@ -782,7 +1008,7 @@ class ExecutionService:
                 request = {
                     'action': mt5.TRADE_ACTION_DEAL,
                     'symbol': order_request.get('symbol'),
-                    'volume': order_request.get('volume', 0.01),
+                    'volume': order_request.get('volume'),
                     'type': (
                         mt5.ORDER_TYPE_BUY
                         if order_request.get('type') == 'BUY'
@@ -853,9 +1079,32 @@ class ExecutionService:
             self.last_order_time = time.time()
             self.execution_latency_ms = round((time.time() - start) * 1000, 2)
             if result is None:
-                self.orders_rejected += 1
-                self.last_error = 'No response from MT5'
-                return {'success': False, 'ticket': None, 'message': self.last_error}
+                self.last_error = 'MT5 order_send() returned no response; broker outcome is unknown.'
+                logger.critical(
+                    'TRANSMISSION_UNKNOWN: MT5 returned no response after order_send(); '
+                    'oms_order_id=%s client_order_id=%s; reconcile broker state before retry.',
+                    order_id,
+                    client_order_id,
+                )
+                unknown_result = self._build_execution_result(
+                    success=False,
+                    order_id=order_id,
+                    client_order_id=client_order_id,
+                    decision_id=decision_id,
+                    retcode='TRANSMISSION_UNKNOWN',
+                    message=self.last_error,
+                    symbol=order_request.get('symbol'),
+                    side=order_request.get('action'),
+                    volume=order_request.get('volume'),
+                    price=order_request.get('price'),
+                    retryable=False,
+                    reconciliation_required=True,
+                    broker_transmission_started=True,
+                )
+                await self._finalize_execution_idempotency(
+                    client_order_id, unknown_result, order_id
+                )
+                return unknown_result
             if result.retcode == mt5.TRADE_RETCODE_DONE:
                 self.orders_filled += 1
                 self.last_fill_time = time.time()
@@ -1019,7 +1268,7 @@ class ExecutionService:
                     'comment': getattr(result, 'comment', ''),
                     'symbol': order_request.get('symbol', ''),
                     'side': order_request.get('side', order_request.get('order_type', '')),
-                    'volume': float(getattr(result, 'volume', order_request.get('volume', 0.01))),
+                    'volume': float(getattr(result, 'volume', order_request.get('volume'))),
                     'price': float(getattr(result, 'price', order_request.get('price', 0))),
                     'client_order_id': client_order_id,
                     'decision_id': decision_id,
@@ -1089,10 +1338,24 @@ class ExecutionService:
                     'client_order_id': client_order_id,
                     'decision_id': decision_id,
                     'execution_mode': self.execution_mode,
+                    'reconciliation_required': broker_transmission_started,
+                    'broker_transmission_started': broker_transmission_started,
                 },
                 order_id,
             )
-            return {'success': False, 'order_id': order_id, 'ticket': None, 'message': str(e)}
+            return {
+                'success': False,
+                'order_id': order_id,
+                'ticket': None,
+                'retcode': exception_retcode,
+                'message': exception_message,
+                'client_order_id': client_order_id,
+                'decision_id': decision_id,
+                'execution_mode': self.execution_mode,
+                'retryable': False,
+                'reconciliation_required': broker_transmission_started,
+                'broker_transmission_started': broker_transmission_started,
+            }
 
     async def _record_entry_attribution(
         self,
