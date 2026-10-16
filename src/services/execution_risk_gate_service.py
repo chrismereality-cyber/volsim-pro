@@ -1,4 +1,4 @@
-﻿import time
+import time
 
 
 class ExecutionRiskGateService:
@@ -129,7 +129,13 @@ class ExecutionRiskGateService:
 
         minimum_confidence = 25
 
-        if confidence < minimum_confidence:
+        authorized_position_exit = (
+            ai_decision.get("decision") == "EXIT"
+            and ai_decision.get("position_management_exit_authorized") is True
+            and bool(ai_decision.get("trade_id"))
+        )
+
+        if confidence < minimum_confidence and not authorized_position_exit:
 
             return self.reject(
                 "Confidence below threshold",
