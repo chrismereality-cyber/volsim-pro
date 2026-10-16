@@ -272,6 +272,138 @@ def test_invalid_new_entry_releases_its_own_claim(
     assert released == ["test-new-invalid-id"]
 
 
+@pytest.mark.parametrize(
+    ("action", "price", "stop_loss"),
+    [
+        ("BUY", 2500.0, 2500.0),
+        ("BUY", 2500.0, 2510.0),
+        ("SELL", 2500.0, 2500.0),
+        ("SELL", 2500.0, 2490.0),
+    ],
+)
+def test_wrong_side_protective_stop_rejects_before_oms_and_releases_claim(
+    monkeypatch, action, price, stop_loss
+):
+    service = ExecutionService.__new__(ExecutionService)
+    service.execution_mode = "PAPER"
+    service.orders_rejected = 0
+    service.last_error = None
+    released = []
+
+    async def claim_new_identity(client_order_id):
+        return True, None
+
+    async def capture_release(client_order_id):
+        released.append(client_order_id)
+
+    monkeypatch.setattr(service, "_claim_execution_idempotency", claim_new_identity)
+    monkeypatch.setattr(service, "_release_execution_idempotency", capture_release)
+    monkeypatch.setattr(
+        oms_service,
+        "create_order",
+        lambda request: pytest.fail("Invalid stop direction reached OMS creation"),
+    )
+
+    request = valid_entry_request()
+    request["action"] = action
+    request["client_order_id"] = f"wrong-side-{action.lower()}-stop"
+    request["price"] = price
+    request["stop_loss"] = stop_loss
+
+    result = asyncio.run(service.send_order(request))
+
+    assert result["success"] is False
+    assert result["retcode"] == "INVALID_PROTECTIVE_STOP_DIRECTION"
+    assert result["broker_transmission_started"] is False
+    assert result["duplicate_execution"] is False
+    assert released == [request["client_order_id"]]
+    assert service.last_error == "ENTRY_EXECUTION_INVALID_STOP_DIRECTION"
+
+
+
+def test_live_exit_missing_trade_id_bypasses_entry_stop_guard(monkeypatch):
+    from src.services import execution_service as execution_module
+
+    service = ExecutionService.__new__(ExecutionService)
+    service.execution_mode = "LIVE"
+    service.orders_rejected = 0
+    service.orders_sent = 0
+    service.orders_filled = 0
+    service.last_order_time = None
+    service.last_fill_time = None
+    service.last_error = None
+    service.execution_latency_ms = 0
+
+    released = []
+    status_updates = []
+    broker_calls = []
+
+    async def claim_new_identity(client_order_id):
+        return True, None
+
+    async def capture_release(client_order_id):
+        released.append(client_order_id)
+
+    monkeypatch.setattr(service, "_claim_execution_idempotency", claim_new_identity)
+    monkeypatch.setattr(service, "_release_execution_idempotency", capture_release)
+    monkeypatch.setattr(
+        execution_module.oms_service,
+        "create_order",
+        lambda request: {"order_id": "mock-live-exit-order"},
+    )
+    monkeypatch.setattr(
+        execution_module.oms_service,
+        "update_status",
+        lambda *args, **kwargs: status_updates.append((args, kwargs)),
+    )
+    monkeypatch.setattr(
+        service,
+        "_finalize_execution_idempotency",
+        lambda *args, **kwargs: pytest.fail(
+            "Missing-trade-ID rejection should release, not finalize, the claim"
+        ),
+    )
+    monkeypatch.setattr(
+        execution_module.risk_engine_service,
+        "approve_order",
+        lambda request: {"approved": True},
+    )
+    monkeypatch.setattr(
+        execution_module.execution_guard_service,
+        "evaluate",
+        lambda **kwargs: {"allowed": True, "status": "TEST_APPROVED"},
+    )
+
+    def forbid_broker_transmission(*args, **kwargs):
+        broker_calls.append((args, kwargs))
+        pytest.fail("EXIT validation unexpectedly attempted broker transmission")
+
+    monkeypatch.setattr(execution_module.mt5, "order_send", forbid_broker_transmission)
+
+    request = {
+        "action": "EXIT",
+        "type": "EXIT",
+        "client_order_id": "test-live-exit-missing-trade-id",
+        "live_transmission_authorized": True,
+        "symbol": "XAUUSDm",
+        "volume": 0.01,
+        "price": 2500.0,
+        "stop_loss": 2490.0,
+    }
+
+    result = asyncio.run(service.send_order(request))
+
+    assert result["success"] is False
+    assert result["retcode"] == "MISSING_TRADE_ID"
+    assert result["client_order_id"] == request["client_order_id"]
+    assert result["retcode"] != "INVALID_PROTECTIVE_STOP_DIRECTION"
+    assert released == [request["client_order_id"]]
+    assert len(status_updates) == 1
+    assert status_updates[0][0][1] == "REJECTED"
+    assert status_updates[0][0][2]["retcode"] == "MISSING_TRADE_ID"
+    assert broker_calls == []
+    assert service.last_error == "LIVE EXIT requires trade_id"
+
 def test_invalid_new_entry_release_failure_fails_closed(monkeypatch):
     service = ExecutionService.__new__(ExecutionService)
     service.execution_mode = "PAPER"
