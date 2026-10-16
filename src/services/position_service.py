@@ -1,4 +1,5 @@
 import logging
+import math
 import time
 
 from src.services.database_service import database_service
@@ -895,6 +896,155 @@ class PositionService:
                     "discrepancies": [],
                     "error": error,
                 }
+
+            # Validate the complete broker snapshot before mutating local state.
+            seen_candidate_ids = set()
+            for candidate in broker_positions:
+                if not isinstance(candidate, dict):
+                    error = (
+                        "Malformed MT5 broker position: expected dict, "
+                        f"got {type(candidate).__name__}"
+                    )
+                    logger.error(error)
+                    return {
+                        "status": "RECONCILIATION_FAILED",
+                        "synchronized": [],
+                        "discrepancies": [],
+                        "error": error,
+                    }
+
+                candidate_ticket = candidate.get("ticket")
+                if candidate_ticket is None:
+                    error = "Malformed MT5 broker position: missing position ticket"
+                    logger.error(error)
+                    return {
+                        "status": "RECONCILIATION_FAILED",
+                        "synchronized": [],
+                        "discrepancies": [],
+                        "error": error,
+                    }
+
+                candidate_id = str(candidate_ticket)
+                if candidate_id in seen_candidate_ids:
+                    error = (
+                        "Malformed MT5 broker snapshot: "
+                        f"duplicate position ticket={candidate_id}"
+                    )
+                    logger.error(error)
+                    return {
+                        "status": "RECONCILIATION_FAILED",
+                        "synchronized": [],
+                        "discrepancies": [],
+                        "error": error,
+                    }
+                seen_candidate_ids.add(candidate_id)
+
+                raw_timestamp = candidate.get("time")
+                if raw_timestamp:
+                    if (
+                        isinstance(raw_timestamp, bool)
+                        or not isinstance(raw_timestamp, (int, float))
+                        or not math.isfinite(raw_timestamp)
+                        or raw_timestamp < 0
+                    ):
+                        error = (
+                            "Malformed MT5 broker position: "
+                            f"ticket={candidate_id} invalid timestamp"
+                        )
+                        logger.error(error)
+                        return {
+                            "status": "RECONCILIATION_FAILED",
+                            "synchronized": [],
+                            "discrepancies": [],
+                            "error": error,
+                        }
+                candidate_symbol = str(candidate.get("symbol", "") or "")
+                if not candidate_symbol:
+                    error = (
+                        "Malformed MT5 broker position: "
+                        f"ticket={candidate_id} missing symbol"
+                    )
+                    logger.error(error)
+                    return {
+                        "status": "RECONCILIATION_FAILED",
+                        "synchronized": [],
+                        "discrepancies": [],
+                        "error": error,
+                    }
+
+                candidate_side = str(candidate.get("type", "") or "")
+                if candidate_side not in {"BUY", "SELL"}:
+                    error = (
+                        "Malformed MT5 broker position: "
+                        f"ticket={candidate_id} invalid side={candidate_side!r}"
+                    )
+                    logger.error(error)
+                    return {
+                        "status": "RECONCILIATION_FAILED",
+                        "synchronized": [],
+                        "discrepancies": [],
+                        "error": error,
+                    }
+
+                try:
+                    candidate_volume = float(candidate.get("volume", 0.0) or 0.0)
+                    candidate_open = float(candidate.get("price_open", 0.0) or 0.0)
+                    candidate_current = float(
+                        candidate.get("price_current", candidate_open) or candidate_open
+                    )
+                    candidate_profit = float(candidate.get("profit", 0.0) or 0.0)
+                except (TypeError, ValueError, OverflowError) as exc:
+                    error = (
+                        "Malformed MT5 broker position: "
+                        f"ticket={candidate_id} invalid numeric field ({exc})"
+                    )
+                    logger.error(error)
+                    return {
+                        "status": "RECONCILIATION_FAILED",
+                        "synchronized": [],
+                        "discrepancies": [],
+                        "error": error,
+                    }
+
+                numeric_values = {
+                    "volume": candidate_volume,
+                    "price_open": candidate_open,
+                    "price_current": candidate_current,
+                    "profit": candidate_profit,
+                }
+                invalid_numeric = next(
+                    (
+                        field
+                        for field, value in numeric_values.items()
+                        if not math.isfinite(value)
+                    ),
+                    None,
+                )
+                if invalid_numeric is not None:
+                    error = (
+                        "Malformed MT5 broker position: "
+                        f"ticket={candidate_id} non-finite {invalid_numeric}"
+                    )
+                    logger.error(error)
+                    return {
+                        "status": "RECONCILIATION_FAILED",
+                        "synchronized": [],
+                        "discrepancies": [],
+                        "error": error,
+                    }
+
+                if candidate_volume <= 0.0:
+                    error = (
+                        "Malformed MT5 broker position: "
+                        f"ticket={candidate_id} invalid volume={candidate_volume}"
+                    )
+                    logger.error(error)
+                    return {
+                        "status": "RECONCILIATION_FAILED",
+                        "synchronized": [],
+                        "discrepancies": [],
+                        "error": error,
+                    }
 
             synchronized = []
             discrepancies = []
