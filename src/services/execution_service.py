@@ -433,6 +433,44 @@ class ExecutionService:
                 )
                 return await reject_untransmitted_entry(stop_result)
 
+            invalid_stop_direction = (
+                (execution_action == 'BUY' and protective_stop >= entry_price)
+                or (execution_action == 'SELL' and protective_stop <= entry_price)
+            )
+            if invalid_stop_direction:
+                self.orders_rejected += 1
+                self.last_error = 'ENTRY_EXECUTION_INVALID_STOP_DIRECTION'
+                direction_message = (
+                    'BUY protective stop-loss must be below entry price.'
+                    if execution_action == 'BUY'
+                    else 'SELL protective stop-loss must be above entry price.'
+                )
+                direction_result = {
+                    'success': False,
+                    'order_id': None,
+                    'ticket': None,
+                    'retcode': 'INVALID_PROTECTIVE_STOP_DIRECTION',
+                    'message': direction_message,
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                    'execution_mode': self.execution_mode,
+                    'price': raw_price,
+                    'stop_loss': raw_stop_loss,
+                    'broker_transmission_started': False,
+                    'duplicate_execution': False,
+                }
+                logger.warning(
+                    'ENTRY EXECUTION DENIED: protective stop on wrong side '
+                    'of entry client_order_id=%s symbol=%s action=%s '
+                    'price=%r stop_loss=%r',
+                    client_order_id,
+                    order_request.get('symbol'),
+                    execution_action,
+                    raw_price,
+                    raw_stop_loss,
+                )
+                return await reject_untransmitted_entry(direction_result)
+
         try:
             order = oms_service.create_order(order_request)
             order_id = order['order_id']
