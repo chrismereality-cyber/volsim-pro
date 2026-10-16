@@ -329,3 +329,113 @@ def test_broker_close_oms_lookup_failure_is_reported_as_discrepancy(monkeypatch)
         and position.get("status") == "CLOSED"
         for position in result["synchronized"]
     )
+
+def test_broker_reconciliation_failure_preserves_prior_progress(monkeypatch):
+    import src.services.position_service as position_module
+
+    service = PositionService()
+
+    service.positions["100001"] = {
+        "oms_order_id": None,
+        "trade_id": "100001",
+        "broker_order_ticket": None,
+        "broker_deal_ticket": None,
+        "broker_position_ticket": 100001,
+        "symbol": "XAUUSDm",
+        "side": "BUY",
+        "volume": 0.01,
+        "open_price": 3390.0,
+        "current_price": 3395.0,
+        "floating_pl": 5.0,
+        "realized_pl": 0.0,
+        "status": "OPEN",
+        "opened_at": 1756799000,
+        "closed_at": None,
+        "close_price": None,
+    }
+
+    service.positions["100002"] = {
+        "oms_order_id": None,
+        "trade_id": "100002",
+        "broker_order_ticket": None,
+        "broker_deal_ticket": None,
+        "broker_position_ticket": 100002,
+        "symbol": "BTCUSDm",
+        "side": "BUY",
+        "volume": 0.01,
+        "open_price": 68000.0,
+        "current_price": 68100.0,
+        "floating_pl": 1.0,
+        "realized_pl": 0.0,
+        "status": "OPEN",
+        "opened_at": 1756799001,
+        "closed_at": None,
+        "close_price": None,
+    }
+
+    monkeypatch.setattr(
+        position_module.mt5_service,
+        "get_positions_for_reconciliation",
+        lambda: {
+            "success": True,
+            "positions": [],
+            "error": None,
+        },
+    )
+
+    def close_deals(ticket):
+        if ticket == 100001:
+            return {
+                "success": True,
+                "position_ticket": ticket,
+                "deals": [{
+                    "position_id": ticket,
+                    "price": 3410.0,
+                    "time": 1756800100,
+                    "ticket": 100011,
+                    "order": 100012,
+                    "profit": 20.0,
+                    "swap": 0.0,
+                    "commission": 0.0,
+                }],
+                "error": None,
+            }
+
+        raise RuntimeError(
+            "simulated unexpected close-history failure"
+        )
+
+    monkeypatch.setattr(
+        position_module.mt5_service,
+        "get_position_close_deals",
+        close_deals,
+    )
+
+    async def no_op_persist_snapshot(position):
+        return None
+
+    monkeypatch.setattr(
+        service,
+        "persist_snapshot",
+        no_op_persist_snapshot,
+    )
+
+    result = asyncio.run(service.sync_from_mt5())
+
+    assert result["status"] == "RECONCILIATION_FAILED"
+    assert result["error"] == (
+        "simulated unexpected close-history failure"
+    )
+
+    assert result["synchronized"], (
+        "Reconciliation failure must preserve progress already "
+        "synchronized before the unexpected exception"
+    )
+    assert any(
+        position.get("trade_id") == "100001"
+        and position.get("status") == "CLOSED"
+        for position in result["synchronized"]
+    )
+
+    assert service.positions["100001"]["status"] == "CLOSED"
+    assert service.positions["100002"]["status"] == "OPEN"
