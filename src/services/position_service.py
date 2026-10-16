@@ -1200,14 +1200,12 @@ class PositionService:
                 )
 
                 if existing is None:
-                    position = {
+                    candidate_position = {
                         "oms_order_id": None,
                         "trade_id": trade_id,
                         "broker_order_ticket": None,
                         "broker_deal_ticket": None,
-                        "broker_position_ticket": (
-                            broker_position_ticket
-                        ),
+                        "broker_position_ticket": broker_position_ticket,
                         "symbol": symbol,
                         "side": side,
                         "volume": volume,
@@ -1216,22 +1214,15 @@ class PositionService:
                         "floating_pl": profit,
                         "realized_pl": 0.0,
                         "status": "OPEN",
-                        "opened_at": (
-                            broker_position.get("time")
-                            or time.time()
-                        ),
+                        "opened_at": broker_position.get("time") or time.time(),
                         "closed_at": None,
                         "close_price": None,
                     }
-
-                    self.positions[trade_id] = position
-
                 else:
-                    existing.update(
+                    candidate_position = existing.copy()
+                    candidate_position.update(
                         {
-                            "broker_position_ticket": (
-                                broker_position_ticket
-                            ),
+                            "broker_position_ticket": broker_position_ticket,
                             "symbol": symbol,
                             "side": side,
                             "volume": volume,
@@ -1242,18 +1233,13 @@ class PositionService:
                         }
                     )
 
-                    position = existing
-
-                await self.persist_position(
-                    position
-                )
-
-                await self.persist_snapshot(
-                    position
-                )
+                # Persist before publishing the candidate to in-memory state.
+                # persist_snapshot atomically writes current state and history.
+                await self.persist_snapshot(candidate_position)
+                self.positions[trade_id] = candidate_position
 
                 synchronized.append(
-                    position.copy()
+                    candidate_position.copy()
                 )
 
             for trade_id, position in list(
@@ -1439,49 +1425,57 @@ class PositionService:
                     latest_close_deal.get("order")
                 )
 
-                position["broker_position_ticket"] = (
+                # Prepare a candidate without mutating the live position.
+                candidate_position = position.copy()
+                candidate_position["broker_position_ticket"] = (
                     broker_position_ticket
                 )
-
-                position["broker_deal_ticket"] = (
+                candidate_position["broker_deal_ticket"] = (
                     broker_deal_ticket
                 )
 
                 if broker_order_ticket is not None:
-                    position["broker_order_ticket"] = (
+                    candidate_position["broker_order_ticket"] = (
                         broker_order_ticket
                     )
 
-                position["close_price"] = close_price
-                position["realized_pl"] = realized_pl
-                position["floating_pl"] = 0.0
-                position["current_price"] = close_price
-                position["status"] = "CLOSED"
-                # OMS close bridge
-                #
-                # The existing position.oms_order_id is the authoritative
-                # local identity. Do not infer an OMS order from broker
-                # tickets, symbol, volume, or timestamps.
+                candidate_position["close_price"] = close_price
+                candidate_position["realized_pl"] = realized_pl
+                candidate_position["floating_pl"] = 0.0
+                candidate_position["current_price"] = close_price
+                candidate_position["status"] = "CLOSED"
+                candidate_position["closed_at"] = closed_at
 
-                oms_order_id = position.get(
-                    "oms_order_id"
-                )
+                # The broker is already closed; persist the confirmed close
+                # before changing local position or OMS lifecycle state.
+                await self.persist_snapshot(candidate_position)
+                self.positions[trade_id] = candidate_position
+
+                # Bridge to OMS only after durable position persistence.
+                oms_order_id = candidate_position.get("oms_order_id")
 
                 if oms_order_id:
-                    oms_order = oms_service.get_order(
-                        oms_order_id
-                    )
+                    oms_order = oms_service.get_order(oms_order_id)
 
                     if oms_order is None:
+                        bridge_error = (
+                            "OMS order not found: "
+                            f"{oms_order_id}"
+                        )
+                        discrepancies.append({
+                            "trade_id": str(trade_id),
+                            "symbol": candidate_position.get("symbol"),
+                            "status": "OMS_CLOSE_BRIDGE_FAILED",
+                            "oms_order_id": oms_order_id,
+                            "error": bridge_error,
+                        })
                         logger.error(
                             "OMS close bridge failed: "
-                            "OMS order not found: "
                             "trade_id=%s oms_order_id=%s",
                             trade_id,
                             oms_order_id,
                         )
-
-                    if oms_order is not None:
+                    else:
                         oms_close_result = {
                             "success": True,
                             "oms_order_id": oms_order_id,
@@ -1493,42 +1487,48 @@ class PositionService:
                             "realized_pl": realized_pl,
                         }
 
-                        oms_service.update_status(
-                            oms_order_id,
-                            "CLOSED",
-                            oms_close_result,
-                        )
+                        try:
+                            oms_service.update_status(
+                                oms_order_id,
+                                "CLOSED",
+                                oms_close_result,
+                            )
+                        except Exception as oms_exc:
+                            discrepancies.append({
+                                "trade_id": str(trade_id),
+                                "symbol": candidate_position.get("symbol"),
+                                "status": "OMS_CLOSE_BRIDGE_FAILED",
+                                "oms_order_id": oms_order_id,
+                                "error": str(oms_exc),
+                            })
+                            logger.exception(
+                                "OMS close bridge update failed: "
+                                "trade_id=%s oms_order_id=%s",
+                                trade_id,
+                                oms_order_id,
+                            )
+                        else:
+                            logger.info(
+                                "OMS close bridged: "
+                                "trade_id=%s oms_order_id=%s "
+                                "realized_pl=%.2f close_price=%.5f",
+                                trade_id,
+                                oms_order_id,
+                                realized_pl,
+                                close_price,
+                            )
 
-                        logger.info(
-                            "OMS close bridged: "
-                            "trade_id=%s oms_order_id=%s "
-                            "realized_pl=%.2f close_price=%.5f",
-                            trade_id,
-                            oms_order_id,
-                            realized_pl,
-                            close_price,
-                        )
-
-                if not oms_order_id:
+                else:
                     logger.error(
                         "OMS close bridge skipped: "
                         "position has no oms_order_id: "
                         "trade_id=%s symbol=%s",
                         trade_id,
-                        position.get("symbol"),
+                        candidate_position.get("symbol"),
                     )
-                position["closed_at"] = closed_at
-
-                await self.persist_position(
-                    position
-                )
-
-                await self.persist_snapshot(
-                    position
-                )
 
                 synchronized.append(
-                    position.copy()
+                    candidate_position.copy()
                 )
 
                 logger.info(
@@ -1536,7 +1536,7 @@ class PositionService:
                     "trade_id=%s symbol=%s ticket=%s "
                     "realized_pl=%.2f close_price=%.5f",
                     trade_id,
-                    position.get("symbol"),
+                    candidate_position.get("symbol"),
                     broker_position_ticket,
                     realized_pl,
                     close_price,
