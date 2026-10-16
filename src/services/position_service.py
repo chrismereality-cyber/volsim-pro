@@ -178,7 +178,12 @@ class PositionService:
 
             self.positions[trade_id] = position
 
-            await self.persist_snapshot(position)
+            try:
+                await self.persist_snapshot(position)
+            except BaseException:
+                if self.positions.get(trade_id) is position:
+                    self.positions.pop(trade_id, None)
+                raise
 
             logger.info(
                 "Position opened: "
@@ -198,7 +203,7 @@ class PositionService:
 
             return position
 
-    async def persist_position(self, position: dict):
+    async def persist_position(self, position: dict, conn=None):
         """
         Persist the latest durable state of a position.
 
@@ -225,7 +230,13 @@ class PositionService:
 
         closed_at = position.get("closed_at")
 
-        await database_service.execute(
+        execute = (
+            conn.execute
+            if conn is not None
+            else database_service.execute
+        )
+
+        await execute(
             """
             INSERT INTO positions
             (
@@ -468,20 +479,18 @@ class PositionService:
         )
 
         # --------------------------------------------------------
-        # CURRENT STATE
+        # CURRENT STATE AND HISTORICAL SNAPSHOT
         # --------------------------------------------------------
 
-        await self.persist_position(
-            position
-        )
+        async with database_service.transaction() as conn:
+            await self.persist_position(
+                position,
+                conn=conn,
+            )
 
-        # --------------------------------------------------------
-        # HISTORICAL SNAPSHOT
-        # --------------------------------------------------------
-
-        await database_service.execute(
-            """
-            INSERT INTO position_snapshots
+            await conn.execute(
+                """
+                INSERT INTO position_snapshots
             (
                 id,
                 position_id,
@@ -497,11 +506,11 @@ class PositionService:
                 $3,
                 NOW()
             )
-            """,
-            position_id,
-            price,
-            pnl
-        )
+                """,
+                position_id,
+                price,
+                pnl
+            )
 
         logger.info(
             "Position snapshot persisted: "
