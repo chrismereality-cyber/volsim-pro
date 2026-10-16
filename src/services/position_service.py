@@ -1572,8 +1572,8 @@ class PositionService:
 
             return {
                 "status": "RECONCILIATION_FAILED",
-                "synchronized": [],
-                "discrepancies": [],
+                "synchronized": synchronized,
+                "discrepancies": discrepancies,
                 "error": str(exc),
             }
 
