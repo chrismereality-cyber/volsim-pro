@@ -242,3 +242,90 @@ def test_open_position_cancellation_does_not_register_position():
         )
 
     assert "TEST-POSITION-OPEN-CANCEL" not in service.positions
+
+def test_broker_close_oms_lookup_failure_is_reported_as_discrepancy(monkeypatch):
+    import src.services.position_service as position_module
+
+    service = PositionService()
+    oms_order_id = "TEST-OMS-LOOKUP-REGRESSION"
+
+    service.positions["987654"] = {
+        "oms_order_id": oms_order_id,
+        "trade_id": "987654",
+        "broker_order_ticket": None,
+        "broker_deal_ticket": None,
+        "broker_position_ticket": 987654,
+        "symbol": "XAUUSDm",
+        "side": "BUY",
+        "volume": 0.01,
+        "open_price": 3390.0,
+        "current_price": 3395.0,
+        "floating_pl": 5.0,
+        "realized_pl": 0.0,
+        "status": "OPEN",
+        "opened_at": 1756799000,
+        "closed_at": None,
+        "close_price": None,
+    }
+
+    monkeypatch.setattr(
+        position_module.mt5_service,
+        "get_positions_for_reconciliation",
+        lambda: {"success": True, "positions": [], "error": None},
+    )
+    monkeypatch.setattr(
+        position_module.mt5_service,
+        "get_position_close_deals",
+        lambda ticket: {
+            "success": True,
+            "position_ticket": ticket,
+            "deals": [{
+                "position_id": ticket,
+                "price": 3410.0,
+                "time": 1756800100,
+                "ticket": 987655,
+                "order": 987656,
+                "profit": 20.0,
+                "swap": 0.0,
+                "commission": 0.0,
+            }],
+            "error": None,
+        },
+    )
+
+    persisted = []
+
+    async def record_persist_snapshot(position):
+        persisted.append(deepcopy(position))
+
+    monkeypatch.setattr(
+        service, "persist_snapshot", record_persist_snapshot
+    )
+
+    def fail_oms_lookup(order_id):
+        raise RuntimeError("simulated OMS close lookup failure")
+
+    monkeypatch.setattr(
+        position_module.oms_service,
+        "get_order",
+        fail_oms_lookup,
+    )
+
+    result = asyncio.run(service.sync_from_mt5())
+
+    assert persisted, "Broker-confirmed close should be persisted first"
+    assert persisted[-1]["status"] == "CLOSED"
+    assert service.positions["987654"]["status"] == "CLOSED"
+    assert result["status"] == "RECONCILED_WITH_DISCREPANCIES"
+    assert any(
+        discrepancy.get("status") == "OMS_CLOSE_BRIDGE_FAILED"
+        and discrepancy.get("oms_order_id") == oms_order_id
+        and "simulated OMS close lookup failure"
+        in discrepancy.get("error", "")
+        for discrepancy in result["discrepancies"]
+    )
+    assert any(
+        position.get("trade_id") == "987654"
+        and position.get("status") == "CLOSED"
+        for position in result["synchronized"]
+    )
