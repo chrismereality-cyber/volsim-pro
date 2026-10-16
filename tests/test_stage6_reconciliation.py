@@ -14,7 +14,7 @@ async def main():
     async def fake_persist_position(position):
         pass
 
-    async def fake_persist_snapshot(position, profit):
+    async def fake_persist_snapshot(position):
         pass
 
     service.persist_position = fake_persist_position
@@ -169,6 +169,122 @@ async def main():
         print("TEST 5 - MALFORMED BROKER POSITION: PASS")
 
         print("")
+        # TEST 6: reject NaN and infinities in every broker numeric field
+        base_position = {
+            "ticket": 654321,
+            "symbol": "XAUUSDm",
+            "type": "BUY",
+            "volume": 0.01,
+            "price_open": 3400.0,
+            "price_current": 3400.0,
+            "profit": 0.0,
+            "time": 1756800000,
+        }
+
+        for field in ("volume", "price_open", "price_current", "profit"):
+            for invalid_value in (float("nan"), float("inf"), float("-inf")):
+                service.positions.clear()
+                malformed_position = base_position.copy()
+                malformed_position[field] = invalid_value
+
+                position_module.mt5_service.get_positions_for_reconciliation = (
+                    lambda position=malformed_position: {
+                        "success": True,
+                        "positions": [position],
+                        "error": None,
+                    }
+                )
+
+                result = await service.sync_from_mt5()
+
+                assert result["status"] == "RECONCILIATION_FAILED", (
+                    field, invalid_value, result
+                )
+                assert result["synchronized"] == []
+                assert result["discrepancies"] == []
+                assert service.positions == {}
+
+        print("TEST 6 - ALL NON-FINITE NUMERIC FIELDS: PASS")
+
+        # TEST 7: malformed later position must not partially import earlier positions
+        service.positions.clear()
+        valid_position = base_position.copy()
+        valid_position["ticket"] = 654322
+
+        malformed_later_position = base_position.copy()
+        malformed_later_position["ticket"] = 654323
+        malformed_later_position["type"] = "INVALID"
+
+        position_module.mt5_service.get_positions_for_reconciliation = (
+            lambda: {
+                "success": True,
+                "positions": [valid_position, malformed_later_position],
+                "error": None,
+            }
+        )
+
+        result = await service.sync_from_mt5()
+
+        assert result["status"] == "RECONCILIATION_FAILED"
+        assert result["synchronized"] == []
+        assert result["discrepancies"] == []
+        assert service.positions == {}
+
+        print("TEST 7 - NO PARTIAL IMPORT ON MALFORMED SNAPSHOT: PASS")
+        # TEST 8: duplicate broker tickets must fail before any import
+        service.positions.clear()
+        duplicate_position_a = base_position.copy()
+        duplicate_position_a["ticket"] = 654324
+        duplicate_position_b = duplicate_position_a.copy()
+        duplicate_position_b["symbol"] = "BTCUSDm"
+
+        position_module.mt5_service.get_positions_for_reconciliation = (
+            lambda: {
+                "success": True,
+                "positions": [duplicate_position_a, duplicate_position_b],
+                "error": None,
+            }
+        )
+
+        result = await service.sync_from_mt5()
+
+        assert result["status"] == "RECONCILIATION_FAILED", result
+        assert result["synchronized"] == []
+        assert result["discrepancies"] == []
+        assert service.positions == {}
+
+        print("TEST 8 - DUPLICATE TICKETS REJECTED: PASS")
+
+        # TEST 9: malformed nonzero timestamps must fail before any import
+        for invalid_timestamp in (
+            float("nan"),
+            float("inf"),
+            float("-inf"),
+            "not-a-timestamp",
+        ):
+            service.positions.clear()
+            malformed_timestamp_position = base_position.copy()
+            malformed_timestamp_position["ticket"] = 654325
+            malformed_timestamp_position["time"] = invalid_timestamp
+
+            position_module.mt5_service.get_positions_for_reconciliation = (
+                lambda position=malformed_timestamp_position: {
+                    "success": True,
+                    "positions": [position],
+                    "error": None,
+                }
+            )
+
+            result = await service.sync_from_mt5()
+
+            assert result["status"] == "RECONCILIATION_FAILED", (
+                invalid_timestamp, result
+            )
+            assert result["synchronized"] == []
+            assert result["discrepancies"] == []
+            assert service.positions == {}
+
+        print("TEST 9 - INVALID TIMESTAMPS REJECTED: PASS")
         print("STAGE 6 HARDENED RECONCILIATION TESTS: ALL PASS")
 
     finally:
