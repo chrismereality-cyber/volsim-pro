@@ -1278,7 +1278,6 @@ class ExecutionService:
                 live_trade_id = position_ticket or str(order_ticket) or str(order_id)
                 execution_result['trade_id'] = str(live_trade_id)
                 position = await position_service.open_position(str(live_trade_id), order_request, execution_result)
-                await position_service.persist_snapshot(position)
 
                 await self._record_entry_attribution(
                     str(live_trade_id),
