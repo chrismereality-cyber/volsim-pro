@@ -1455,12 +1455,23 @@ class PositionService:
                 oms_order_id = candidate_position.get("oms_order_id")
 
                 if oms_order_id:
-                    oms_order = oms_service.get_order(oms_order_id)
+                    lookup_error = None
+                    try:
+                        oms_order = oms_service.get_order(oms_order_id)
+                    except Exception as oms_exc:
+                        oms_order = None
+                        lookup_error = str(oms_exc)
+                        logger.exception(
+                            "OMS close bridge lookup failed: "
+                            "trade_id=%s oms_order_id=%s",
+                            trade_id,
+                            oms_order_id,
+                        )
 
                     if oms_order is None:
                         bridge_error = (
-                            "OMS order not found: "
-                            f"{oms_order_id}"
+                            lookup_error
+                            or f"OMS order not found: {oms_order_id}"
                         )
                         discrepancies.append({
                             "trade_id": str(trade_id),
