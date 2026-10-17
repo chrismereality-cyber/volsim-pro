@@ -76,8 +76,36 @@ export default function PerformanceAnalyticsView() {
 
   const [timeframe, setTimeframe] = useState<'30D' | '90D' | 'ALL'>('30D');
   const [data, setData] = useState<AnalyticsPayload | null>(null);
+  const [riskLimits, setRiskLimits] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (authLoading || !isAuthenticated || !accessToken) {
+      setRiskLimits(null);
+      return;
+    }
+
+    let active = true;
+
+    TradingApiClient.getAuthenticated(
+      "/api/risk/limits",
+      accessToken,
+    )
+      .then((result) => {
+        if (active && result && typeof result === "object") {
+          setRiskLimits(result as Record<string, unknown>);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setRiskLimits(null);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [authLoading, isAuthenticated, accessToken]);
 
   useEffect(() => {
     if (authLoading || !isAuthenticated || !accessToken) {
@@ -151,16 +179,12 @@ export default function PerformanceAnalyticsView() {
   const pFactor = data.profitFactor ?? 1.0;
   const sortino = data.sortinoRatio ?? 0.0;
   const wRate = data.winRate ?? 0.0;
+  const totalTrades = data.totalTrades ?? 0;
   const maxDD = data.maxDrawdown ?? 0.0;
   const averageWin = data.avgWin ?? 0.0;
   const averageLoss = data.avgLoss ?? 0.0;
   const expRatio = data.expectancy ?? 0.0;
   const assetRows = data.assetMetrics ?? [];
-
-  const drawdownPercent = Math.min(
-    100,
-    Math.max(0, (Math.abs(maxDD) / 7.5) * 100),
-  );
 
   return (
     <div className="telemetry-shell space-y-5">
@@ -257,7 +281,7 @@ export default function PerformanceAnalyticsView() {
           <div className="px-4 py-4">
             <div className="telemetry-label">MAX DRAWDOWN</div>
             <div className="telemetry-value-lg text-rose-400 mt-1">
-              -{Math.abs(maxDD).toFixed(2)}%
+              -${Math.abs(maxDD).toFixed(2)}
             </div>
           </div>
         </div>
@@ -271,9 +295,9 @@ export default function PerformanceAnalyticsView() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <MetricCard
-            label="Sharpe Ratio"
-            value={sharpe.toFixed(2)}
-            subtext="Annualized risk-adjusted return"
+            label="Sharpe Proxy"
+            value={totalTrades >= 2 ? sharpe.toFixed(2) : "N/A"}
+            subtext={totalTrades >= 2 ? "Trade P&L dispersion proxy" : "Insufficient trade history"}
             icon={<Activity className="w-5 h-5" />}
             colorClass="text-emerald-400"
           />
@@ -287,9 +311,9 @@ export default function PerformanceAnalyticsView() {
           />
 
           <MetricCard
-            label="Sortino Ratio"
-            value={sortino.toFixed(2)}
-            subtext="Downside-risk adjusted return"
+            label="Sortino Proxy"
+            value={totalTrades >= 2 ? sortino.toFixed(2) : "N/A"}
+            subtext={totalTrades >= 2 ? "Downside trade P&L proxy" : "Insufficient trade history"}
             icon={<ShieldCheck className="w-5 h-5" />}
             colorClass="text-cyan-400"
           />
@@ -330,28 +354,26 @@ export default function PerformanceAnalyticsView() {
                 </div>
 
                 <div className="telemetry-value-xl text-rose-400 mt-1">
-                  -{Math.abs(maxDD).toFixed(2)}%
+                  -${Math.abs(maxDD).toFixed(2)}
                 </div>
               </div>
 
               <div className="text-right text-[9px] text-zinc-600 uppercase tracking-widest">
-                Reference boundary
+                Configured daily limit
                 <div className="text-zinc-400 font-bold mt-1">
-                  7.50%
+                  {typeof riskLimits?.daily_loss_limit_percent === "number"
+                    ? `${riskLimits.daily_loss_limit_percent}%`
+                    : typeof riskLimits?.max_daily_drawdown === "number"
+                      ? `${riskLimits.max_daily_drawdown}%`
+                      : "Unavailable"}
                 </div>
               </div>
             </div>
 
-            <div className="h-3 bg-zinc-950 border border-zinc-800 rounded-sm overflow-hidden">
-              <div
-                className="h-full bg-rose-500/80 transition-all duration-500"
-                style={{ width: `${drawdownPercent}%` }}
-              />
-            </div>
-
-            <div className="flex justify-between mt-2 text-[9px] uppercase tracking-widest">
-              <span className="text-zinc-600">0%</span>
-              <span className="text-zinc-600">7.50% reference</span>
+            <div className="mt-4 border-t border-zinc-800 pt-3 text-[10px] leading-relaxed text-zinc-500">
+              Historical peak-to-trough loss is an absolute amount for the selected
+              analysis window. The configured daily drawdown limit is a separate
+              percentage policy retrieved from the risk service.
             </div>
           </div>
         </div>
