@@ -1,4 +1,4 @@
-import time
+﻿import time
 import uuid
 import json
 import asyncio
@@ -1110,6 +1110,204 @@ class ExecutionService:
                     'client_order_id': client_order_id,
                     'decision_id': decision_id,
                 }
+            if is_exit:
+                logger.info(
+                    'LIVE EXIT broker-position snapshot validation starting: '
+                    'oms_order_id=%s symbol=%s broker_position_ticket=%s',
+                    order_id,
+                    symbol,
+                    broker_position_ticket,
+                )
+
+                try:
+                    broker_snapshot = mt5_service.get_positions_for_reconciliation()
+                except Exception as snapshot_error:
+                    self.orders_rejected += 1
+                    self.last_error = (
+                        'LIVE EXIT broker position snapshot failed: '
+                        + str(snapshot_error)
+                    )
+                    snapshot_result = {
+                        'success': False,
+                        'order_id': order_id,
+                        'ticket': None,
+                        'retcode': 'BROKER_POSITION_SNAPSHOT_FAILED',
+                        'message': self.last_error,
+                        'client_order_id': client_order_id,
+                        'decision_id': decision_id,
+                    }
+                    oms_service.update_status(
+                        order_id,
+                        'REJECTED',
+                        snapshot_result,
+                    )
+                    await self._release_execution_idempotency(client_order_id)
+                    return snapshot_result
+
+                if not isinstance(broker_snapshot, dict):
+                    self.orders_rejected += 1
+                    self.last_error = (
+                        'LIVE EXIT broker position snapshot is malformed: '
+                        'expected a dictionary result.'
+                    )
+                    snapshot_result = {
+                        'success': False,
+                        'order_id': order_id,
+                        'ticket': None,
+                        'retcode': 'BROKER_POSITION_SNAPSHOT_INVALID',
+                        'message': self.last_error,
+                        'client_order_id': client_order_id,
+                        'decision_id': decision_id,
+                    }
+                    oms_service.update_status(
+                        order_id,
+                        'REJECTED',
+                        snapshot_result,
+                    )
+                    await self._release_execution_idempotency(client_order_id)
+                    return snapshot_result
+
+                if broker_snapshot.get('success') is not True:
+                    self.orders_rejected += 1
+                    self.last_error = (
+                        'LIVE EXIT broker position snapshot failed: '
+                        + str(broker_snapshot.get('error') or 'unknown broker snapshot error')
+                    )
+                    snapshot_result = {
+                        'success': False,
+                        'order_id': order_id,
+                        'ticket': None,
+                        'retcode': 'BROKER_POSITION_SNAPSHOT_FAILED',
+                        'message': self.last_error,
+                        'client_order_id': client_order_id,
+                        'decision_id': decision_id,
+                    }
+                    oms_service.update_status(
+                        order_id,
+                        'REJECTED',
+                        snapshot_result,
+                    )
+                    await self._release_execution_idempotency(client_order_id)
+                    return snapshot_result
+
+                broker_positions = broker_snapshot.get('positions')
+                if not isinstance(broker_positions, list):
+                    self.orders_rejected += 1
+                    self.last_error = (
+                        'LIVE EXIT broker position snapshot is malformed: '
+                        'positions must be a list.'
+                    )
+                    snapshot_result = {
+                        'success': False,
+                        'order_id': order_id,
+                        'ticket': None,
+                        'retcode': 'BROKER_POSITION_SNAPSHOT_INVALID',
+                        'message': self.last_error,
+                        'client_order_id': client_order_id,
+                        'decision_id': decision_id,
+                    }
+                    oms_service.update_status(
+                        order_id,
+                        'REJECTED',
+                        snapshot_result,
+                    )
+                    await self._release_execution_idempotency(client_order_id)
+                    return snapshot_result
+
+                matching_position = next(
+                    (
+                        candidate
+                        for candidate in broker_positions
+                        if isinstance(candidate, dict)
+                        and str(candidate.get('ticket')) == str(broker_position_ticket)
+                    ),
+                    None,
+                )
+
+                if matching_position is None:
+                    self.orders_rejected += 1
+                    self.last_error = (
+                        'LIVE EXIT broker position ticket was not found '
+                        'in the fresh broker snapshot: '
+                        f'{broker_position_ticket}'
+                    )
+                    snapshot_result = {
+                        'success': False,
+                        'order_id': order_id,
+                        'ticket': None,
+                        'retcode': 'BROKER_POSITION_NOT_FOUND',
+                        'message': self.last_error,
+                        'client_order_id': client_order_id,
+                        'decision_id': decision_id,
+                    }
+                    oms_service.update_status(
+                        order_id,
+                        'REJECTED',
+                        snapshot_result,
+                    )
+                    await self._release_execution_idempotency(client_order_id)
+                    return snapshot_result
+
+                broker_symbol = matching_position.get('symbol')
+                if broker_symbol != symbol:
+                    self.orders_rejected += 1
+                    self.last_error = (
+                        'LIVE EXIT broker position symbol mismatch: '
+                        f'expected={symbol} actual={broker_symbol}'
+                    )
+                    snapshot_result = {
+                        'success': False,
+                        'order_id': order_id,
+                        'ticket': None,
+                        'retcode': 'BROKER_POSITION_SYMBOL_MISMATCH',
+                        'message': self.last_error,
+                        'client_order_id': client_order_id,
+                        'decision_id': decision_id,
+                    }
+                    oms_service.update_status(
+                        order_id,
+                        'REJECTED',
+                        snapshot_result,
+                    )
+                    await self._release_execution_idempotency(client_order_id)
+                    return snapshot_result
+
+                broker_position_side = str(
+                    matching_position.get('type', '')
+                ).upper()
+
+                if broker_position_side != position_side:
+                    self.orders_rejected += 1
+                    self.last_error = (
+                        'LIVE EXIT broker position side mismatch: '
+                        f'expected={position_side} actual={broker_position_side}'
+                    )
+                    snapshot_result = {
+                        'success': False,
+                        'order_id': order_id,
+                        'ticket': None,
+                        'retcode': 'BROKER_POSITION_SIDE_MISMATCH',
+                        'message': self.last_error,
+                        'client_order_id': client_order_id,
+                        'decision_id': decision_id,
+                    }
+                    oms_service.update_status(
+                        order_id,
+                        'REJECTED',
+                        snapshot_result,
+                    )
+                    await self._release_execution_idempotency(client_order_id)
+                    return snapshot_result
+
+                logger.info(
+                    'LIVE EXIT broker-position snapshot validation PASSED: '
+                    'oms_order_id=%s ticket=%s symbol=%s side=%s',
+                    order_id,
+                    broker_position_ticket,
+                    symbol,
+                    position_side,
+                )
+
             logger.info('MT5 order_check() PASSED. Proceeding to order_send(): oms_order_id=%s symbol=%s', order_id, order_request.get('symbol'))
             broker_transmission_started = True
             result = mt5.order_send(request)
