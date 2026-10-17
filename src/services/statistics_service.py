@@ -377,6 +377,219 @@ class StatisticsService:
             "avg_duration_minutes": round(avg_duration_minutes, 2),
             "trade_count": trade_count,
         }
+
+    def performance_analytics(self, timeframe="30D"):
+        """
+        Read-only performance analytics built from the existing merged
+        completed-trade history. No execution or database mutation occurs.
+        """
+        import math
+        import time
+        from collections import defaultdict
+
+        timeframe = str(timeframe or "30D").upper()
+
+        if timeframe not in {"30D", "90D", "ALL"}:
+            raise ValueError(
+                "Unsupported timeframe. Expected 30D, 90D, or ALL."
+            )
+
+        trades = self._merged_completed_trades()
+
+        now = time.time()
+        cutoff = None
+
+        if timeframe == "30D":
+            cutoff = now - (30 * 24 * 60 * 60)
+        elif timeframe == "90D":
+            cutoff = now - (90 * 24 * 60 * 60)
+
+        normalized = []
+
+        for trade in trades:
+            try:
+                profit = float(trade.get("profit", 0.0) or 0.0)
+            except (TypeError, ValueError):
+                profit = 0.0
+
+            try:
+                closed_at = float(trade.get("closed_at", 0.0) or 0.0)
+            except (TypeError, ValueError):
+                closed_at = 0.0
+
+            if cutoff is not None:
+                if not closed_at or closed_at < cutoff:
+                    continue
+
+            try:
+                volume = float(trade.get("volume", 0.0) or 0.0)
+            except (TypeError, ValueError):
+                volume = 0.0
+
+            normalized.append(
+                {
+                    "symbol": str(trade.get("symbol") or "UNKNOWN"),
+                    "profit": profit,
+                    "volume": volume,
+                    "closed_at": closed_at,
+                }
+            )
+
+        normalized.sort(key=lambda item: item["closed_at"])
+
+        profits = [trade["profit"] for trade in normalized]
+        wins = [value for value in profits if value > 0]
+        losses = [abs(value) for value in profits if value < 0]
+
+        total_trades = len(profits)
+        winning_trades = len(wins)
+        losing_trades = len(losses)
+
+        total_profit = sum(wins)
+        total_loss = sum(losses)
+        total_net = sum(profits)
+
+        win_rate = (
+            (winning_trades / total_trades) * 100.0
+            if total_trades
+            else 0.0
+        )
+
+        average_win = (
+            total_profit / winning_trades
+            if winning_trades
+            else 0.0
+        )
+
+        average_loss = (
+            total_loss / losing_trades
+            if losing_trades
+            else 0.0
+        )
+
+        profit_factor = (
+            total_profit / total_loss
+            if total_loss > 0
+            else 0.0
+        )
+
+        expectancy = (
+            total_net / total_trades
+            if total_trades
+            else 0.0
+        )
+
+        max_consecutive_wins = 0
+        consecutive_wins = 0
+
+        for value in profits:
+            if value > 0:
+                consecutive_wins += 1
+                max_consecutive_wins = max(
+                    max_consecutive_wins,
+                    consecutive_wins,
+                )
+            else:
+                consecutive_wins = 0
+
+        cumulative = 0.0
+        peak = 0.0
+        max_drawdown = 0.0
+
+        for value in profits:
+            cumulative += value
+            peak = max(peak, cumulative)
+            max_drawdown = max(
+                max_drawdown,
+                peak - cumulative,
+            )
+
+        sharpe_ratio = 0.0
+
+        if len(profits) >= 2:
+            mean_profit = total_net / len(profits)
+
+            variance = sum(
+                (value - mean_profit) ** 2
+                for value in profits
+            ) / len(profits)
+
+            stddev = math.sqrt(variance)
+
+            if stddev > 0:
+                sharpe_ratio = (
+                    mean_profit / stddev
+                ) * math.sqrt(len(profits))
+
+        sortino_ratio = 0.0
+
+        if profits:
+            mean_profit = total_net / len(profits)
+
+            downside_variance = sum(
+                min(0.0, value) ** 2
+                for value in profits
+            ) / len(profits)
+
+            downside_deviation = math.sqrt(
+                downside_variance
+            )
+
+            if downside_deviation > 0:
+                sortino_ratio = (
+                    mean_profit / downside_deviation
+                ) * math.sqrt(len(profits))
+
+        asset_totals = defaultdict(
+            lambda: {
+                "volume": 0.0,
+                "profit": 0.0,
+                "loss": 0.0,
+                "net": 0.0,
+            }
+        )
+
+        for trade in normalized:
+            symbol = trade["symbol"]
+            profit = trade["profit"]
+
+            asset_totals[symbol]["volume"] += trade["volume"]
+            asset_totals[symbol]["net"] += profit
+
+            if profit > 0:
+                asset_totals[symbol]["profit"] += profit
+            elif profit < 0:
+                asset_totals[symbol]["loss"] += abs(profit)
+
+        asset_metrics = [
+            {
+                "symbol": symbol,
+                "volume": values["volume"],
+                "profit": values["profit"],
+                "loss": values["loss"],
+                "net": values["net"],
+            }
+            for symbol, values in sorted(asset_totals.items())
+        ]
+
+        return {
+            "status": "success",
+            "timeframe": timeframe,
+            "sharpeRatio": sharpe_ratio,
+            "profitFactor": profit_factor,
+            "sortinoRatio": sortino_ratio,
+            "winRate": win_rate,
+            "totalTrades": total_trades,
+            "winningTrades": winning_trades,
+            "losingTrades": losing_trades,
+            "avgWin": average_win,
+            "avgLoss": average_loss,
+            "maxDrawdown": max_drawdown,
+            "expectancy": expectancy,
+            "maxConsecutiveWins": max_consecutive_wins,
+            "assetMetrics": asset_metrics,
+        }
+
 statistics_service = StatisticsService()
 
 
