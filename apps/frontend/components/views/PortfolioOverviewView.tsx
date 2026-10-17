@@ -98,7 +98,7 @@ export default function PortfolioOverviewView() {
           />
 
           <Metric
-            title="MAX DRAWDOWN"
+            title="DRAWDOWN LIMIT"
             value={`${state.maxDrawdown.toFixed(2)}%`}
           />
 
