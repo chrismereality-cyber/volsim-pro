@@ -28,6 +28,11 @@ def test_live_exit_rejects_invalid_broker_snapshot_before_transmission(
 ):
     service = ExecutionService.__new__(ExecutionService)
     service.execution_mode = "LIVE"
+    monkeypatch.setattr(
+        service,
+        "_verify_broker_account_mode",
+        lambda expected_mode: {"ok": True, "code": "MOCK_ACCOUNT_VERIFIED"},
+    )
     service.orders_rejected = 0
     service.orders_sent = 0
     service.orders_filled = 0
@@ -179,6 +184,11 @@ def test_live_exit_rejects_invalid_broker_snapshot_before_transmission(
 def test_live_exit_valid_broker_snapshot_reaches_mocked_transmission(monkeypatch):
     service = ExecutionService.__new__(ExecutionService)
     service.execution_mode = "LIVE"
+    monkeypatch.setattr(
+        service,
+        "_verify_broker_account_mode",
+        lambda expected_mode: {"ok": True, "code": "MOCK_ACCOUNT_VERIFIED"},
+    )
     service.orders_rejected = 0
     service.orders_sent = 0
     service.orders_filled = 0

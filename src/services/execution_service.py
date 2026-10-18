@@ -913,6 +913,43 @@ class ExecutionService:
                     order_id,
                 )
                 return {'order_id': order_id, 'trade_id': paper_trade_id, 'position': position, **result}
+            account_mode_result = self._verify_broker_account_mode(self.execution_mode)
+            if not account_mode_result.get('ok'):
+                self.orders_rejected += 1
+                self.last_error = str(
+                    account_mode_result.get(
+                        'code',
+                        'MT5_ACCOUNT_VERIFICATION_ERROR',
+                    )
+                )
+                account_mode_rejection = {
+                    'success': False,
+                    'order_id': order_id,
+                    'ticket': None,
+                    'retcode': self.last_error,
+                    'message': account_mode_result.get(
+                        'message',
+                        'MT5 account-mode verification failed.',
+                    ),
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                    'execution_mode': self.execution_mode,
+                    'retryable': False,
+                    'reconciliation_required': False,
+                    'broker_transmission_started': False,
+                    'account_mode_verified': False,
+                }
+                oms_service.update_status(
+                    order_id,
+                    'REJECTED',
+                    account_mode_rejection,
+                )
+                await self._finalize_execution_idempotency(
+                    client_order_id,
+                    account_mode_rejection,
+                    order_id,
+                )
+                return account_mode_rejection
             is_exit = order_request.get('type') == 'EXIT'
 
             if is_exit:
