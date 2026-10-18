@@ -43,10 +43,86 @@ class ExecutionService:
         self.last_error = None
         self.execution_latency_ms = 0
         configured_mode = os.getenv('VOLSIM_EXECUTION_MODE', 'PAPER').strip().upper()
-        if configured_mode not in {'PAPER', 'LIVE'}:
+        if configured_mode not in {'PAPER', 'DEMO', 'LIVE'}:
             logger.warning('Invalid VOLSIM_EXECUTION_MODE=%r; falling back to PAPER.', configured_mode)
             configured_mode = 'PAPER'
         self.execution_mode = configured_mode
+
+    def _verify_broker_account_mode(self, expected_mode: str) -> dict:
+        """
+        Read-only verification of the connected MT5 terminal and account mode.
+
+        This helper never initializes MT5 or establishes a connection.
+        """
+        expected = str(expected_mode or '').strip().upper()
+        if expected not in {'DEMO', 'LIVE'}:
+            return {
+                'ok': False,
+                'code': 'UNSUPPORTED_BROKER_MODE',
+                'message': 'Broker account verification requires DEMO or LIVE mode.',
+            }
+
+        try:
+            terminal = mt5.terminal_info()
+            if terminal is None or getattr(terminal, 'connected', False) is not True:
+                return {
+                    'ok': False,
+                    'code': 'MT5_TERMINAL_NOT_CONNECTED',
+                    'message': 'MT5 terminal is missing or not connected.',
+                }
+
+            account = mt5.account_info()
+            if account is None:
+                return {
+                    'ok': False,
+                    'code': 'MT5_ACCOUNT_UNAVAILABLE',
+                    'message': 'MT5 account information is unavailable.',
+                }
+
+            trade_mode = getattr(account, 'trade_mode', None)
+            expected_trade_mode = {
+                'DEMO': getattr(mt5, 'ACCOUNT_TRADE_MODE_DEMO', None),
+                'LIVE': getattr(mt5, 'ACCOUNT_TRADE_MODE_REAL', None),
+            }[expected]
+
+            if expected_trade_mode is None or trade_mode != expected_trade_mode:
+                return {
+                    'ok': False,
+                    'code': 'MT5_ACCOUNT_MODE_MISMATCH',
+                    'message': 'Connected MT5 account does not match the configured execution mode.',
+                }
+
+            if expected == 'DEMO':
+                expected_margin_mode = getattr(
+                    mt5, 'ACCOUNT_MARGIN_MODE_RETAIL_HEDGING', None
+                )
+                margin_mode = getattr(account, 'margin_mode', None)
+                if (
+                    expected_margin_mode is None
+                    or margin_mode != expected_margin_mode
+                ):
+                    return {
+                        'ok': False,
+                        'code': 'MT5_ACCOUNT_MARGIN_MODE_MISMATCH',
+                        'message': 'Configured DEMO execution requires a hedging-mode MT5 account.',
+                    }
+
+            return {
+                'ok': True,
+                'code': 'MT5_ACCOUNT_MODE_VERIFIED',
+                'message': (
+                    'Connected MT5 account matches the configured execution mode'
+                    + (' and hedging mode.' if expected == 'DEMO' else '.')
+                ),
+            }
+        except Exception:
+            logger.exception('MT5 account-mode verification failed.')
+            return {
+                'ok': False,
+                'code': 'MT5_ACCOUNT_VERIFICATION_ERROR',
+                'message': 'MT5 account-mode verification failed unexpectedly.',
+            }
+
 
     async def _claim_execution_idempotency(self, client_order_id: str):
         """
@@ -514,26 +590,47 @@ class ExecutionService:
             return unresolved_result
         try:
             live_transmission_authorized = order_request.get('live_transmission_authorized') is True
+            demo_transmission_authorized = order_request.get('demo_transmission_authorized') is True
 
-            # PAPER mode must never require live broker authorization.
-            # LIVE mode requires explicit boolean authorization.
-            if self.execution_mode == 'LIVE' and not live_transmission_authorized:
+            # PAPER does not require broker authorization.
+            # DEMO and LIVE require separate explicit authorizations.
+            required_authorization = {
+                'DEMO': (
+                    'demo_transmission_authorized',
+                    demo_transmission_authorized,
+                    'DEMO_TRANSMISSION_NOT_AUTHORIZED',
+                    'Demo broker transmission requires explicit authorization.',
+                ),
+                'LIVE': (
+                    'live_transmission_authorized',
+                    live_transmission_authorized,
+                    'LIVE_TRANSMISSION_NOT_AUTHORIZED',
+                    'Live broker transmission requires explicit authorization.',
+                ),
+            }.get(self.execution_mode)
+
+            if required_authorization and not required_authorization[1]:
+                authorization_field, _, authorization_code, authorization_message = required_authorization
                 self.orders_rejected += 1
-                self.last_error = 'LIVE_TRANSMISSION_NOT_AUTHORIZED'
+                self.last_error = authorization_code
                 authorization_result = {
                     'success': False,
                     'order_id': order_id,
                     'ticket': None,
-                    'retcode': 'LIVE_TRANSMISSION_NOT_AUTHORIZED',
-                    'message': 'Live broker transmission requires explicit authorization.',
+                    'retcode': authorization_code,
+                    'message': authorization_message,
                     'client_order_id': client_order_id,
                     'decision_id': decision_id,
                     'execution_mode': self.execution_mode,
-                    'live_transmission_authorized': False
+                    authorization_field: False,
+                    'retryable': True,
+                    'reconciliation_required': False,
+                    'broker_transmission_started': False,
                 }
                 logger.warning(
-                    'LIVE TRANSMISSION DENIED: explicit authorization was not provided. '
+                    '%s TRANSMISSION DENIED: explicit authorization was not provided. '
                     'oms_order_id=%s client_order_id=%s',
+                    self.execution_mode,
                     order_id,
                     client_order_id
                 )
