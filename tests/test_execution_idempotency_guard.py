@@ -5,6 +5,258 @@ import pytest
 from src.services.execution_service import ExecutionService, oms_service
 
 
+def test_broker_account_verification_rejects_unsupported_mode(monkeypatch):
+    from src.services import execution_service as execution_module
+
+    service = ExecutionService.__new__(ExecutionService)
+
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "terminal_info",
+        lambda: pytest.fail("Unsupported mode must not inspect MT5"),
+    )
+
+    result = service._verify_broker_account_mode("PAPER")
+
+    assert result["ok"] is False
+    assert result["code"] == "UNSUPPORTED_BROKER_MODE"
+
+
+@pytest.mark.parametrize(
+    "terminal",
+    [
+        None,
+        pytest.param(
+            __import__("types").SimpleNamespace(connected=False),
+            id="disconnected-terminal",
+        ),
+    ],
+)
+def test_broker_account_verification_rejects_missing_or_disconnected_terminal(
+    monkeypatch, terminal
+):
+    from src.services import execution_service as execution_module
+
+    service = ExecutionService.__new__(ExecutionService)
+    monkeypatch.setattr(execution_module.mt5, "terminal_info", lambda: terminal)
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "account_info",
+        lambda: pytest.fail("Account lookup must not follow a disconnected terminal"),
+    )
+
+    result = service._verify_broker_account_mode("DEMO")
+
+    assert result["ok"] is False
+    assert result["code"] == "MT5_TERMINAL_NOT_CONNECTED"
+
+
+def test_broker_account_verification_rejects_unavailable_account(monkeypatch):
+    from types import SimpleNamespace
+    from src.services import execution_service as execution_module
+
+    service = ExecutionService.__new__(ExecutionService)
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "terminal_info",
+        lambda: SimpleNamespace(connected=True),
+    )
+    monkeypatch.setattr(execution_module.mt5, "account_info", lambda: None)
+
+    result = service._verify_broker_account_mode("DEMO")
+
+    assert result["ok"] is False
+    assert result["code"] == "MT5_ACCOUNT_UNAVAILABLE"
+
+
+@pytest.mark.parametrize(
+    ("expected_mode", "constant_name"),
+    [
+        ("DEMO", "ACCOUNT_TRADE_MODE_DEMO"),
+        ("LIVE", "ACCOUNT_TRADE_MODE_REAL"),
+    ],
+)
+def test_broker_account_verification_accepts_matching_account_mode(
+    monkeypatch, expected_mode, constant_name
+):
+    from types import SimpleNamespace
+    from src.services import execution_service as execution_module
+
+    service = ExecutionService.__new__(ExecutionService)
+    expected_trade_mode = getattr(execution_module.mt5, constant_name)
+
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "terminal_info",
+        lambda: SimpleNamespace(connected=True),
+    )
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "account_info",
+        lambda: SimpleNamespace(
+            trade_mode=expected_trade_mode,
+            margin_mode=getattr(
+                execution_module.mt5,
+                "ACCOUNT_MARGIN_MODE_RETAIL_HEDGING",
+                None,
+            ),
+        ),
+    )
+
+    result = service._verify_broker_account_mode(expected_mode)
+
+    assert result["ok"] is True
+    assert result["code"] == "MT5_ACCOUNT_MODE_VERIFIED"
+
+
+def test_demo_account_verification_rejects_netting_mode(monkeypatch):
+    from types import SimpleNamespace
+    from src.services import execution_service as execution_module
+
+    service = ExecutionService.__new__(ExecutionService)
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "terminal_info",
+        lambda: SimpleNamespace(connected=True),
+    )
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "account_info",
+        lambda: SimpleNamespace(
+            trade_mode=execution_module.mt5.ACCOUNT_TRADE_MODE_DEMO,
+            margin_mode=execution_module.mt5.ACCOUNT_MARGIN_MODE_RETAIL_NETTING,
+        ),
+    )
+
+    result = service._verify_broker_account_mode("DEMO")
+
+    assert result["ok"] is False
+    assert result["code"] == "MT5_ACCOUNT_MARGIN_MODE_MISMATCH"
+
+
+def test_demo_account_verification_rejects_missing_hedging_constant(monkeypatch):
+    from types import SimpleNamespace
+    from src.services import execution_service as execution_module
+
+    service = ExecutionService.__new__(ExecutionService)
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "terminal_info",
+        lambda: SimpleNamespace(connected=True),
+    )
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "account_info",
+        lambda: SimpleNamespace(
+            trade_mode=execution_module.mt5.ACCOUNT_TRADE_MODE_DEMO,
+            margin_mode=execution_module.mt5.ACCOUNT_MARGIN_MODE_RETAIL_HEDGING,
+        ),
+    )
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "ACCOUNT_MARGIN_MODE_RETAIL_HEDGING",
+        None,
+    )
+
+    result = service._verify_broker_account_mode("DEMO")
+
+    assert result["ok"] is False
+    assert result["code"] == "MT5_ACCOUNT_MARGIN_MODE_MISMATCH"
+
+
+def test_broker_account_verification_rejects_account_mode_mismatch(monkeypatch):
+    from types import SimpleNamespace
+    from src.services import execution_service as execution_module
+
+    service = ExecutionService.__new__(ExecutionService)
+    demo_mode = execution_module.mt5.ACCOUNT_TRADE_MODE_DEMO
+    real_mode = execution_module.mt5.ACCOUNT_TRADE_MODE_REAL
+
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "terminal_info",
+        lambda: SimpleNamespace(connected=True),
+    )
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "account_info",
+        lambda: SimpleNamespace(trade_mode=real_mode),
+    )
+
+    result = service._verify_broker_account_mode("DEMO")
+
+    assert demo_mode != real_mode
+    assert result["ok"] is False
+    assert result["code"] == "MT5_ACCOUNT_MODE_MISMATCH"
+
+
+def test_broker_account_verification_rejects_missing_mode_constant(monkeypatch):
+    from types import SimpleNamespace
+    from src.services import execution_service as execution_module
+
+    service = ExecutionService.__new__(ExecutionService)
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "terminal_info",
+        lambda: SimpleNamespace(connected=True),
+    )
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "account_info",
+        lambda: SimpleNamespace(trade_mode=0),
+    )
+    monkeypatch.setattr(execution_module.mt5, "ACCOUNT_TRADE_MODE_DEMO", None)
+
+    result = service._verify_broker_account_mode("DEMO")
+
+    assert result["ok"] is False
+    assert result["code"] == "MT5_ACCOUNT_MODE_MISMATCH"
+
+
+@pytest.mark.parametrize(
+    ("method_name", "expected_code"),
+    [
+        ("terminal_info", "MT5_ACCOUNT_VERIFICATION_ERROR"),
+        ("account_info", "MT5_ACCOUNT_VERIFICATION_ERROR"),
+    ],
+)
+def test_broker_account_verification_handles_mt5_inspection_exceptions(
+    monkeypatch, method_name, expected_code
+):
+    from types import SimpleNamespace
+    from src.services import execution_service as execution_module
+
+    service = ExecutionService.__new__(ExecutionService)
+
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "terminal_info",
+        lambda: SimpleNamespace(connected=True),
+    )
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "account_info",
+        lambda: SimpleNamespace(
+            trade_mode=execution_module.mt5.ACCOUNT_TRADE_MODE_DEMO
+        ),
+    )
+
+    def raise_inspection_error():
+        raise RuntimeError("controlled MT5 inspection failure")
+
+    monkeypatch.setattr(
+        execution_module.mt5,
+        method_name,
+        raise_inspection_error,
+    )
+
+    result = service._verify_broker_account_mode("DEMO")
+
+    assert result["ok"] is False
+    assert result["code"] == expected_code
+
+
+
 def make_service(monkeypatch, previous_record):
     service = ExecutionService.__new__(ExecutionService)
     service.execution_mode = "PAPER"
