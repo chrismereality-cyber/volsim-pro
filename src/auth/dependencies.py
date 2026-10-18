@@ -1,10 +1,12 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Callable
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.orm import Session
 
+from database import get_db
 from .models import AuthorizationContext
 from .rbac import AuthorizationError, require_permission
 from .service import AuthorizationService, IdentityService
@@ -20,6 +22,7 @@ def get_authorization_context(
     credentials: HTTPAuthorizationCredentials | None = Depends(
         _bearer_scheme
     ),
+    db: Session = Depends(get_db),
 ) -> AuthorizationContext:
     """
     Resolve the authenticated caller from a JWT Bearer token.
@@ -53,30 +56,17 @@ def get_authorization_context(
             headers={"WWW-Authenticate": "Bearer"},
         ) from None
 
-    user_id = payload.get("sub")
-    username = payload.get("username")
-    roles = payload.get("roles")
-
-    if not user_id:
+    try:
+        identity = IdentityService.from_access_token_payload(
+            db,
+            payload,
+        )
+    except ValueError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Access token is missing subject.",
+            detail="Invalid token identity or unavailable account.",
             headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    if not isinstance(roles, list):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Access token contains invalid roles.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    identity = IdentityService.build_identity(
-        user_id=str(user_id),
-        username=username,
-        roles=roles,
-        is_active=True,
-    )
+        ) from None
 
     return AuthorizationService.context(
         identity,

@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import os
 from datetime import datetime
 from contextlib import asynccontextmanager
@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.websockets import WebSocket, WebSocketDisconnect
 from sqlalchemy import text
-from database import engine
+from database import engine, SessionLocal
 
 from routers.analytics import router as analytics_router
 from routers.auth import router as auth_router
@@ -604,30 +604,20 @@ async def trading_state_socket(
             )
             return
 
-        user_id = token_payload.get("sub")
-        username = token_payload.get("username")
-        roles = token_payload.get("roles")
-
-        if not user_id:
+        db = SessionLocal()
+        try:
+            identity = IdentityService.from_access_token_payload(
+                db,
+                token_payload,
+            )
+        except ValueError:
             await websocket.close(
                 code=1008,
-                reason="Access token is missing subject.",
+                reason="Invalid token identity or unavailable account.",
             )
             return
-
-        if not isinstance(roles, list):
-            await websocket.close(
-                code=1008,
-                reason="Access token contains invalid roles.",
-            )
-            return
-
-        identity = IdentityService.build_identity(
-            user_id=str(user_id),
-            username=username,
-            roles=roles,
-            is_active=True,
-        )
+        finally:
+            db.close()
 
         context = AuthorizationService.context(
             identity,
