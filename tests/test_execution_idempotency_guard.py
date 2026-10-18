@@ -358,6 +358,11 @@ def test_transmission_exception_persists_reconciliation_flags(monkeypatch):
 
     service = ExecutionService.__new__(ExecutionService)
     service.execution_mode = "LIVE"
+    monkeypatch.setattr(
+        service,
+        "_verify_broker_account_mode",
+        lambda expected_mode: {"ok": True, "code": "MOCK_ACCOUNT_VERIFIED"},
+    )
     service.orders_rejected = 0
     service.orders_sent = 0
     service.orders_filled = 0
@@ -578,6 +583,11 @@ def test_live_exit_missing_trade_id_bypasses_entry_stop_guard(monkeypatch):
 
     service = ExecutionService.__new__(ExecutionService)
     service.execution_mode = "LIVE"
+    monkeypatch.setattr(
+        service,
+        "_verify_broker_account_mode",
+        lambda expected_mode: {"ok": True, "code": "MOCK_ACCOUNT_VERIFIED"},
+    )
     service.orders_rejected = 0
     service.orders_sent = 0
     service.orders_filled = 0
@@ -762,3 +772,112 @@ def test_duplicate_unresolved_oms_state_preserves_no_transmission_flag(monkeypat
     assert result["broker_transmission_started"] is False
     assert result["duplicate_execution"] is True
     assert result["retryable"] is False
+
+def test_demo_netting_account_rejected_before_broker_checks(monkeypatch):
+    from types import SimpleNamespace
+    from src.services import execution_service as execution_module
+
+    service = ExecutionService.__new__(ExecutionService)
+    service.execution_mode = "DEMO"
+    service.orders_rejected = 0
+    service.orders_sent = 0
+    service.orders_filled = 0
+    service.last_order_time = None
+    service.last_fill_time = None
+    service.last_error = None
+    service.execution_latency_ms = 0
+
+    captured = {"statuses": [], "finalization": None}
+
+    async def claim_identity(client_order_id):
+        return True, None
+
+    async def capture_finalization(client_order_id, result, oms_order_id=None):
+        captured["finalization"] = {
+            "client_order_id": client_order_id,
+            "result": result,
+            "oms_order_id": oms_order_id,
+        }
+
+    monkeypatch.setattr(service, "_claim_execution_idempotency", claim_identity)
+    monkeypatch.setattr(service, "_finalize_execution_idempotency", capture_finalization)
+    monkeypatch.setattr(
+        execution_module.oms_service,
+        "create_order",
+        lambda request: {"order_id": "mock-demo-netting-order"},
+    )
+    monkeypatch.setattr(
+        execution_module.oms_service,
+        "update_status",
+        lambda order_id, status, result: captured["statuses"].append(
+            (order_id, status, result)
+        ),
+    )
+    monkeypatch.setattr(
+        execution_module.risk_engine_service,
+        "approve_order",
+        lambda request: {"approved": True},
+    )
+    monkeypatch.setattr(
+        execution_module.execution_guard_service,
+        "evaluate",
+        lambda **kwargs: {"allowed": True, "status": "TEST_APPROVED"},
+    )
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "terminal_info",
+        lambda: SimpleNamespace(connected=True),
+    )
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "account_info",
+        lambda: SimpleNamespace(
+            trade_mode=execution_module.mt5.ACCOUNT_TRADE_MODE_DEMO,
+            margin_mode=execution_module.mt5.ACCOUNT_MARGIN_MODE_RETAIL_NETTING,
+        ),
+    )
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "order_check",
+        lambda request: pytest.fail(
+            "Rejected DEMO netting account reached mt5.order_check"
+        ),
+    )
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "order_send",
+        lambda request: pytest.fail(
+            "Rejected DEMO netting account reached mt5.order_send"
+        ),
+    )
+
+    request = {
+        "action": "BUY",
+        "type": "BUY",
+        "decision_id": "step7ct538-demo-mode-test",
+        "client_order_id": "step7ct538-demo-netting-test",
+        "demo_transmission_authorized": True,
+        "volume": 0.01,
+        "price": 2500.0,
+        "stop_loss": 2490.0,
+        "symbol": "XAUUSDm",
+    }
+
+    result = asyncio.run(service.send_order(request))
+
+    assert result["success"] is False
+    assert result["retcode"] == "MT5_ACCOUNT_MARGIN_MODE_MISMATCH"
+    assert result["execution_mode"] == "DEMO"
+    assert result["broker_transmission_started"] is False
+    assert result["account_mode_verified"] is False
+    assert service.orders_rejected == 1
+
+    assert len(captured["statuses"]) == 1
+    order_id, status, status_result = captured["statuses"][0]
+    assert order_id == "mock-demo-netting-order"
+    assert status == "REJECTED"
+    assert status_result["retcode"] == result["retcode"]
+
+    assert captured["finalization"]["client_order_id"] == request["client_order_id"]
+    assert captured["finalization"]["oms_order_id"] == "mock-demo-netting-order"
+    assert captured["finalization"]["result"]["retcode"] == result["retcode"]
