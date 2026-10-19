@@ -1,5 +1,6 @@
 ﻿import time
 import uuid
+import math
 import json
 import asyncio
 import logging
@@ -47,6 +48,128 @@ class ExecutionService:
             logger.warning('Invalid VOLSIM_EXECUTION_MODE=%r; falling back to PAPER.', configured_mode)
             configured_mode = 'PAPER'
         self.execution_mode = configured_mode
+
+
+    def _validate_paper_quote(self, quote, now=None):
+        """Validate a fresh bid/ask snapshot before PAPER execution."""
+        result = {
+            "ok": False,
+            "code": "PAPER_QUOTE_INVALID",
+            "message": "The PAPER quote is invalid.",
+            "bid": None,
+            "ask": None,
+            "timestamp": None,
+            "age_seconds": None,
+            "max_age_seconds": None,
+        }
+
+        try:
+            max_age = float(os.getenv("VOLSIM_PAPER_MAX_QUOTE_AGE_SECONDS", "10"))
+        except (TypeError, ValueError, OverflowError):
+            result.update(
+                code="PAPER_QUOTE_CONFIG_INVALID",
+                message="PAPER quote-age configuration is not numeric.",
+            )
+            return result
+
+        if not math.isfinite(max_age) or max_age <= 0:
+            result.update(
+                code="PAPER_QUOTE_CONFIG_INVALID",
+                message="PAPER quote-age configuration must be finite and positive.",
+            )
+            return result
+        result["max_age_seconds"] = max_age
+
+        if not isinstance(quote, dict):
+            result.update(
+                code="PAPER_QUOTE_MISSING",
+                message="No usable PAPER quote snapshot was returned.",
+            )
+            return result
+
+        if "timestamp" not in quote or quote.get("timestamp") is None:
+            result.update(
+                code="PAPER_QUOTE_MISSING_TIMESTAMP",
+                message="The PAPER quote has no timestamp.",
+            )
+            return result
+
+        try:
+            bid = float(quote.get("bid"))
+            ask = float(quote.get("ask"))
+            timestamp = float(quote.get("timestamp"))
+        except (TypeError, ValueError, OverflowError):
+            result.update(
+                code="PAPER_QUOTE_INVALID",
+                message="The PAPER quote contains malformed numeric fields.",
+            )
+            return result
+
+        if not all(math.isfinite(value) for value in (bid, ask, timestamp)):
+            result.update(
+                code="PAPER_QUOTE_INVALID",
+                message="The PAPER quote contains non-finite numeric fields.",
+            )
+            return result
+
+        if bid <= 0 or ask <= 0 or timestamp <= 0:
+            result.update(
+                code="PAPER_QUOTE_INVALID",
+                message="Bid, ask, and quote timestamp must be positive.",
+            )
+            return result
+
+        if ask < bid:
+            result.update(
+                code="PAPER_QUOTE_CROSSED",
+                message="The PAPER quote is crossed: ask is below bid.",
+            )
+            return result
+
+        try:
+            current_time = time.time() if now is None else float(now)
+        except (TypeError, ValueError, OverflowError):
+            result.update(
+                code="PAPER_QUOTE_INVALID",
+                message="The quote validation clock is invalid.",
+            )
+            return result
+
+        if not math.isfinite(current_time):
+            result.update(
+                code="PAPER_QUOTE_INVALID",
+                message="The quote validation clock is not finite.",
+            )
+            return result
+
+        age = current_time - timestamp
+        result.update(
+            bid=bid,
+            ask=ask,
+            timestamp=timestamp,
+            age_seconds=age,
+        )
+
+        if age < 0:
+            result.update(
+                code="PAPER_QUOTE_TIMESTAMP_FUTURE",
+                message="The PAPER quote timestamp is in the future.",
+            )
+            return result
+
+        if age > max_age:
+            result.update(
+                code="PAPER_QUOTE_STALE",
+                message="The PAPER quote exceeds the configured freshness limit.",
+            )
+            return result
+
+        result.update(
+            ok=True,
+            code="PAPER_QUOTE_VALID",
+            message="PAPER quote is fresh and valid.",
+        )
+        return result
 
     def _verify_broker_account_mode(self, expected_mode: str) -> dict:
         """
@@ -749,9 +872,61 @@ class ExecutionService:
                         logger.exception('PAPER EXIT market-state failure: %s', market_error)
                         market_state = {}
 
+                    if not isinstance(market_state, dict):
+                        market_state = {}
+
                     quote = market_state.get(position_symbol, {})
-                    bid = float(quote.get('bid', 0.0) or 0.0)
-                    ask = float(quote.get('ask', 0.0) or 0.0)
+                    quote_validation = self._validate_paper_quote(quote)
+
+                    if not quote_validation["ok"]:
+                        self.orders_rejected += 1
+                        self.last_error = (
+                            str(quote_validation["code"])
+                            + ": "
+                            + str(quote_validation["message"])
+                        )
+                        rejection_result = {
+                            "success": False,
+                            "mode": "PAPER",
+                            "retcode": quote_validation["code"],
+                            "message": quote_validation["message"],
+                            "trade_id": trade_id,
+                            "symbol": symbol,
+                            "execution_mode": self.execution_mode,
+                            "broker_transmission_started": False,
+                            "duplicate_execution": False,
+                            "quote_validation": quote_validation,
+                        }
+                        oms_service.update_status(
+                            order_id, "REJECTED", rejection_result
+                        )
+                        try:
+                            await self._release_execution_idempotency(
+                                client_order_id
+                            )
+                        except Exception as release_error:
+                            logger.exception(
+                                "PAPER EXIT quote rejection idempotency release failed"
+                            )
+                            unresolved_result = {
+                                **rejection_result,
+                                "retcode": "EXECUTION_STATE_UNRESOLVED",
+                                "message": (
+                                    "Quote rejected, but execution idempotency "
+                                    "release failed; reconciliation is required."
+                                ),
+                                "reconciliation_required": True,
+                                "retryable": False,
+                                "idempotency_release_error": str(release_error),
+                            }
+                            oms_service.update_status(
+                                order_id, "REJECTED", unresolved_result
+                            )
+                            return unresolved_result
+                        return rejection_result
+
+                    bid = quote_validation["bid"]
+                    ask = quote_validation["ask"]
 
                     position_side = str(position.get('side', '')).upper()
 
@@ -866,8 +1041,190 @@ class ExecutionService:
                         **result,
                     }
 
+                try:
+                    market_state = mt5_service.get_market_state()
+                except Exception as market_error:
+                    logger.exception(
+                        'PAPER ENTRY market-state failure: %s', market_error
+                    )
+                    market_state = {}
+
+                if not isinstance(market_state, dict):
+                    market_state = {}
+
+                entry_symbol = str(order_request.get('symbol', '')).strip()
+                quote = market_state.get(entry_symbol, {})
+                quote_validation = self._validate_paper_quote(quote)
+
+                if not quote_validation["ok"]:
+                    self.orders_rejected += 1
+                    self.last_error = (
+                        str(quote_validation["code"])
+                        + ": "
+                        + str(quote_validation["message"])
+                    )
+                    rejection_result = {
+                        "success": False,
+                        "mode": "PAPER",
+                        "execution_mode": self.execution_mode,
+                        "retcode": quote_validation["code"],
+                        "message": quote_validation["message"],
+                        "symbol": entry_symbol,
+                        "side": execution_action,
+                        "client_order_id": client_order_id,
+                        "decision_id": decision_id,
+                        "broker_transmission_started": False,
+                        "duplicate_execution": False,
+                        "quote_validation": quote_validation,
+                    }
+                    oms_service.update_status(
+                        order_id, "REJECTED", rejection_result
+                    )
+                    try:
+                        await self._release_execution_idempotency(
+                            client_order_id
+                        )
+                    except Exception as release_error:
+                        logger.exception(
+                            "PAPER ENTRY quote rejection idempotency release failed"
+                        )
+                        unresolved_result = {
+                            **rejection_result,
+                            "retcode": "EXECUTION_STATE_UNRESOLVED",
+                            "message": (
+                                "Quote rejected, but execution idempotency "
+                                "release failed; reconciliation is required."
+                            ),
+                            "reconciliation_required": True,
+                            "retryable": False,
+                            "idempotency_release_error": str(release_error),
+                        }
+                        oms_service.update_status(
+                            order_id, "REJECTED", unresolved_result
+                        )
+                        return unresolved_result
+                    return rejection_result
+
+                if execution_action == "BUY":
+                    execution_price = quote_validation["ask"]
+                elif execution_action == "SELL":
+                    execution_price = quote_validation["bid"]
+                else:
+                    self.orders_rejected += 1
+                    self.last_error = (
+                        "PAPER_ENTRY_INVALID_SIDE: "
+                        "Only BUY or SELL may enter a PAPER position."
+                    )
+                    rejection_result = {
+                        "success": False,
+                        "mode": "PAPER",
+                        "execution_mode": self.execution_mode,
+                        "retcode": "PAPER_ENTRY_INVALID_SIDE",
+                        "message": self.last_error,
+                        "symbol": entry_symbol,
+                        "side": execution_action,
+                        "client_order_id": client_order_id,
+                        "decision_id": decision_id,
+                        "broker_transmission_started": False,
+                        "duplicate_execution": False,
+                        "quote_validation": quote_validation,
+                    }
+                    oms_service.update_status(
+                        order_id, "REJECTED", rejection_result
+                    )
+                    try:
+                        await self._release_execution_idempotency(
+                            client_order_id
+                        )
+                    except Exception as release_error:
+                        logger.exception(
+                            "PAPER ENTRY invalid-side idempotency release failed"
+                        )
+                        unresolved_result = {
+                            **rejection_result,
+                            "retcode": "EXECUTION_STATE_UNRESOLVED",
+                            "message": (
+                                "Entry side rejected, but execution idempotency "
+                                "release failed; reconciliation is required."
+                            ),
+                            "reconciliation_required": True,
+                            "retryable": False,
+                            "idempotency_release_error": str(release_error),
+                        }
+                        oms_service.update_status(
+                            order_id, "REJECTED", unresolved_result
+                        )
+                        return unresolved_result
+                    return rejection_result
+
+                try:
+                    stop_loss = float(order_request.get('stop_loss', 0.0) or 0.0)
+                except (TypeError, ValueError, OverflowError):
+                    stop_loss = float("nan")
+
+                stop_is_invalid = (
+                    not math.isfinite(stop_loss)
+                    or stop_loss <= 0
+                    or (
+                        stop_loss > 0
+                        and (
+                            (execution_action == "BUY" and stop_loss >= execution_price)
+                            or (execution_action == "SELL" and stop_loss <= execution_price)
+                        )
+                    )
+                )
+
+                if stop_is_invalid:
+                    self.orders_rejected += 1
+                    self.last_error = (
+                        "PAPER_STOP_INVALID_AGAINST_QUOTE: "
+                        "Protective stop is invalid against the current executable entry price."
+                    )
+                    rejection_result = {
+                        "success": False,
+                        "mode": "PAPER",
+                        "execution_mode": self.execution_mode,
+                        "retcode": "PAPER_STOP_INVALID_AGAINST_QUOTE",
+                        "message": self.last_error,
+                        "symbol": entry_symbol,
+                        "side": execution_action,
+                        "executable_price": execution_price,
+                        "stop_loss": stop_loss,
+                        "client_order_id": client_order_id,
+                        "decision_id": decision_id,
+                        "broker_transmission_started": False,
+                        "duplicate_execution": False,
+                        "quote_validation": quote_validation,
+                    }
+                    oms_service.update_status(
+                        order_id, "REJECTED", rejection_result
+                    )
+                    try:
+                        await self._release_execution_idempotency(
+                            client_order_id
+                        )
+                    except Exception as release_error:
+                        logger.exception(
+                            "PAPER ENTRY stop rejection idempotency release failed"
+                        )
+                        unresolved_result = {
+                            **rejection_result,
+                            "retcode": "EXECUTION_STATE_UNRESOLVED",
+                            "message": (
+                                "Entry stop rejected, but execution idempotency "
+                                "release failed; reconciliation is required."
+                            ),
+                            "reconciliation_required": True,
+                            "retryable": False,
+                            "idempotency_release_error": str(release_error),
+                        }
+                        oms_service.update_status(
+                            order_id, "REJECTED", unresolved_result
+                        )
+                        return unresolved_result
+                    return rejection_result
+
                 paper_trade_id = 'PAPER-' + uuid.uuid4().hex
-                execution_price = float(order_request.get('price', 0.0) or 0.0)
                 self.orders_sent += 1
                 self.orders_filled += 1
                 self.last_order_time = time.time()
