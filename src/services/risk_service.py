@@ -1,4 +1,5 @@
-﻿import logging
+import logging
+import math
 from database import SessionLocal
 from src.risk.risk_policy_repository import RiskPolicyRepository
 
@@ -59,6 +60,57 @@ class RiskEngineService:
     # Authoritative risk policy
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _validate_policy(policy):
+        """Normalize and validate the complete authoritative risk policy."""
+        required_fields = (
+            "max_daily_drawdown_percent",
+            "risk_per_trade_percent",
+            "max_position_size",
+            "liquidation_drawdown_percent",
+            "liquidation_margin_usage_percent",
+        )
+
+        if not isinstance(policy, dict):
+            raise ValueError("Risk policy must be an object")
+
+        validated = {}
+
+        for field in required_fields:
+            try:
+                value = float(policy[field])
+            except (KeyError, TypeError, ValueError, OverflowError) as exc:
+                raise ValueError(
+                    f"Invalid or missing risk policy field: {field}"
+                ) from exc
+
+            if not math.isfinite(value) or value <= 0:
+                raise ValueError(
+                    f"Risk policy field must be finite and positive: {field}"
+                )
+
+            validated[field] = value
+
+        if (
+            validated["liquidation_drawdown_percent"]
+            < validated["max_daily_drawdown_percent"]
+        ):
+            raise ValueError(
+                "liquidation_drawdown_percent must be greater than "
+                "max_daily_drawdown_percent"
+            )
+
+        if (
+            validated["risk_per_trade_percent"]
+            > validated["max_daily_drawdown_percent"]
+        ):
+            raise ValueError(
+                "risk_per_trade_percent cannot exceed "
+                "max_daily_drawdown_percent"
+            )
+
+        return validated
+
     def load_persistent_policy(self):
         """
         Load the authoritative production risk policy from PostgreSQL.
@@ -67,10 +119,18 @@ class RiskEngineService:
         when persistent policy state cannot be loaded.
         """
 
-        db = SessionLocal()
+        # Clear the previous policy before any reload operation, including
+        # database session creation. A failed reload must never leave stale
+        # policy state marked authoritative.
+        self._risk_policy = None
+        self._risk_policy_ready = False
+        db = None
 
         try:
-            policy = RiskPolicyRepository.load_policy(db)
+            db = SessionLocal()
+            policy = self._validate_policy(
+                RiskPolicyRepository.load_policy(db)
+            )
 
         except Exception:
             self._risk_policy = None
@@ -83,7 +143,8 @@ class RiskEngineService:
             raise
 
         finally:
-            db.close()
+            if db is not None:
+                db.close()
 
         self._risk_policy = dict(policy)
         self._risk_policy_ready = True
@@ -154,36 +215,20 @@ class RiskEngineService:
 
             try:
                 value = float(payload[field])
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError) as exc:
                 raise ValueError(
-                    f"{field} must be numeric"
-                )
+                    f"{field} must be numeric and finite"
+                ) from exc
 
-            if value <= 0:
+            if not math.isfinite(value) or value <= 0:
                 raise ValueError(
-                    f"{field} must be greater than zero"
+                    f"{field} must be finite and greater than zero"
                 )
 
             updated[field] = value
 
-        # Safety invariants.
-        if (
-            updated["liquidation_drawdown_percent"]
-            < updated["max_daily_drawdown_percent"]
-        ):
-            raise ValueError(
-                "liquidation_drawdown_percent must be greater than "
-                "max_daily_drawdown_percent"
-            )
-
-        if (
-            updated["risk_per_trade_percent"]
-            > updated["max_daily_drawdown_percent"]
-        ):
-            raise ValueError(
-                "risk_per_trade_percent cannot exceed "
-                "max_daily_drawdown_percent"
-            )
+        # Validate the complete merged policy before database access.
+        updated = self._validate_policy(updated)
 
         db = SessionLocal()
 
@@ -275,33 +320,100 @@ class RiskEngineService:
             else:
                 portfolio = self._portfolio_snapshot()
 
-            balance = float(
-                portfolio.get(
-                    "balance",
-                    0.0,
-                ) or 0.0
+            # Reject incomplete or invalid portfolio inputs before
+            # calculating risk. Missing data must never imply zero risk.
+            required_portfolio_fields = (
+                "balance",
+                "equity",
+                "margin",
+                "exposure",
+            )
+            validated_portfolio = {}
+
+            for field in required_portfolio_fields:
+                if field not in portfolio or portfolio[field] is None:
+                    raise ValueError(
+                        f"Required portfolio field unavailable: {field}"
+                    )
+
+                try:
+                    value = float(portfolio[field])
+                except (TypeError, ValueError, OverflowError) as exc:
+                    raise ValueError(
+                        f"Invalid portfolio field: {field}"
+                    ) from exc
+
+                if not math.isfinite(value):
+                    raise ValueError(
+                        f"Non-finite portfolio field: {field}"
+                    )
+
+                validated_portfolio[field] = value
+
+            if validated_portfolio["balance"] <= 0:
+                raise ValueError("Portfolio balance must be greater than zero")
+
+            if validated_portfolio["equity"] <= 0:
+                raise ValueError("Portfolio equity must be greater than zero")
+
+            if validated_portfolio["margin"] < 0:
+                raise ValueError("Portfolio margin cannot be negative")
+
+            if validated_portfolio["exposure"] < 0:
+                raise ValueError("Portfolio exposure cannot be negative")
+
+            required_policy_fields = (
+                "max_daily_drawdown_percent",
+                "risk_per_trade_percent",
+                "max_position_size",
+                "liquidation_drawdown_percent",
+                "liquidation_margin_usage_percent",
             )
 
-            equity = float(
-                portfolio.get(
-                    "equity",
-                    0.0,
-                ) or 0.0
-            )
+            for field in required_policy_fields:
+                try:
+                    value = float(self._risk_policy[field])
+                except (KeyError, TypeError, ValueError, OverflowError) as exc:
+                    raise ValueError(
+                        f"Invalid risk policy field: {field}"
+                    ) from exc
 
-            margin = float(
-                portfolio.get(
-                    "margin",
-                    0.0,
-                ) or 0.0
-            )
+                if not math.isfinite(value) or value <= 0:
+                    raise ValueError(
+                        f"Risk policy field must be finite and positive: {field}"
+                    )
 
-            exposure = float(
-                portfolio.get(
-                    "exposure",
-                    0.0,
-                ) or 0.0
-            )
+            # Revalidate cross-field policy invariants at snapshot time.
+            # An ACTIVE snapshot must never expose an internally
+            # contradictory policy, even if runtime state was mutated.
+            validated_policy = {
+                field: float(self._risk_policy[field])
+                for field in required_policy_fields
+            }
+
+            if (
+                validated_policy["liquidation_drawdown_percent"]
+                < validated_policy["max_daily_drawdown_percent"]
+            ):
+                raise ValueError(
+                    "liquidation_drawdown_percent must be greater than "
+                    "max_daily_drawdown_percent"
+                )
+
+            if (
+                validated_policy["risk_per_trade_percent"]
+                > validated_policy["max_daily_drawdown_percent"]
+            ):
+                raise ValueError(
+                    "risk_per_trade_percent cannot exceed "
+                    "max_daily_drawdown_percent"
+                )
+
+            balance = validated_portfolio["balance"]
+
+            equity = validated_portfolio["equity"]
+            margin = validated_portfolio["margin"]
+            exposure = validated_portfolio["exposure"]
 
             # ----------------------------------------------------------
             # Current drawdown
@@ -435,57 +547,39 @@ class RiskEngineService:
 
         except Exception as exc:
 
-            logger.exception(
-                "Risk snapshot failed"
+            logger.exception("Risk snapshot failed")
+
+            # ERROR is an unavailable risk state, not a zero-risk state.
+            # Use None for unavailable measurements and policy values.
+            policy = (
+                self._risk_policy
+                if isinstance(self._risk_policy, dict)
+                else {}
             )
 
             return {
-
-                "balance": 0.0,
-
-                "equity": 0.0,
-
-                "exposure": 0.0,
-
+                "balance": None,
+                "equity": None,
+                "margin": None,
+                "exposure": None,
                 "max_daily_drawdown":
-                    self._risk_policy["max_daily_drawdown_percent"],
-
+                    policy.get("max_daily_drawdown_percent"),
                 "maximum_allowed_drawdown":
-                    self._risk_policy["max_daily_drawdown_percent"],
-
+                    policy.get("max_daily_drawdown_percent"),
                 "risk_per_trade":
-                    self._risk_policy["risk_per_trade_percent"],
-
-                "risk_per_trade_amount":
-                    0.0,
-
+                    policy.get("risk_per_trade_percent"),
+                "risk_per_trade_amount": None,
                 "max_position_size":
-                    self._risk_policy["max_position_size"],
-
-                "daily_loss_limit":
-                    0.0,
-
+                    policy.get("max_position_size"),
+                "daily_loss_limit": None,
                 "daily_loss_limit_percent":
-                    self._risk_policy["max_daily_drawdown_percent"],
-
-                "current_drawdown":
-                    0.0,
-
-                "margin_usage":
-                    0.0,
-
-                "liquidation_warning":
-                    False,
-
-                "circuit_breaker_active":
-                    False,
-
-                "status":
-                    "ERROR",
-
-                "error":
-                    str(exc),
-
+                    policy.get("max_daily_drawdown_percent"),
+                "current_drawdown": None,
+                "margin_usage": None,
+                "liquidation_warning": False,
+                "circuit_breaker_active": False,
+                "status": "ERROR",
+                "error": str(exc),
             }
 
     # ------------------------------------------------------------------
@@ -515,6 +609,19 @@ class RiskEngineService:
             }
 
         state = self.snapshot()
+
+        # An invalid risk snapshot must never authorize a new order.
+        # Preserve the exact EXIT path so its existing downstream position,
+        # broker, and execution validations can still run.
+        if (
+            state.get("status") == "ERROR"
+            and order_request.get("type") != "EXIT"
+        ):
+            return {
+                "approved": False,
+                "reason": "Risk snapshot unavailable; order rejected",
+                "risk": state,
+            }
 
         # --------------------------------------------------------------
         # Circuit breaker
@@ -597,6 +704,13 @@ class RiskEngineService:
                 "reason": "Invalid volume",
             }
 
+        if not math.isfinite(volume):
+
+            return {
+                "approved": False,
+                "reason": "Volume must be finite",
+            }
+
         if volume <= 0:
 
             return {
@@ -638,6 +752,20 @@ class RiskEngineService:
                 0.0,
             ) or 0.0
         )
+
+        if not all(
+            math.isfinite(value)
+            for value in (
+                broker_min,
+                broker_max,
+                broker_step,
+            )
+        ):
+
+            return {
+                "approved": False,
+                "reason": "Broker volume contract contains non-finite values",
+            }
 
         # --------------------------------------------------------------
         # Broker minimum
@@ -731,6 +859,13 @@ class RiskEngineService:
                     "reason": "Invalid entry price",
                 }
 
+            if not math.isfinite(entry_price):
+
+                return {
+                    "approved": False,
+                    "reason": "Entry price must be finite",
+                }
+
             if entry_price <= 0:
 
                 return {
@@ -756,6 +891,13 @@ class RiskEngineService:
                 return {
                     "approved": False,
                     "reason": "Invalid protective stop",
+                }
+
+            if not math.isfinite(stop_loss):
+
+                return {
+                    "approved": False,
+                    "reason": "Protective stop must be finite",
                 }
 
             if stop_loss <= 0:
@@ -793,6 +935,20 @@ class RiskEngineService:
                 ) or 0.0
             )
 
+            if not math.isfinite(tick_size):
+
+                return {
+                    "approved": False,
+                    "reason": "Broker tick size must be finite",
+                }
+
+            if not math.isfinite(tick_value):
+
+                return {
+                    "approved": False,
+                    "reason": "Broker tick value must be finite",
+                }
+
             if tick_size <= 0:
 
                 return {
@@ -828,11 +984,32 @@ class RiskEngineService:
                 ) or 0.0
             )
 
+            if not math.isfinite(allowed_risk):
+
+                return {
+                    "approved": False,
+                    "reason": "Risk-per-trade budget must be finite",
+                }
+
             if allowed_risk <= 0:
 
                 return {
                     "approved": False,
                     "reason": "Risk-per-trade budget unavailable",
+                }
+
+            if not all(
+                math.isfinite(value)
+                for value in (
+                    stop_distance,
+                    stop_ticks,
+                    estimated_loss,
+                )
+            ):
+
+                return {
+                    "approved": False,
+                    "reason": "Risk calculation produced a non-finite value",
                 }
 
             if estimated_loss > allowed_risk:
