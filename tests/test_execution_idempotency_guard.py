@@ -331,6 +331,59 @@ def test_uncertain_previous_transmission_requires_reconciliation(monkeypatch):
     assert result["duplicate_execution"] is True
 
 
+def test_confirmed_fill_registration_failure_blocks_duplicate_retry(monkeypatch):
+    from src.services import execution_service as execution_module
+
+    previous_result = {
+        "success": False,
+        "retcode": "CONFIRMED_FILL_REGISTRATION_FAILED",
+        "message": "Broker confirmed fill; local registration failed.",
+        "client_order_id": "test-duplicate-id",
+        "order_ticket": 11111,
+        "deal_ticket": 22222,
+        "position_ticket": 33333,
+        "trade_id": "33333",
+        "broker_fill_confirmed": True,
+        "broker_transmission_started": True,
+        "reconciliation_required": True,
+        "retryable": False,
+    }
+
+    service = make_service(
+        monkeypatch,
+        {
+            "client_order_id": "test-duplicate-id",
+            "status": "FAILED",
+            "retcode": "CONFIRMED_FILL_REGISTRATION_FAILED",
+            "result": previous_result,
+            "broker_order_ticket": 11111,
+            "broker_deal_ticket": 22222,
+            "broker_position_ticket": 33333,
+        },
+    )
+
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "order_send",
+        lambda *args, **kwargs: pytest.fail(
+            "Duplicate confirmed-fill request must never reach MT5 order_send"
+        ),
+    )
+
+    result = asyncio.run(service.send_order(valid_entry_request()))
+
+    assert result["success"] is False
+    assert result["retcode"] == "CONFIRMED_FILL_REGISTRATION_FAILED"
+    assert result["client_order_id"] == "test-duplicate-id"
+    assert result["order_ticket"] == 11111
+    assert result["deal_ticket"] == 22222
+    assert result["position_ticket"] == 33333
+    assert result["trade_id"] == "33333"
+    assert result["broker_fill_confirmed"] is True
+    assert result["reconciliation_required"] is True
+    assert result["retryable"] is False
+    assert result["duplicate_execution"] is True
+
 def test_completed_identity_rejects_duplicate(monkeypatch):
     service = make_service(
         monkeypatch,
@@ -435,6 +488,145 @@ def test_transmission_exception_persists_reconciliation_flags(monkeypatch):
     assert captured["result"]["retcode"] == "TRANSMISSION_UNKNOWN"
     assert captured["result"].get("reconciliation_required") is True
     assert captured["result"].get("broker_transmission_started") is True
+
+
+def test_confirmed_fill_registration_failure_preserves_broker_identity(
+    monkeypatch,
+):
+    from types import SimpleNamespace
+    from src.services import execution_service as execution_module
+
+    service = ExecutionService.__new__(ExecutionService)
+    service.execution_mode = "LIVE"
+    monkeypatch.setattr(
+        service,
+        "_verify_broker_account_mode",
+        lambda expected_mode: {"ok": True, "code": "MOCK_ACCOUNT_VERIFIED"},
+    )
+
+    service.orders_rejected = 0
+    service.orders_sent = 0
+    service.orders_filled = 0
+    service.last_order_time = None
+    service.last_fill_time = None
+    service.last_error = None
+    service.execution_latency_ms = 0
+
+    captured = {"statuses": []}
+
+    async def claim_identity(client_order_id):
+        return True, None
+
+    async def capture_finalization(client_order_id, result, oms_order_id=None):
+        captured["finalized"] = dict(result)
+        captured["client_order_id"] = client_order_id
+        captured["oms_order_id"] = oms_order_id
+
+    async def fail_position_registration(*args, **kwargs):
+        raise RuntimeError("mock local position registration failure")
+
+    async def mock_record_trade_ledger(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(service, "_claim_execution_idempotency", claim_identity)
+    monkeypatch.setattr(
+        service,
+        "_finalize_execution_idempotency",
+        capture_finalization,
+    )
+    monkeypatch.setattr(
+        execution_module.oms_service,
+        "create_order",
+        lambda request: {"order_id": "mock-confirmed-fill-order"},
+    )
+
+    def capture_status(order_id, status, *args, **kwargs):
+        captured["statuses"].append(status)
+
+    monkeypatch.setattr(
+        execution_module.oms_service,
+        "update_status",
+        capture_status,
+    )
+    monkeypatch.setattr(
+        execution_module.risk_engine_service,
+        "approve_order",
+        lambda request: {"approved": True},
+    )
+    monkeypatch.setattr(
+        execution_module.execution_guard_service,
+        "evaluate",
+        lambda **kwargs: {"allowed": True, "status": "TEST_APPROVED"},
+    )
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "order_check",
+        lambda request: SimpleNamespace(retcode=0, comment="mock pass"),
+    )
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "order_send",
+        lambda request: SimpleNamespace(
+            retcode=execution_module.mt5.TRADE_RETCODE_DONE,
+            order=11111,
+            deal=22222,
+            volume=0.01,
+            price=2500.0,
+            comment="mock confirmed fill",
+        ),
+    )
+    monkeypatch.setattr(
+        service,
+        "_resolve_broker_position_ticket",
+        lambda **kwargs: 33333,
+    )
+    monkeypatch.setattr(
+        service,
+        "record_trade_ledger",
+        mock_record_trade_ledger,
+    )
+    monkeypatch.setattr(
+        execution_module.position_service,
+        "open_position",
+        fail_position_registration,
+    )
+
+    request = {
+        "action": "BUY",
+        "type": "BUY",
+        "decision_id": "confirmed-fill-regression-decision",
+        "client_order_id": "confirmed-fill-regression-id",
+        "live_transmission_authorized": True,
+        "volume": 0.01,
+        "price": 2500.0,
+        "stop_loss": 2490.0,
+        "symbol": "XAUUSDm",
+    }
+
+    result = asyncio.run(service.send_order(request))
+
+    assert result["success"] is False
+    assert result["retcode"] == "CONFIRMED_FILL_REGISTRATION_FAILED"
+    assert result["broker_fill_confirmed"] is True
+    assert result["reconciliation_required"] is True
+    assert result["retryable"] is False
+    assert result["order_ticket"] == 11111
+    assert result["deal_ticket"] == 22222
+    assert result["position_ticket"] == 33333
+    assert result["trade_id"] == "33333"
+
+    assert "FAILED" not in captured["statuses"]
+    assert "FILLED" in captured["statuses"]
+    assert service.orders_filled == 1
+    assert service.orders_rejected == 0
+
+    assert captured["client_order_id"] == "confirmed-fill-regression-id"
+    assert captured["finalized"]["retcode"] == (
+        "CONFIRMED_FILL_REGISTRATION_FAILED"
+    )
+    assert captured["finalized"]["order_ticket"] == 11111
+    assert captured["finalized"]["deal_ticket"] == 22222
+    assert captured["finalized"]["broker_fill_confirmed"] is True
 @pytest.mark.parametrize(
     ("invalid_field", "expected_retcode"),
     [
@@ -479,6 +671,8 @@ def test_invalid_entry_retry_rejects_existing_identity_without_release(
     assert result["retcode"] == "DUPLICATE_EXECUTION"
     assert result["client_order_id"] == "test-duplicate-id"
     assert released == []
+
+
 
 
 @pytest.mark.parametrize(
@@ -772,6 +966,139 @@ def test_duplicate_unresolved_oms_state_preserves_no_transmission_flag(monkeypat
     assert result["broker_transmission_started"] is False
     assert result["duplicate_execution"] is True
     assert result["retryable"] is False
+
+def test_partial_fill_bookkeeping_failure_preserves_reconciliation_result(
+    monkeypatch,
+):
+    from types import SimpleNamespace
+    from src.services import execution_service as execution_module
+
+    service = ExecutionService.__new__(ExecutionService)
+    service.execution_mode = "LIVE"
+    service.orders_rejected = 0
+    service.orders_sent = 0
+    service.orders_filled = 0
+    service.last_order_time = None
+    service.last_fill_time = None
+    service.last_error = None
+    service.execution_latency_ms = 0
+
+    captured = {
+        "statuses": [],
+        "finalizations": [],
+        "account_mode_checks": [],
+        "unexpected_full_fill_calls": [],
+    }
+
+    def verify_hedging_account(expected_mode):
+        captured["account_mode_checks"].append(expected_mode)
+        return {"ok": True, "code": "MOCK_HEDGING_ACCOUNT_VERIFIED"}
+
+    async def claim_identity(client_order_id):
+        return True, None
+
+    async def fail_finalization(client_order_id, result, oms_order_id=None):
+        captured["finalizations"].append(dict(result))
+        raise RuntimeError("mock idempotency persistence failure")
+
+    def fail_status_update(order_id, status, *args, **kwargs):
+        captured["statuses"].append(status)
+        raise RuntimeError("mock partial-fill OMS status update failure")
+
+    async def unexpected_full_fill_operation(*args, **kwargs):
+        captured["unexpected_full_fill_calls"].append("position_registration")
+        raise AssertionError("partial fill must not enter full-fill position registration")
+
+    async def unexpected_ledger_operation(*args, **kwargs):
+        captured["unexpected_full_fill_calls"].append("trade_ledger")
+        raise AssertionError("partial fill must not enter full-fill ledger registration")
+
+    monkeypatch.setattr(
+        service, "_verify_broker_account_mode", verify_hedging_account
+    )
+    monkeypatch.setattr(service, "_claim_execution_idempotency", claim_identity)
+    monkeypatch.setattr(
+        service, "_finalize_execution_idempotency", fail_finalization
+    )
+    monkeypatch.setattr(
+        execution_module.oms_service,
+        "create_order",
+        lambda request: {"order_id": "mock-partial-fill-order"},
+    )
+    monkeypatch.setattr(
+        execution_module.oms_service, "update_status", fail_status_update
+    )
+    monkeypatch.setattr(
+        execution_module.risk_engine_service,
+        "approve_order",
+        lambda request: {"approved": True},
+    )
+    monkeypatch.setattr(
+        execution_module.execution_guard_service,
+        "evaluate",
+        lambda **kwargs: {"allowed": True, "status": "TEST_APPROVED"},
+    )
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "order_check",
+        lambda request: SimpleNamespace(retcode=0, comment="mock pass"),
+    )
+    monkeypatch.setattr(
+        execution_module.mt5,
+        "order_send",
+        lambda request: SimpleNamespace(
+            retcode=execution_module.mt5.TRADE_RETCODE_DONE_PARTIAL,
+            order=41111,
+            deal=42222,
+            volume=0.01,
+            price=2501.25,
+            comment="mock partial fill",
+        ),
+    )
+    monkeypatch.setattr(
+        execution_module.position_service,
+        "open_position",
+        unexpected_full_fill_operation,
+    )
+    monkeypatch.setattr(
+        service, "record_trade_ledger", unexpected_ledger_operation
+    )
+
+    request = {
+        "action": "BUY",
+        "type": "BUY",
+        "decision_id": "partial-fill-bookkeeping-regression-decision",
+        "client_order_id": "partial-fill-bookkeeping-regression-id",
+        "live_transmission_authorized": True,
+        "volume": 0.03,
+        "price": 2501.25,
+        "stop_loss": 2490.0,
+        "symbol": "XAUUSDm",
+    }
+
+    result = asyncio.run(service.send_order(request))
+
+    assert result["success"] is False
+    assert result["retcode"] == "PARTIAL_FILL_RECONCILIATION_REQUIRED"
+    assert result["status"] == "PARTIALLY_FILLED"
+    assert result["retryable"] is False
+    assert result["reconciliation_required"] is True
+    assert result["broker_transmission_started"] is True
+    assert result["broker_fill_confirmed"] is True
+    assert result["order_ticket"] == 41111
+    assert result["deal_ticket"] == 42222
+    assert result["requested_volume"] == 0.03
+    assert result["filled_volume"] == 0.01
+    assert result["is_exit"] is False
+    assert result["idempotency_persistence_failed"] is True
+
+    assert captured["statuses"] == ["PARTIALLY_FILLED"]
+    assert captured["account_mode_checks"] == ["LIVE"]
+    assert captured["finalizations"]
+    assert captured["unexpected_full_fill_calls"] == []
+    assert service.orders_filled == 0
+    assert service.orders_rejected == 0
+
 
 def test_demo_netting_account_rejected_before_broker_checks(monkeypatch):
     from types import SimpleNamespace

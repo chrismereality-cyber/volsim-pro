@@ -1,4 +1,4 @@
-﻿import time
+import time
 import uuid
 import math
 import json
@@ -385,9 +385,88 @@ class ExecutionService:
     async def send_order(self, order_request: dict):
         start = time.time()
         broker_transmission_started = False
+        broker_fill_confirmed = False
+        confirmed_fill_result = None
         client_order_id = order_request.get('client_order_id') or order_request.get('idempotency_key') or 'VOLSIM-' + uuid.uuid4().hex
         order_request['client_order_id'] = client_order_id
         decision_id = order_request.get('decision_id')
+        # Normalize the high-level order contract before claiming
+        # idempotency or entering any execution path.
+        allowed_order_types = {'BUY', 'SELL', 'EXIT'}
+        has_explicit_type = 'type' in order_request
+        has_explicit_action = 'action' in order_request
+
+        if has_explicit_type:
+            normalized_order_type = str(
+                order_request.get('type') or ''
+            ).upper().strip()
+        elif has_explicit_action:
+            # Preserve supported legacy requests that specify action only.
+            normalized_order_type = str(
+                order_request.get('action') or ''
+            ).upper().strip()
+        else:
+            normalized_order_type = ''
+
+        if normalized_order_type not in allowed_order_types:
+            self.orders_rejected = getattr(self, 'orders_rejected', 0) + 1
+            self.last_error = 'EXECUTION_INVALID_ORDER_TYPE'
+            return {
+                'success': False,
+                'order_id': None,
+                'ticket': None,
+                'retcode': 'INVALID_ORDER_TYPE',
+                'message': 'Order type must be BUY, SELL, or EXIT.',
+                'client_order_id': client_order_id,
+                'decision_id': decision_id,
+                'execution_mode': self.execution_mode,
+                'broker_transmission_started': False,
+                'duplicate_execution': False,
+            }
+
+        if has_explicit_action:
+            normalized_action = str(
+                order_request.get('action') or ''
+            ).upper().strip()
+
+            if normalized_action not in allowed_order_types:
+                self.orders_rejected = getattr(self, 'orders_rejected', 0) + 1
+                self.last_error = 'EXECUTION_INVALID_ACTION'
+                return {
+                    'success': False,
+                    'order_id': None,
+                    'ticket': None,
+                    'retcode': 'INVALID_ACTION',
+                    'message': 'Order action must be BUY, SELL, or EXIT.',
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                    'execution_mode': self.execution_mode,
+                    'broker_transmission_started': False,
+                    'duplicate_execution': False,
+                }
+
+            if normalized_action != normalized_order_type:
+                self.orders_rejected = getattr(self, 'orders_rejected', 0) + 1
+                self.last_error = 'EXECUTION_ACTION_TYPE_MISMATCH'
+                return {
+                    'success': False,
+                    'order_id': None,
+                    'ticket': None,
+                    'retcode': 'ACTION_TYPE_MISMATCH',
+                    'message': (
+                        'Order action and type must identify the same '
+                        'BUY, SELL, or EXIT operation.'
+                    ),
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                    'execution_mode': self.execution_mode,
+                    'broker_transmission_started': False,
+                    'duplicate_execution': False,
+                }
+
+            order_request['action'] = normalized_action
+
+        order_request['type'] = normalized_order_type
 
         # AI provenance is mandatory for new BUY/SELL entries.
         # EXIT orders remain governed by the existing AI position-management
@@ -1832,11 +1911,119 @@ class ExecutionService:
                     client_order_id, unknown_result, order_id
                 )
                 return unknown_result
+            if (
+                getattr(mt5, "TRADE_RETCODE_DONE_PARTIAL", None) is not None
+                and result.retcode == mt5.TRADE_RETCODE_DONE_PARTIAL
+            ):
+                # The broker confirms an execution, but not a complete fill.
+                # Never route this outcome through full-fill registration or
+                # the generic rejection path.
+                broker_fill_confirmed = True
+                self.last_fill_time = time.time()
+
+                order_ticket = getattr(result, "order", None)
+                deal_ticket = getattr(result, "deal", None)
+                filled_volume = getattr(result, "volume", None)
+                fill_price = getattr(result, "price", None)
+                trade_id = order_request.get("trade_id") if is_exit else None
+
+                self.last_error = (
+                    "MT5 confirmed a partial fill. Reconcile broker and local "
+                    "state before any further action; automatic retry is unsafe."
+                )
+
+                partial_result = self._build_execution_result(
+                    success=False,
+                    order_id=order_id,
+                    client_order_id=client_order_id,
+                    decision_id=decision_id,
+                    status="PARTIALLY_FILLED",
+                    trade_id=trade_id,
+                    order_ticket=order_ticket,
+                    deal_ticket=deal_ticket,
+                    position_ticket=None,
+                    retcode="PARTIAL_FILL_RECONCILIATION_REQUIRED",
+                    broker_retcode=result.retcode,
+                    comment=getattr(result, "comment", None),
+                    message=self.last_error,
+                    symbol=order_request.get("symbol", ""),
+                    side=order_request.get(
+                        "side",
+                        order_request.get("action", order_request.get("type", "")),
+                    ),
+                    volume=filled_volume,
+                    price=fill_price,
+                    retryable=False,
+                    reconciliation_required=True,
+                    broker_transmission_started=True,
+                    broker_fill_confirmed=True,
+                    requested_volume=order_request.get("volume"),
+                    filled_volume=filled_volume,
+                    is_exit=bool(is_exit),
+                )
+
+                # Preserve the broker-confirmed partial result before any
+                # subsequent bookkeeping can raise into the recovery handler.
+                confirmed_fill_result = partial_result
+
+                # Keep the confirmed broker outcome and tickets durable so a
+                # duplicate client_order_id cannot silently transmit again.
+                oms_service.update_status(
+                    order_id,
+                    "PARTIALLY_FILLED",
+                    partial_result,
+                )
+                await self._finalize_execution_idempotency(
+                    client_order_id,
+                    partial_result,
+                    order_id,
+                )
+
+                logger.critical(
+                    "PARTIAL FILL RECONCILIATION REQUIRED: "
+                    "oms_order_id=%s client_order_id=%s is_exit=%s "
+                    "order_ticket=%s deal_ticket=%s filled_volume=%s "
+                    "requested_volume=%s price=%s",
+                    order_id,
+                    client_order_id,
+                    is_exit,
+                    order_ticket,
+                    deal_ticket,
+                    filled_volume,
+                    order_request.get("volume"),
+                    fill_price,
+                )
+                return partial_result
+
             if result.retcode == mt5.TRADE_RETCODE_DONE:
+                broker_fill_confirmed = True
                 self.orders_filled += 1
                 self.last_fill_time = time.time()
                 order_ticket = getattr(result, 'order', None)
                 deal_ticket = getattr(result, 'deal', None)
+                confirmed_fill_result = {
+                    'success': True,
+                    'order_id': order_id,
+                    'ticket': order_ticket,
+                    'order_ticket': order_ticket,
+                    'deal_ticket': deal_ticket,
+                    'position_ticket': None,
+                    'retcode': result.retcode,
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                    'execution_mode': self.execution_mode,
+                    'symbol': order_request.get('symbol', ''),
+                    'side': order_request.get(
+                        'side',
+                        order_request.get('action', order_request.get('type', '')),
+                    ),
+                    'volume': getattr(
+                        result, 'volume', order_request.get('volume')
+                    ),
+                    'price': getattr(
+                        result, 'price', order_request.get('price', 0)
+                    ),
+                }
 
                 if is_exit:
                     trade_id = order_request.get('trade_id')
@@ -1849,43 +2036,44 @@ class ExecutionService:
                         not reconciled_position
                         or reconciled_position.get('status') != 'CLOSED'
                     ):
-                        self.orders_rejected += 1
                         self.last_error = (
                             'LIVE EXIT broker transmission succeeded but '
                             'position reconciliation did not establish CLOSED state'
                         )
                         logger.critical(
                             'LIVE EXIT RECONCILIATION REQUIRED: '
-                            'oms_order_id=%s trade_id=%s reconciliation=%s',
+                            'oms_order_id=%s trade_id=%s order_ticket=%s '
+                            'deal_ticket=%s reconciliation=%s',
                             order_id,
                             trade_id,
+                            order_ticket,
+                            deal_ticket,
                             reconciliation,
                         )
-                        await self._finalize_execution_idempotency(
-                            client_order_id,
-                            {
-                                'success': False,
-                                'order_id': order_id,
-                                'ticket': order_ticket,
-                                'deal_ticket': deal_ticket,
-                                'retcode': 'RECONCILIATION_REQUIRED',
-                                'message': self.last_error,
-                                'client_order_id': client_order_id,
-                                'decision_id': decision_id,
-                                'execution_mode': self.execution_mode,
-                            },
-                            order_id,
-                        )
-                        return {
+                        exit_reconciliation_result = {
                             'success': False,
                             'order_id': order_id,
                             'ticket': order_ticket,
+                            'order_ticket': order_ticket,
                             'deal_ticket': deal_ticket,
+                            'position_ticket': None,
+                            'trade_id': trade_id,
                             'retcode': 'RECONCILIATION_REQUIRED',
                             'message': self.last_error,
                             'client_order_id': client_order_id,
                             'decision_id': decision_id,
+                            'execution_mode': self.execution_mode,
+                            'retryable': False,
+                            'reconciliation_required': True,
+                            'broker_transmission_started': True,
+                            'broker_fill_confirmed': True,
                         }
+                        await self._finalize_execution_idempotency(
+                            client_order_id,
+                            exit_reconciliation_result,
+                            order_id,
+                        )
+                        return exit_reconciliation_result
 
                     execution_result = {
                         'success': True,
@@ -2000,10 +2188,12 @@ class ExecutionService:
                     'client_order_id': client_order_id,
                     'decision_id': decision_id,
                 }
+                confirmed_fill_result.update(execution_result)
                 oms_service.update_status(order_id, 'FILLED', execution_result)
                 await self.record_trade_ledger(order_request, execution_result, 'FILLED', oms_order_id=order_id)
                 live_trade_id = position_ticket or str(order_ticket) or str(order_id)
                 execution_result['trade_id'] = str(live_trade_id)
+                confirmed_fill_result.update(execution_result)
                 position = await position_service.open_position(str(live_trade_id), order_request, execution_result)
 
                 await self._record_entry_attribution(
@@ -2042,20 +2232,69 @@ class ExecutionService:
             )
             return {'success': False, 'ticket': None, 'retcode': result.retcode, 'message': self.last_error}
         except Exception as e:
-            self.orders_rejected += 1
             self.last_error = str(e)
             logger.error('Order execution failed: %s', e)
-            oms_service.update_status(order_id, 'FAILED', {'error': str(e)})
-            if broker_transmission_started:
-                exception_retcode = 'TRANSMISSION_UNKNOWN'
-                exception_message = 'Broker transmission started but execution result could not be established safely. Broker reconciliation is required before retry.'
-                logger.critical('TRANSMISSION_UNKNOWN: oms_order_id=%s client_order_id=%s error=%s', order_id, client_order_id, e)
+
+            if broker_fill_confirmed:
+                is_confirmed_partial = (
+                    isinstance(confirmed_fill_result, dict)
+                    and confirmed_fill_result.get("retcode")
+                    == "PARTIAL_FILL_RECONCILIATION_REQUIRED"
+                )
+                if is_confirmed_partial:
+                    exception_retcode = "PARTIAL_FILL_RECONCILIATION_REQUIRED"
+                    exception_message = (
+                        "MT5 confirmed a partial fill, but subsequent bookkeeping "
+                        "failed. Broker reconciliation is required; do not retry "
+                        "this order."
+                    )
+                elif is_exit:
+                    exception_retcode = 'RECONCILIATION_REQUIRED'
+                    exception_message = (
+                        'MT5 confirmed the EXIT fill, but post-fill reconciliation '
+                        'failed. Broker reconciliation is required; do not retry this order.'
+                    )
+                else:
+                    exception_retcode = 'CONFIRMED_FILL_REGISTRATION_FAILED'
+                    exception_message = (
+                        'MT5 confirmed the fill, but subsequent execution bookkeeping '
+                        'failed. Broker reconciliation is required; do not retry this order.'
+                    )
+                recovery_result = {
+                    **(confirmed_fill_result or {}),
+                    'success': False,
+                    'order_id': order_id,
+                    'retcode': exception_retcode,
+                    'message': exception_message,
+                    'client_order_id': client_order_id,
+                    'decision_id': decision_id,
+                    'execution_mode': self.execution_mode,
+                    'retryable': False,
+                    'reconciliation_required': True,
+                    'broker_transmission_started': True,
+                    'broker_fill_confirmed': True,
+                }
+                logger.critical(
+                    'CONFIRMED_FILL_REGISTRATION_FAILED: oms_order_id=%s '
+                    'client_order_id=%s order_ticket=%s deal_ticket=%s error=%s',
+                    order_id,
+                    client_order_id,
+                    recovery_result.get('order_ticket'),
+                    recovery_result.get('deal_ticket'),
+                    e,
+                )
             else:
-                exception_retcode = 'EXECUTION_EXCEPTION'
-                exception_message = str(e)
-            await self._finalize_execution_idempotency(
-                client_order_id,
-                {
+                self.orders_rejected += 1
+                oms_service.update_status(order_id, 'FAILED', {'error': str(e)})
+                if broker_transmission_started:
+                    exception_retcode = 'TRANSMISSION_UNKNOWN'
+                    exception_message = 'Broker transmission started but execution result could not be established safely. Broker reconciliation is required before retry.'
+                    logger.critical('TRANSMISSION_UNKNOWN: oms_order_id=%s client_order_id=%s error=%s', order_id, client_order_id, e)
+                else:
+                    exception_retcode = 'EXECUTION_EXCEPTION'
+                    exception_message = str(e)
+
+                recovery_result = {
                     'success': False,
                     'order_id': order_id,
                     'ticket': None,
@@ -2064,24 +2303,35 @@ class ExecutionService:
                     'client_order_id': client_order_id,
                     'decision_id': decision_id,
                     'execution_mode': self.execution_mode,
+                    'retryable': False,
                     'reconciliation_required': broker_transmission_started,
                     'broker_transmission_started': broker_transmission_started,
-                },
-                order_id,
-            )
-            return {
-                'success': False,
-                'order_id': order_id,
-                'ticket': None,
-                'retcode': exception_retcode,
-                'message': exception_message,
-                'client_order_id': client_order_id,
-                'decision_id': decision_id,
-                'execution_mode': self.execution_mode,
-                'retryable': False,
-                'reconciliation_required': broker_transmission_started,
-                'broker_transmission_started': broker_transmission_started,
-            }
+                }
+
+            try:
+                await self._finalize_execution_idempotency(
+                    client_order_id,
+                    recovery_result,
+                    order_id,
+                )
+            except Exception as persistence_error:
+                # A confirmed broker fill must still return a non-retryable
+                # recovery result if idempotency persistence also fails.
+                recovery_result["idempotency_persistence_failed"] = True
+                recovery_result["message"] = (
+                    recovery_result.get("message", "")
+                    + " Idempotency persistence also failed; reconcile broker "
+                    "and local state before any further action."
+                )
+                logger.critical(
+                    "RECOVERY IDEMPOTENCY PERSISTENCE FAILED: "
+                    "oms_order_id=%s client_order_id=%s retcode=%s error=%s",
+                    order_id,
+                    client_order_id,
+                    recovery_result.get("retcode"),
+                    persistence_error,
+                )
+            return recovery_result
 
     async def _record_entry_attribution(
         self,
@@ -2441,12 +2691,3 @@ class ExecutionService:
             logger.error('Execution snapshot failure: %s', e)
             return {'bridge_connection_status': 'UNKNOWN', 'last_error': str(e), 'heartbeat': time.time()}
 execution_service = ExecutionService()
-
-
-
-
-
-
-
-
-
