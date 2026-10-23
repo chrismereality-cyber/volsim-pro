@@ -1,3 +1,4 @@
+﻿import hashlib
 import time
 
 from src.services.execution_queue_service import execution_queue_service
@@ -273,6 +274,17 @@ class AIExecutionOrchestrator:
             trade_id if order_type == "EXIT" else None,
         )
 
+        # Keep the durable identity stable for repeated attempts of the
+        # same decision intent. Do not invent one when decision provenance
+        # is missing; the execution service's existing fallback remains.
+        if decision_id and not (
+            request.get("client_order_id") or request.get("idempotency_key")
+        ):
+            identity_material = repr(signature).encode("utf-8")
+            request["client_order_id"] = (
+                "VOLSIM-" + hashlib.sha256(identity_material).hexdigest()
+            )
+
         if signature == self._last_signatures.get(symbol):
 
             state["execution_signal"] = order_type
@@ -283,8 +295,6 @@ class AIExecutionOrchestrator:
             )
 
             return state
-
-        self._last_signatures[symbol] = signature
 
         state["execution_signal"] = order_type
         state["last_order"] = request
@@ -327,6 +337,10 @@ class AIExecutionOrchestrator:
             )
 
             return state
+
+        # Cache the intent only after queue acceptance and dequeue.
+        # Queue rejection/empty conditions must not suppress a retry.
+        self._last_signatures[symbol] = signature
 
         state["last_action"] = "DISPATCHING"
 
@@ -424,4 +438,3 @@ class AIExecutionOrchestrator:
 
 
 ai_execution_orchestrator = AIExecutionOrchestrator()
-
