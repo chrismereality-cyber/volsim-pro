@@ -40,6 +40,25 @@ class ExecutionQueueService:
         if not order_request:
             return None
 
+        client_order_id = (
+            order_request.get("client_order_id")
+            or order_request.get("idempotency_key")
+        )
+        if client_order_id:
+            return ("CLIENT_ORDER_ID", str(client_order_id))
+
+        if (
+            order_request.get("type") == "EXIT"
+            and order_request.get("trade_id") is not None
+        ):
+            return (
+                "EXIT_TRADE",
+                order_request.get("symbol"),
+                "EXIT",
+                str(order_request.get("trade_id")),
+            )
+
+        # Backward-compatible fallback for legacy requests.
         return (
             order_request.get("symbol"),
             order_request.get("type"),
