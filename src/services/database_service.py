@@ -40,9 +40,22 @@ class DatabaseService:
             return self.pool
 
 
-        ssl_context = ssl.create_default_context()
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
+        ca_cert_path = os.getenv("DATABASE_SSL_ROOT_CERT")
+        if not ca_cert_path:
+            raise RuntimeError(
+                "DATABASE_SSL_ROOT_CERT must point to the PostgreSQL CA certificate."
+            )
+        if not os.path.isfile(ca_cert_path):
+            raise FileNotFoundError(
+                "Configured PostgreSQL CA certificate file does not exist."
+            )
+
+        ssl_context = ssl.create_default_context(
+            ssl.Purpose.SERVER_AUTH,
+            cafile=ca_cert_path,
+        )
+        ssl_context.verify_mode = ssl.CERT_REQUIRED
+        ssl_context.check_hostname = True
 
         self.pool = await asyncpg.create_pool(
             dsn=self.database_url,
