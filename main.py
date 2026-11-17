@@ -1,17 +1,11 @@
-import asyncio
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import FastAPI
 
-@app.websocket("/ws/trading-state")
-async def trading_state_websocket(websocket: WebSocket):
-    await websocket.accept()
-    try:
-        while True:
-            # Pull live telemetry data to stream to client
-            payload = {
-                "status": "online",
-                "timestamp": asyncio.get_event_loop().time()
-            }
-            await websocket.send_json(payload)
-            await asyncio.sleep(1)
-    except WebSocketDisconnect:
-        print("Client disconnected from trading-state WebSocket")
+app = FastAPI(title="VolSim-Pro Health Service")
+
+
+@app.get("/", include_in_schema=False)
+async def health():
+    return {
+        "status": "healthy",
+        "engine": "VolSim-Pro Core v1.1",
+    }
